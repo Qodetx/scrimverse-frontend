@@ -1,0 +1,276 @@
+.verified-page-container {
+  position: relative;
+  overflow-x: hidden;
+  padding-top: 0;
+}
+
+.nav-back-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 40px;
+  position: relative;
+  z-index: 20;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: hsl(var(--muted-foreground));
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  transition: var(--transition-smooth);
+}
+
+.back-link:hover {
+  color: #fff;
+  transform: translateX(-4px);
+}
+
+/* Hero Section */
+.verified-hero {
+  padding: 0 20px 80px;
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
+}
+
+.verified-main-icon {
+  width: 120px;
+  height: 120px;
+  background: hsla(270, 91%, 65%, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a855f7;
+  margin: 0 auto 40px;
+  position: relative;
+}
+
+.verified-main-icon::after {
+  content: '';
+  position: absolute;
+  inset: -15px;
+  border-radius: 50%;
+  background: hsla(270, 91%, 65%, 0.15);
+  filter: blur(15px);
+  z-index: -1;
+}
+
+.verified-hero-title {
+  font-size: clamp(48px, 8vw, 84px);
+  font-weight: 1000;
+  color: #fff;
+  margin-bottom: 24px;
+  letter-spacing: -3px;
+  text-transform: uppercase;
+}
+
+.verified-hero-subtitle {
+  font-size: 20px;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* Generic Section */
+.verified-section {
+  max-width: 1400px;
+  margin: 0 auto 120px;
+  padding: 0 40px;
+  position: relative;
+  z-index: 10;
+}
+
+.verified-section-title {
+  font-size: 56px;
+  font-weight: 950;
+  color: #fff;
+  letter-spacing: -2px;
+  margin-bottom: 16px;
+}
+
+.verified-section-subtitle {
+  font-size: 18px;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+/* Verification Steps Grid */
+.verification-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+
+.step-card {
+  padding: 48px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.step-number-badge {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #a855f7;
+  padding: 4px 12px;
+  background: hsla(270, 91%, 65%, 0.1);
+  border: 1px solid hsla(270, 91%, 65%, 0.2);
+  border-radius: 99px;
+}
+
+.step-icon-wrapper {
+  width: 72px;
+  height: 72px;
+  background: hsla(270, 91%, 65%, 0.1);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a855f7;
+  margin-bottom: 32px;
+  border: 1px solid hsla(270, 91%, 65%, 0.3);
+}
+
+.step-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.step-description {
+  font-size: 15px;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+}
+
+/* Stats Section */
+.verified-stats-section {
+  background: linear-gradient(90deg, transparent, hsla(var(--accent) / 0.05), transparent);
+  border-top: 1px solid hsla(var(--border) / 0.4);
+  border-bottom: 1px solid hsla(var(--border) / 0.4);
+  padding: 80px 0;
+  margin-bottom: 120px;
+  position: relative;
+}
+
+.stats-inner-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.stat-item {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-number {
+  font-size: 64px;
+  font-weight: 1000;
+  background: linear-gradient(135deg, #fff 0%, hsl(var(--accent)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -2px;
+}
+
+.stat-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 60px;
+  background: hsla(var(--border) / 0.6);
+}
+
+/* Benefits Grid */
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.benefit-card {
+  padding: 60px 40px;
+  text-align: center;
+  border-radius: 24px;
+}
+
+.benefit-icon {
+  font-size: 48px;
+  margin-bottom: 24px;
+}
+
+.benefit-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.benefit-description {
+  font-size: 16px;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+}
+
+/* CTA Section Override */
+.verified-cta-section {
+  max-width: 1200px;
+  margin: 0 auto 120px;
+  padding: 0 20px;
+}
+
+@media (max-width: 1024px) {
+  .verification-steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .benefits-grid {
+    grid-template-columns: 1fr;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .stats-inner-grid {
+    flex-direction: column;
+    gap: 64px;
+  }
+
+  .stat-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .verification-steps-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .verified-hero-title {
+    font-size: 48px;
+  }
+}

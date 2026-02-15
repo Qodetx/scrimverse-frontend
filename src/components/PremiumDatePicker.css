@@ -1,0 +1,145 @@
+.date-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: hsl(0 0% 0% / 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.date-modal-content {
+  background: hsl(220 15% 10%);
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  border-radius: 24px;
+  width: 320px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px hsl(0 0% 0% / 0.5);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.date-header {
+  background: hsl(270 60% 55%);
+  padding: 24px;
+  color: white;
+}
+
+.date-year-display {
+  font-size: 14px;
+  font-weight: 700;
+  color: hsl(0 0% 100% / 0.6);
+  margin-bottom: 4px;
+}
+
+.date-selected-display {
+  font-size: 28px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+
+.current-month-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.cal-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: hsl(0 0% 100% / 0.5);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-ctrl-btn:hover {
+  background: hsl(0 0% 100% / 0.05);
+  color: #ffffff;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 0 20px 20px;
+  gap: 4px;
+}
+
+.calendar-day-label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 900;
+  color: hsl(0 0% 30%);
+  padding-bottom: 8px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(0 0% 80%);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.calendar-day:hover:not(.empty) {
+  background: hsl(0 0% 100% / 0.05);
+  color: #ffffff;
+}
+
+.calendar-day.selected {
+  background: hsl(270 60% 55%) !important;
+  color: #ffffff !important;
+  font-weight: 900;
+  box-shadow: 0 4px 10px hsl(270 60% 55% / 0.4);
+}
+
+.calendar-day.today {
+  color: hsl(270 60% 70%);
+  font-weight: 900;
+}
+
+.calendar-day.disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.date-actions {
+  padding: 12px 20px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid hsl(0 0% 100% / 0.05);
+}
+
+.date-btn-cancel {
+  background: transparent;
+  border: none;
+  color: hsl(0 0% 100% / 0.4);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.date-btn-cancel:hover {
+  background: hsl(0 0% 100% / 0.05);
+  color: #ffffff;
+}

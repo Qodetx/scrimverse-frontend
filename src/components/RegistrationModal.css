@@ -1,0 +1,295 @@
+/* RegistrationModal.css - Ultra-Compact Cyber Intel Design */
+
+.scrimverse-reg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  /* Higher than navbar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: rgba(4, 4, 5, 0.9);
+  backdrop-filter: blur(12px);
+  overflow-y: auto;
+  animation: modal-fade-in 0.2s forwards;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.scrimverse-reg-card {
+  width: 100%;
+  max-width: 580px;
+  border-radius: 1.2rem;
+  overflow: hidden;
+  position: relative;
+  background: #070708 !important;
+  /* Deep black background */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  animation: card-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes card-pop {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.scrimverse-reg-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.scrimverse-reg-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.5);
+  /* Darker stepper area */
+}
+
+.scrimverse-step-node {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #555;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.scrimverse-step-node.active {
+  border-color: #3b82f6;
+  color: white;
+  background: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.scrimverse-step-node.completed {
+  border-color: #22c55e;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.scrimverse-step-line {
+  height: 1px;
+  width: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.scrimverse-reg-content {
+  padding: 1.5rem;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.scrimverse-reg-content::-webkit-scrollbar {
+  width: 3px;
+}
+
+.scrimverse-reg-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.scrimverse-input-group {
+  margin-bottom: 1rem;
+}
+
+.scrimverse-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #52525b;
+  margin-bottom: 0.5rem;
+}
+
+.scrimverse-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.scrimverse-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.scrimverse-input-icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.scrimverse-team-banner {
+  background: rgba(245, 158, 11, 0.03);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 1.25rem;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.scrimverse-team-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(245, 158, 11, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.scrimverse-team-banner-title {
+  color: #fbbf24;
+  /* amber-400 */
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.35rem;
+}
+
+.scrimverse-team-banner-subtitle {
+  color: #f59e0b;
+  /* amber-500 */
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.scrimverse-reg-footer {
+  padding: 1rem 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  gap: 0.75rem;
+}
+
+.scrimverse-btn-cancel {
+  flex: 1;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.6rem;
+  color: #71717a;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+
+.scrimverse-btn-primary {
+  flex: 2;
+  padding: 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border-radius: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+}
+
+.scrimverse-player-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.875rem;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.2s;
+}
+
+.scrimverse-player-card.selected {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: #3b82f6;
+}
+
+.scrimverse-checkbox-custom {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 0.3rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selected .scrimverse-checkbox-custom {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.scrimverse-suggestion-box {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #121214;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.6rem;
+  margin-top: 0.25rem;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.animate-spin-custom {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

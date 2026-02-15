@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Production
+build/
+dist/
+
+# Coverage
+coverage/
+
+# Misc
+.DS_Store
+*.log
+package-lock.json
+
+# Config files (don't format)
+.eslintrc
+.prettierrc
+

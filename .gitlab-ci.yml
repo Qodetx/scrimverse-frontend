@@ -1,0 +1,123 @@
+# .gitlab-ci.yml
+# GitLab CI/CD Pipeline for Scrimverse Frontend
+
+# Define stages for the pipeline
+stages:
+  - install
+  - lint
+  - test
+  - build
+
+# Define default image for all jobs
+default:
+  image: node:18-alpine
+
+# Cache node_modules
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+    - .npm/
+  policy: pull-push
+
+# Variables
+variables:
+  NODE_ENV: test
+  REACT_APP_API_URL: "http://localhost:8000/api"
+  REACT_APP_MEDIA_URL: "http://localhost:8000/media"
+  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm"
+
+# Template for Node.js setup
+.node_setup: &node_setup
+  before_script:
+    - echo "Setting up Node.js environment..."
+    - node --version
+    - npm --version
+    - echo "Installing dependencies..."
+    - npm ci --prefer-offline --no-audit
+
+# Job to install dependencies
+install:
+  stage: install
+  script:
+    - echo "Installing Node.js dependencies..."
+    - npm ci --prefer-offline --no-audit
+    - echo "Dependencies installed successfully"
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+  only:
+    - main
+    - master
+    - merge_requests
+
+# Job to run linting (ESLint)
+lint:
+  stage: lint
+  <<: *node_setup
+  script:
+    - echo "Running ESLint..."
+    - npm run lint || echo "Linting completed with warnings"
+  allow_failure: true # Allow linting to fail without blocking the pipeline
+  only:
+    - main
+    - master
+    - merge_requests
+
+# Job to run tests
+test:
+  stage: test
+  <<: *node_setup
+  script:
+    - echo "Running Jest tests..."
+    - npm test -- --watchAll=false --coverage --ci
+    - echo "Tests completed successfully"
+  artifacts:
+    when: always
+    paths:
+      - coverage/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    expire_in: 30 days
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  only:
+    - main
+    - master
+    - merge_requests
+
+# Job to build the application
+build:
+  stage: build
+  <<: *node_setup
+  variables:
+    CI: "false"  # Don't treat warnings as errors during build
+  script:
+    - echo "Building React application..."
+    - npm run build
+    - echo "Build completed successfully"
+    - ls -la build/
+  artifacts:
+    paths:
+      - build/
+    expire_in: 7 days
+  only:
+    - main
+    - master
+    - merge_requests
+
+# Optional: Job to run security audit
+security_audit:
+  stage: test
+  <<: *node_setup
+  script:
+    - echo "Running npm audit..."
+    - npm audit --audit-level=moderate || echo "Security audit completed with warnings"
+  allow_failure: true
+  only:
+    - main
+    - master
+    - merge_requests
+

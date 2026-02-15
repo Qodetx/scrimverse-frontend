@@ -1,0 +1,145 @@
+/* Search Page Styles */
+.search-page {
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.search-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.search-hero-title {
+  font-size: 48px;
+  font-weight: 950;
+  color: #fff;
+  margin-bottom: 32px;
+  letter-spacing: -1.5px;
+  text-transform: uppercase;
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* Search Bar Wrapper */
+.search-bar-wrapper {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 40px;
+  width: 100%;
+}
+
+.search-input-group {
+  flex: 1;
+  position: relative;
+}
+
+.search-icon-fixed {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.search-main-input {
+  width: 100%;
+  padding: 16px 16px 16px 48px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.search-main-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #8b5cf6;
+}
+
+.search-select {
+  padding: 0 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.search-btn {
+  padding: 0 32px;
+  background: #8b5cf6;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.search-btn:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.section-results-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .search-hero-title {
+    font-size: 32px;
+    letter-spacing: -1px;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-page {
+    padding: 24px 16px;
+  }
+
+  .search-hero-title {
+    font-size: 28px;
+    margin-bottom: 24px;
+  }
+
+  .search-bar-wrapper {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+
+  .search-main-input,
+  .search-select,
+  .search-btn {
+    width: 100%;
+    height: 52px;
+    padding: 0 16px;
+  }
+
+  .search-main-input {
+    padding-left: 44px;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .section-results-title {
+    font-size: 20px;
+  }
+}

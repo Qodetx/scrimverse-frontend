@@ -1,0 +1,150 @@
+/* Team Players Modal Styles */
+.team-players-modal {
+  width: 90vw;
+  max-width: 1100px;
+  max-height: 85vh;
+  background: linear-gradient(135deg, rgba(8, 8, 12, 0.98) 0%, rgba(15, 15, 25, 0.98) 100%);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 2.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 0 100px rgba(0, 0, 0, 0.8),
+    0 0 40px rgba(168, 85, 247, 0.1);
+  animation: modalScaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.team-players-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2.5rem 3rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, rgba(25, 25, 30, 0.5) 0%, rgba(15, 15, 20, 0.3) 100%);
+}
+
+.team-players-modal .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 3rem;
+}
+
+/* Custom Scrollbar */
+.team-players-modal .modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.team-players-modal .modal-body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+
+.team-players-modal .modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.team-players-modal .modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Players Grid */
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+/* Player Card */
+.player-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(25, 25, 30, 0.6) 0%, rgba(15, 15, 20, 0.8) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2rem;
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+.player-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+.player-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.player-card:hover::before {
+  opacity: 1;
+}
+
+/* Responsive Grid */
+@media (max-width: 1200px) {
+  .players-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .team-players-modal {
+    width: 95vw;
+    max-height: 90vh;
+    border-radius: 2rem;
+  }
+
+  .team-players-modal .modal-header {
+    padding: 2rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+
+  .team-players-modal .modal-body {
+    padding: 2rem;
+  }
+
+  .players-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-players-modal .modal-header {
+    padding: 1.5rem;
+  }
+
+  .team-players-modal .modal-body {
+    padding: 1.5rem;
+  }
+}

@@ -1,0 +1,225 @@
+.tournament-plan-selector {
+  margin: 30px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.plan-selector-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 25px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.plans-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+  margin-bottom: 20px;
+}
+
+.plan-card {
+  position: relative;
+  background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+  border: 2px solid #2a4365;
+  border-radius: 12px;
+  padding: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.plan-card:hover {
+  transform: translateY(-5px);
+  border-color: #4299e1;
+  box-shadow: 0 8px 25px rgba(66, 153, 225, 0.3);
+}
+
+.plan-card.selected {
+  border-color: #48bb78;
+  background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+  box-shadow: 0 8px 30px rgba(72, 187, 120, 0.4);
+}
+
+.plan-card.popular {
+  border-color: #f6ad55;
+}
+
+.popular-badge {
+  position: absolute;
+  top: 15px;
+  right: -30px;
+  background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+  color: #1a202c;
+  padding: 5px 40px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  transform: rotate(45deg);
+  box-shadow: 0 2px 10px rgba(246, 173, 85, 0.5);
+}
+
+.plan-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.plan-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+}
+
+.currency {
+  font-size: 24px;
+  font-weight: 600;
+  color: #4299e1;
+}
+
+.amount {
+  font-size: 48px;
+  font-weight: 800;
+  color: #48bb78;
+  line-height: 1;
+}
+
+.plan-features {
+  margin-top: 20px;
+}
+
+.features-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #a0aec0;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.features-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.feature-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.features-list li.included .feature-icon {
+  color: #48bb78;
+}
+
+.features-list li.excluded .feature-icon {
+  color: #fc8181;
+}
+
+.feature-text {
+  flex: 1;
+}
+
+.selected-indicator {
+  margin-top: 20px;
+  padding: 12px;
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 16px;
+  box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.plan-warning {
+  background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
+  color: #ffffff;
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(252, 129, 129, 0.3);
+  animation: shake 0.5s;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .plans-container {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-selector-title {
+    font-size: 20px;
+  }
+
+  .plan-name {
+    font-size: 18px;
+  }
+
+  .amount {
+    font-size: 36px;
+  }
+
+  .popular-badge {
+    font-size: 10px;
+    padding: 4px 35px;
+  }
+}
