@@ -93,9 +93,16 @@ export const authAPI = {
   getCurrentUser: (game = 'ALL') => api.get('/accounts/me/', { params: { game } }),
   getPlayerProfile: (id) => api.get(`/accounts/player/profile/${id}/`),
   getHostProfile: (id) => api.get(`/accounts/host/profile/${id}/`),
-  updatePlayerProfile: (id, data) => api.put(`/accounts/player/profile/${id}/`, data),
-  updateHostProfile: (id, data) => api.put(`/accounts/host/profile/${id}/`, data),
-  searchPlayerUsernames: (query) => api.get('/accounts/players/search/', { params: { q: query } }),
+  updateUser: (data) => {
+    const config =
+      data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.patch('/accounts/me/', data, config);
+  },
+  updatePlayerProfile: (data) => api.patch('/accounts/player/profile/me/', data),
+  updateHostProfile: (data) => api.patch('/accounts/host/profile/me/', data),
+  searchPlayerUsernames: (query, forTeam = false) =>
+    api.get('/accounts/players/search/', { params: { q: query, for_team: forTeam } }),
+  googleAuth: (data) => api.post('/accounts/google-auth/', data),
 };
 
 // Tournament APIs
@@ -233,6 +240,8 @@ export const teamAPI = {
   requestJoin: (teamId) => api.post(`/accounts/teams/${teamId}/request_join/`),
   getPastTournaments: (teamId) => api.get(`/accounts/teams/${teamId}/past_tournaments/`),
   getMyInvites: () => api.get('/accounts/teams/my_invites/'),
+  handleInvite: (inviteId, action) =>
+    api.post('/accounts/teams/handle_invite/', { invite_id: inviteId, action }),
 };
 
 // Leaderboard APIs

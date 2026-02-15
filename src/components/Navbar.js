@@ -256,7 +256,7 @@ const Navbar = () => {
                           Create Tournament
                         </Link>
                         <Link
-                          to="/host/scrims/create"
+                          to="/host/create-scrim"
                           className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
@@ -390,7 +390,7 @@ const Navbar = () => {
                           Create Tournament
                         </Link>
                         <Link
-                          to="/host/scrims/create"
+                          to="/host/create-scrim"
                           className="mobile-nav-link"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >

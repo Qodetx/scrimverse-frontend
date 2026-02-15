@@ -1,7 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from '../context/AuthContext';
 
 // Custom render function that includes providers
@@ -9,12 +8,11 @@ export function renderWithProviders(ui, options = {}) {
   const { authValue, ...renderOptions } = options;
 
   function Wrapper({ children }) {
+    // Tests don't need the actual Google OAuth provider; wrap with AuthProvider and Router only.
     return (
-      <GoogleOAuthProvider clientId="mock-client-id">
-        <BrowserRouter>
-          <AuthProvider>{children}</AuthProvider>
-        </BrowserRouter>
-      </GoogleOAuthProvider>
+      <BrowserRouter>
+        <AuthProvider>{children}</AuthProvider>
+      </BrowserRouter>
     );
   }
 

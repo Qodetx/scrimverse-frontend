@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { authAPI } from '../utils/api';
+import { GoogleLogin } from '@react-oauth/google';
 
 const PlayerRegister = () => {
   const [formData, setFormData] = useState({
@@ -10,8 +11,6 @@ const PlayerRegister = () => {
     password: '',
     password2: '',
     phone_number: '',
-    in_game_name: '',
-    game_id: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,6 +52,39 @@ const PlayerRegister = () => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('');
+    setLoading(true);
+
+    try {
+      // Call backend to create Google account immediately. Backend will generate username if needed.
+      const response = await authAPI.googleAuth({
+        token: credentialResponse.credential,
+        user_type: 'player',
+        is_signup: true,
+      });
+
+      if (response.data?.tokens && response.data?.user) {
+        login(response.data.user, response.data.tokens);
+        if (!response.data.profile?.in_game_name || !response.data.profile?.game_id) {
+          navigate('/player/dashboard', { state: { showProfileEdit: true } });
+        } else {
+          navigate(nextPath);
+        }
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Google authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // No additional completion step needed - backend will create account immediately
+
+  const handleGoogleError = () => {
+    setError('Google authentication failed. Please try again.');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Glows */}
@@ -90,6 +122,31 @@ const PlayerRegister = () => {
               </div>
             )}
 
+            {/* Google Sign-In Button */}
+            <div className="w-full">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                size="large"
+                width="100%"
+                text="signup_with"
+                shape="rectangular"
+                logo_alignment="left"
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-[#111114] px-4 text-gray-500 font-bold uppercase tracking-widest">
+                  Or continue with email
+                </span>
+              </div>
+            </div>
+
             <div className="space-y-4">
               {/* Email */}
               <div className="space-y-2">
@@ -125,52 +182,20 @@ const PlayerRegister = () => {
                 />
               </div>
 
-              {/* In-Game Name */}
-              <div className="space-y-2">
-                <label htmlFor="in_game_name" className="text-sm font-bold text-gray-400 ml-1">
-                  In-Game Name *
-                </label>
-                <input
-                  id="in_game_name"
-                  name="in_game_name"
-                  type="text"
-                  required
-                  value={formData.in_game_name}
-                  onChange={handleChange}
-                  placeholder="Your game character name"
-                  className="block w-full px-4 py-3.5 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                />
-              </div>
-
-              {/* Game ID */}
-              <div className="space-y-2">
-                <label htmlFor="game_id" className="text-sm font-bold text-gray-400 ml-1">
-                  Game ID/UID *
-                </label>
-                <input
-                  id="game_id"
-                  name="game_id"
-                  type="text"
-                  required
-                  value={formData.game_id}
-                  onChange={handleChange}
-                  placeholder="Your unique game ID"
-                  className="block w-full px-4 py-3.5 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                />
-              </div>
-
               {/* Phone Number */}
               <div className="space-y-2">
                 <label htmlFor="phone_number" className="text-sm font-bold text-gray-400 ml-1">
-                  Phone Number
+                  Phone Number *
                 </label>
                 <input
                   id="phone_number"
                   name="phone_number"
                   type="tel"
+                  required
                   value={formData.phone_number}
                   onChange={handleChange}
                   placeholder="+91..."
+                  maxLength="10"
                   className="block w-full px-4 py-3.5 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                 />
               </div>
@@ -209,21 +234,24 @@ const PlayerRegister = () => {
                 />
               </div>
             </div>
+            <div className="space-y-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 px-4 bg-white hover:bg-gray-100 text-[#0a0a0c] font-black rounded-xl transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] mt-2"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-[#0a0a0c]/30 border-t-[#0a0a0c] rounded-full animate-spin"></div>
+                    Creating Account...
+                  </div>
+                ) : (
+                  'Register'
+                )}
+              </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 px-4 bg-white hover:bg-gray-100 text-[#0a0a0c] font-black rounded-xl transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] mt-6"
-            >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-[#0a0a0c]/30 border-t-[#0a0a0c] rounded-full animate-spin"></div>
-                  Creating Account...
-                </div>
-              ) : (
-                'Register'
-              )}
-            </button>
+              {/* No additional Google completion step needed */}
+            </div>
           </form>
 
           <div className="text-center pt-6">

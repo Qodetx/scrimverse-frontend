@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { teamAPI, authAPI } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
@@ -18,6 +18,7 @@ const CreateTeam = () => {
   const [usernameSuggestions, setUsernameSuggestions] = useState({});
   const [showSuggestions, setShowSuggestions] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
+  const searchCounter = useRef(0);
 
   // Get current user's username for the first (locked) field
   const currentUsername = user?.user?.username || '';
@@ -37,23 +38,33 @@ const CreateTeam = () => {
     delete newErrors[index];
     setFieldErrors(newErrors);
 
+    // Debounce / race-safety: only consider latest request result
     if (value.length >= 2) {
+      // increment search token
+      searchCounter.current += 1;
+      const myToken = searchCounter.current;
+
       try {
         const res = await authAPI.searchPlayerUsernames(value, true); // forTeam=true
 
-        // Filter out already selected usernames (including current user)
-        const alreadySelected = [currentUsername, ...selectedUsernames.filter((u) => u !== null)];
+        // ignore if a newer request started
+        if (myToken !== searchCounter.current) return;
+
+        // Filter using the most up-to-date selected list (newSelected)
+        const alreadySelected = [currentUsername, ...newSelected.filter((u) => u !== null)];
         const filteredResults = (res.data.results || []).filter(
           (user) => !alreadySelected.includes(user.username)
         );
 
-        setUsernameSuggestions({ ...usernameSuggestions, [index]: filteredResults });
-        setShowSuggestions({ ...showSuggestions, [index]: true });
+        setUsernameSuggestions((prev) => ({ ...prev, [index]: filteredResults }));
+        setShowSuggestions((prev) => ({ ...prev, [index]: filteredResults.length > 0 }));
       } catch (err) {
         console.error(err);
+        setShowSuggestions((prev) => ({ ...prev, [index]: false }));
       }
     } else {
-      setShowSuggestions({ ...showSuggestions, [index]: false });
+      setShowSuggestions((prev) => ({ ...prev, [index]: false }));
+      setUsernameSuggestions((prev) => ({ ...prev, [index]: [] }));
     }
   };
 

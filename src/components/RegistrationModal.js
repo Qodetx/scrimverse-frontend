@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { createPortal } from 'react-dom';
-import { tournamentAPI, teamAPI, authAPI, scrimAPI } from '../utils/api';
+import { tournamentAPI, teamAPI, authAPI, scrimAPI, paymentsAPI } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import useToast from '../hooks/useToast';
 import Toast from '../components/Toast';
@@ -181,9 +181,9 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
       return false;
     }
 
-    // Check if email count matches required players - 1
-    if (emails.length !== requiredPlayers - 1) {
-      showToast(`Please enter exactly ${requiredPlayers - 1} teammate emails`, 'error');
+    // Check if at least 1 teammate email is provided (minimum is captain + 1 teammate)
+    if (emails.length === 0) {
+      showToast(`Please enter at least 1 teammate email`, 'error');
       return false;
     }
 
@@ -191,124 +191,175 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
   };
 
   const handleSubmit = async () => {
-    // Validate emails for invite flow
-    if (!validateEmails()) {
+    // Validate for the respective flow
+    if (!useExistingTeam && !validateEmails()) {
+      return;
+    }
+
+    // For existing team flow, just need at least 1 player selected
+    if (useExistingTeam && selectedPlayers.length === 0) {
+      showToast('Please select at least 1 player', 'error');
       return;
     }
 
     try {
       setLoading(true);
-      const payload = {
-        ...formData,
-        // Include captain username as first player
-        player_usernames: [user?.user?.username || user?.username],
-        // Include teammate emails for invite
-        teammate_emails: formData.teammate_emails.filter((e) => e.trim() !== ''),
-      };
 
-      // Create registration first
-      let registrationResponse;
-      if (type === 'scrim') {
-        if (event.event_mode === 'SCRIM') {
-          registrationResponse = await tournamentAPI.registerForTournament(event.id, payload);
+      if (!useExistingTeam) {
+        // ── EMAIL FLOW ──
+        // Use the same API as the inline form: registerInitiate + startPayment
+        const validEmails = formData.teammate_emails.filter((e) => e.trim() !== '');
+        const initPayload = {
+          team_name: formData.team_name,
+          teammate_emails: validEmails,
+        };
+
+        const initResp = await tournamentAPI.registerInitiate(event.id, initPayload);
+        const registration = initResp.data;
+
+        // If there's an entry fee, start payment
+        if (hasEntryFee) {
+          const regId =
+            registration?.registration_id || registration?.registrationId || registration?.id;
+          if (!registration || !regId) {
+            console.error('Missing registration id, cannot start payment', registration);
+            showToast(
+              'Registration created but missing registration id. Please refresh and try again.',
+              'error'
+            );
+            setLoading(false);
+            return;
+          }
+
+          const paymentPayload = {
+            payment_type: 'entry_fee',
+            amount: Number(event.entry_fee) || 0,
+            registration_id: regId,
+            tournament_id: event.id,
+          };
+
+          console.debug('Starting payment with payload:', paymentPayload);
+          const payResp = await paymentsAPI.startPayment(paymentPayload);
+          const paymentData = payResp.data;
+
+          const redirect =
+            paymentData.redirect_url || paymentData.payment_url || paymentData.paymentUrl;
+          if (redirect) {
+            window.location.href = redirect;
+            return;
+          }
+
+          showToast(
+            'Registration initiated. Please complete payment from the next screen.',
+            'info'
+          );
+          setLoading(false);
+          onSuccess();
         } else {
-          registrationResponse = await scrimAPI.registerForScrim(event.id, payload);
+          // Free entry
+          showToast('Registration successful!', 'success');
+          setLoading(false);
+          setTimeout(() => onSuccess(), 1500);
         }
       } else {
-        registrationResponse = await tournamentAPI.registerForTournament(event.id, payload);
-      }
+        // ── EXISTING TEAM FLOW ──
+        // Use registerForTournament which accepts team_id + player_usernames
+        const payload = {
+          team_id: selectedTeam.id,
+          player_usernames: selectedPlayers,
+        };
 
-      const regId = registrationResponse.data?.id;
-      const paymentRequired = registrationResponse.data?.payment_required;
-      const redirectUrl = registrationResponse.data?.redirect_url;
-
-      // Check if payment is required
-      if (paymentRequired && redirectUrl) {
-        showToast(`Processing payment of ₹${event.entry_fee}...`, 'info');
-
-        // Open PhonePe IFrame
-        if (!window.PhonePeCheckout) {
-          showToast('Payment system not loaded. Please refresh the page.', 'error');
-          setLoading(false);
-          return;
+        let registrationResponse;
+        if (type === 'scrim') {
+          if (event.event_mode === 'SCRIM') {
+            registrationResponse = await tournamentAPI.registerForTournament(event.id, payload);
+          } else {
+            registrationResponse = await scrimAPI.registerForScrim(event.id, payload);
+          }
+        } else {
+          registrationResponse = await tournamentAPI.registerForTournament(event.id, payload);
         }
 
-        window.PhonePeCheckout.transact({
-          tokenUrl: redirectUrl,
-          callback: async (response) => {
-            if (response === 'USER_CANCEL') {
-              showToast('Payment cancelled. Registration not completed.', 'error');
-              setLoading(false);
-            } else if (response === 'CONCLUDED') {
-              // Payment concluded - check status via API
-              showToast('Checking registration status...', 'info');
+        const regId = registrationResponse.data?.id;
+        const paymentRequired = registrationResponse.data?.payment_required;
+        const redirectUrl = registrationResponse.data?.redirect_url;
 
-              try {
-                // Poll for payment status (webhook might not work on localhost)
-                const checkStatus = async () => {
-                  try {
-                    const statusResponse = await tournamentAPI.checkPaymentStatus({
-                      merchant_order_id: registrationResponse.data.merchant_order_id,
-                    });
+        if (paymentRequired && redirectUrl) {
+          showToast(`Processing payment of \u20B9${event.entry_fee}...`, 'info');
 
-                    if (
-                      statusResponse.data.status === 'completed' &&
-                      statusResponse.data.registration_id
-                    ) {
-                      showToast('Registration successful!', 'success');
-                      setLoading(false);
-                      setTimeout(() => {
-                        onSuccess();
-                      }, 1500);
-                    } else if (statusResponse.data.status === 'failed') {
-                      showToast('Payment failed. Please try again.', 'error');
-                      setLoading(false);
-                    } else {
-                      // Still pending, wait and check again
+          if (!window.PhonePeCheckout) {
+            // Fallback: redirect to payment URL
+            window.location.href = redirectUrl;
+            return;
+          }
+
+          window.PhonePeCheckout.transact({
+            tokenUrl: redirectUrl,
+            callback: async (response) => {
+              if (response === 'USER_CANCEL') {
+                showToast('Payment cancelled. Registration not completed.', 'error');
+                setLoading(false);
+              } else if (response === 'CONCLUDED') {
+                showToast('Checking registration status...', 'info');
+                try {
+                  const checkStatus = async () => {
+                    try {
+                      const statusResponse = await tournamentAPI.checkPaymentStatus({
+                        merchant_order_id: registrationResponse.data.merchant_order_id,
+                      });
+                      if (
+                        statusResponse.data.status === 'completed' &&
+                        statusResponse.data.registration_id
+                      ) {
+                        showToast('Registration successful!', 'success');
+                        setLoading(false);
+                        setTimeout(() => onSuccess(), 1500);
+                      } else if (statusResponse.data.status === 'failed') {
+                        showToast('Payment failed. Please try again.', 'error');
+                        setLoading(false);
+                      } else {
+                        setTimeout(checkStatus, 2000);
+                      }
+                    } catch (err) {
+                      console.error('Error in status check poll:', err);
                       setTimeout(checkStatus, 2000);
                     }
-                  } catch (err) {
-                    console.error('Error in status check poll:', err);
-                    // Continue polling even on temporary API error
-                    setTimeout(checkStatus, 2000);
-                  }
-                };
-
-                // Start checking after a short delay
-                setTimeout(checkStatus, 1000);
-              } catch (err) {
-                console.error('Error starting status check:', err);
-                showToast('Payment completed! Click Close if redirect fails.', 'success');
-                setLoading(false);
+                  };
+                  setTimeout(checkStatus, 1000);
+                } catch (err) {
+                  console.error('Error starting status check:', err);
+                  showToast('Payment completed! Click Close if redirect fails.', 'success');
+                  setLoading(false);
+                }
               }
-            }
-          },
-          type: 'IFRAME',
-        });
-      } else if (regId) {
-        // Free entry with registration ID, no payment needed
-        showToast('Registration successful!', 'success');
-        setTimeout(() => {
-          onSuccess();
-        }, 1500);
-      } else {
-        // Free entry, no payment needed
-        showToast('Registration successful!', 'success');
-        setTimeout(() => {
-          onSuccess();
-        }, 1500);
+            },
+            type: 'IFRAME',
+          });
+        } else if (regId) {
+          showToast('Registration successful!', 'success');
+          setTimeout(() => onSuccess(), 1500);
+        } else {
+          showToast('Registration successful!', 'success');
+          setTimeout(() => onSuccess(), 1500);
+        }
       }
     } catch (err) {
-      showToast(err.response?.data?.error || 'Registration failed', 'error');
+      const errData = err.response?.data;
+      const errorMsg =
+        errData?.error ||
+        errData?.player_usernames ||
+        errData?.team_name?.[0] ||
+        errData?.teammate_emails?.[0] ||
+        errData?.message ||
+        'Registration failed';
+      showToast(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg), 'error');
       setLoading(false);
     }
   };
 
   const canProceedStep1 = useExistingTeam
     ? selectedTeam !== null
-    : formData.team_name.trim() !== '' &&
-      formData.teammate_emails.filter((e) => e.trim() !== '').length ===
-        Math.max(0, requiredPlayers - 1);
+    : formData.team_name.trim() !== ''; // Just need team name, flexible on emails
 
   const SparkleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -604,7 +655,7 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
             disabled={
               loading ||
               (step === 1 && !canProceedStep1) ||
-              (step === 2 && selectedPlayers.length !== requiredPlayers)
+              (step === 2 && selectedPlayers.length === 0) // Need at least 1 player selected
             }
             className="scrimverse-btn-primary"
           >
