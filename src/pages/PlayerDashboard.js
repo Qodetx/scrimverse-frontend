@@ -813,6 +813,8 @@ const PlayerDashboard = () => {
         isOpen={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
         player={{ ...user?.user, player_profile: user?.profile }}
+        // If user has no phone number (e.g. signed up via Google), make phone mandatory
+        requirePhone={!user?.user?.phone_number}
         onSuccess={async () => {
           // Refresh user data after successful edit
           await fetchUserData();

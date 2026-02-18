@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL;
+// Allow a sensible default when the build/env doesn't provide an API URL.
+// In production the hosting may serve the frontend and backend on the same domain
+// under the `/api` prefix. Falling back to `/api` avoids broken undefined baseURLs.
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 // Create axios instance
 const api = axios.create({

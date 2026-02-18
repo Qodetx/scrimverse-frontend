@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { authAPI } from '../utils/api';
 import { sanitizeInput, sanitizeBio, sanitizePhone } from '../utils/sanitize';
 
-const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
+const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess, requirePhone = false }) => {
   const [formData, setFormData] = useState({
     username: player?.username || '',
     phone_number: player?.phone_number || '',
@@ -67,6 +67,12 @@ const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
 
     if (!sanitizedUsername.trim()) {
       setError('Username is required');
+      return;
+    }
+
+    // If this modal is being shown as mandatory (requirePhone), phone must be provided
+    if (requirePhone && (!sanitizedPhone || sanitizedPhone.length !== 10)) {
+      setError('Phone number is required and must be exactly 10 digits');
       return;
     }
 
@@ -137,7 +143,18 @@ const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
             </svg>
             Edit Profile
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+          <button
+            onClick={() => {
+              // Prevent closing if phone is required and not filled
+              const ph = sanitizePhone(formData.phone_number);
+              if (requirePhone && (!ph || ph.length !== 10)) {
+                setError('Phone number is required before closing this form');
+                return;
+              }
+              onClose();
+            }}
+            className="text-gray-500 hover:text-white transition-colors"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -328,7 +345,14 @@ const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
             <div className="flex gap-2 pt-2 pb-4">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  const ph = sanitizePhone(formData.phone_number);
+                  if (requirePhone && (!ph || ph.length !== 10)) {
+                    setError('Phone number is required before closing this form');
+                    return;
+                  }
+                  onClose();
+                }}
                 disabled={loading}
                 className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all border border-white/5"
               >
