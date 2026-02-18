@@ -6,6 +6,8 @@ const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
   const [formData, setFormData] = useState({
     username: player?.username || '',
     phone_number: player?.phone_number || '',
+    in_game_name: player?.player_profile?.in_game_name || '',
+    game_id: player?.player_profile?.game_id || '',
     bio: player?.player_profile?.bio || '',
     preferred_games: player?.player_profile?.preferred_games || [],
   });
@@ -22,6 +24,8 @@ const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
       setFormData({
         username: player.username || '',
         phone_number: player.phone_number || '',
+        in_game_name: player.player_profile?.in_game_name || '',
+        game_id: player.player_profile?.game_id || '',
         bio: player.player_profile?.bio || '',
         preferred_games: player.player_profile?.preferred_games || [],
       });
@@ -74,6 +78,7 @@ const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
     setLoading(true);
 
     try {
+      // Update user fields
       const userFormData = new FormData();
       userFormData.append('username', sanitizedUsername);
       userFormData.append('phone_number', sanitizedPhone || '');
@@ -83,17 +88,22 @@ const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
 
       const userResponse = await authAPI.updateUser(userFormData);
 
+      // Update player profile fields
       const profileResponse = await authAPI.updatePlayerProfile({
+        in_game_name: formData.in_game_name || '',
+        game_id: formData.game_id || '',
         bio: sanitizedBio,
         preferred_games: formData.preferred_games,
       });
 
+      // Merge the updated data and call onSuccess
       onSuccess({
         ...userResponse.data,
         player_profile: profileResponse.data,
       });
       onClose();
     } catch (err) {
+      console.error('Profile update error:', err);
       setError(
         err.response?.data?.error ||
           err.response?.data?.username?.[0] ||
@@ -243,6 +253,36 @@ const EditPlayerProfileModal = ({ isOpen, onClose, player, onSuccess }) => {
                   onChange={handleChange}
                   maxLength="10"
                   placeholder="10-digit number"
+                  className="block w-full px-4 py-3 bg-[#080808] border border-white/5 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all"
+                />
+              </div>
+
+              {/* In-Game Name Field */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
+                  In-Game Name
+                </label>
+                <input
+                  name="in_game_name"
+                  type="text"
+                  value={formData.in_game_name}
+                  onChange={handleChange}
+                  placeholder="Your game character name"
+                  className="block w-full px-4 py-3 bg-[#080808] border border-white/5 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all"
+                />
+              </div>
+
+              {/* Game ID/UID Field */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">
+                  Game ID/UID
+                </label>
+                <input
+                  name="game_id"
+                  type="text"
+                  value={formData.game_id}
+                  onChange={handleChange}
+                  placeholder="Your unique game ID"
                   className="block w-full px-4 py-3 bg-[#080808] border border-white/5 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all"
                 />
               </div>
