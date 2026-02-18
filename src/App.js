@@ -1,6 +1,6 @@
-import React from 'react';
+import { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, AuthContext } from './context/AuthContext';
 
 // Components
 import Navbar from './components/Navbar';
@@ -36,12 +36,18 @@ import PrivacyPage from './pages/PrivacyPage';
 import ContactPage from './pages/ContactPage';
 import ReportIssuePage from './pages/ReportIssuePage';
 
-// Guard: only allows access if the secret host key is present in the URL or sessionStorage
+// Guard: only allows access to host login/register via the secret link
 const HostAccessGuard = ({ children }) => {
+  const { isAuthenticated, isHost } = useContext(AuthContext);
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const keyFromUrl = params.get('access');
   const hostKey = process.env.REACT_APP_HOST_ACCESS_KEY;
+
+  // Already logged in as host → go straight to dashboard
+  if (isAuthenticated() && isHost()) {
+    return <Navigate to="/host/dashboard" replace />;
+  }
 
   if (keyFromUrl && keyFromUrl === hostKey) {
     sessionStorage.setItem('host_access_granted', 'true');
@@ -51,6 +57,21 @@ const HostAccessGuard = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
+  return children;
+};
+
+// Protects host-only pages: redirects unauthenticated users to host login,
+// and non-host (player) users back to home
+const HostOnlyRoute = ({ children }) => {
+  const { isAuthenticated, isHost } = useContext(AuthContext);
+  const hostKey = process.env.REACT_APP_HOST_ACCESS_KEY;
+
+  if (!isAuthenticated()) {
+    return <Navigate to={`/host/login?access=${hostKey}`} replace />;
+  }
+  if (!isHost()) {
+    return <Navigate to="/" replace />;
+  }
   return children;
 };
 
@@ -105,9 +126,30 @@ function App() {
             <Route path="/scrims/:id" element={<ScrimDetail />} />
 
             {/* Host Routes */}
-            <Route path="/host/dashboard" element={<HostDashboard />} />
-            <Route path="/host/create-tournament" element={<CreateTournament />} />
-            <Route path="/host/create-scrim" element={<CreateScrim />} />
+            <Route
+              path="/host/dashboard"
+              element={
+                <HostOnlyRoute>
+                  <HostDashboard />
+                </HostOnlyRoute>
+              }
+            />
+            <Route
+              path="/host/create-tournament"
+              element={
+                <HostOnlyRoute>
+                  <CreateTournament />
+                </HostOnlyRoute>
+              }
+            />
+            <Route
+              path="/host/create-scrim"
+              element={
+                <HostOnlyRoute>
+                  <CreateScrim />
+                </HostOnlyRoute>
+              }
+            />
             <Route path="/host/profile/:id" element={<HostProfile />} />
 
             {/* Player Routes */}
