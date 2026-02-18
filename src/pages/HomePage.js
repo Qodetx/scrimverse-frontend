@@ -282,7 +282,7 @@ const HomePage = () => {
 
         <div className="hero-ctas flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
           <Link
-            to={user ? '/tournaments' : '/host/login'}
+            to={user ? '/tournaments' : '/player/login'}
             className="px-8 py-3 bg-white text-black rounded-lg font-bold flex items-center gap-2 hover:bg-gray-100 transition-colors"
           >
             <svg
@@ -427,61 +427,6 @@ const HomePage = () => {
             </div>
           </div>
         )}
-      </section>
-
-      {/* Trusted By Section - Premium Redesign */}
-      <section className="relative z-10 py-12">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-8 md:px-12 md:py-10 text-center reveal-on-scroll shadow-2xl shadow-purple-900/10 select-none">
-            <p className="text-xs font-extra-bold text-gray-500 uppercase tracking-[0.2em] mb-8">
-              Trusted by competitive gamers across India
-            </p>
-
-            <div className="flex flex-col md:flex-row justify-between items-center gap-y-6 md:gap-x-4">
-              <div className="flex items-center gap-3 group cursor-default">
-                <span className="text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 filter drop-shadow-md">
-                  🎮
-                </span>
-                <span className="text-sm md:text-lg font-bold text-gray-400 group-hover:text-white transition-colors duration-300">
-                  BGMI Pro League
-                </span>
-              </div>
-
-              <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-white/10"></div>
-
-              <div className="flex items-center gap-3 group cursor-default">
-                <span className="text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 filter drop-shadow-md">
-                  ⚔️
-                </span>
-                <span className="text-sm md:text-lg font-bold text-gray-400 group-hover:text-white transition-colors duration-300">
-                  Scarfall Masters
-                </span>
-              </div>
-
-              <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-white/10"></div>
-
-              <div className="flex items-center gap-3 group cursor-default">
-                <span className="text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 filter drop-shadow-md">
-                  🏆
-                </span>
-                <span className="text-sm md:text-lg font-bold text-gray-400 group-hover:text-white transition-colors duration-300">
-                  100+ Hosts
-                </span>
-              </div>
-
-              <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-white/10"></div>
-
-              <div className="flex items-center gap-3 group cursor-default">
-                <span className="text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 filter drop-shadow-md">
-                  🌐
-                </span>
-                <span className="text-sm md:text-lg font-bold text-gray-400 group-hover:text-white transition-colors duration-300">
-                  Pan India
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
 
       <ChooseBattlefield />

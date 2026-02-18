@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 
 // Components
@@ -36,6 +36,24 @@ import PrivacyPage from './pages/PrivacyPage';
 import ContactPage from './pages/ContactPage';
 import ReportIssuePage from './pages/ReportIssuePage';
 
+// Guard: only allows access if the secret host key is present in the URL or sessionStorage
+const HostAccessGuard = ({ children }) => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const keyFromUrl = params.get('access');
+  const hostKey = process.env.REACT_APP_HOST_ACCESS_KEY;
+
+  if (keyFromUrl && keyFromUrl === hostKey) {
+    sessionStorage.setItem('host_access_granted', 'true');
+  }
+
+  if (sessionStorage.getItem('host_access_granted') !== 'true') {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -58,8 +76,22 @@ function App() {
             {/* Authentication Routes */}
             <Route path="/player/login" element={<PlayerLogin />} />
             <Route path="/player/register" element={<PlayerRegister />} />
-            <Route path="/host/login" element={<HostLogin />} />
-            <Route path="/host/register" element={<HostRegister />} />
+            <Route
+              path="/host/login"
+              element={
+                <HostAccessGuard>
+                  <HostLogin />
+                </HostAccessGuard>
+              }
+            />
+            <Route
+              path="/host/register"
+              element={
+                <HostAccessGuard>
+                  <HostRegister />
+                </HostAccessGuard>
+              }
+            />
             <Route path="/verify-email/:token" element={<VerifyEmail />} />
             {/* Support legacy/malformed links that include the API prefix */}
             <Route path="/api/accounts/verify-email/:token" element={<VerifyEmail />} />

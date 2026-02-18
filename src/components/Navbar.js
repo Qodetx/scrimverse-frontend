@@ -156,13 +156,6 @@ const Navbar = () => {
                     >
                       Player Login
                     </Link>
-                    <Link
-                      to="/host/login"
-                      className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      Host Login
-                    </Link>
                   </div>
                 )}
               </div>
@@ -346,13 +339,6 @@ const Navbar = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Player Login
-                    </Link>
-                    <Link
-                      to="/host/login"
-                      className="mobile-nav-link"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Host Login
                     </Link>
                   </>
                 ) : (

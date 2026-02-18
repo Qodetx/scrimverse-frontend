@@ -189,8 +189,8 @@ const CreateScrim = () => {
         return;
       }
 
-      // First, create the scrim (backend initiates payment)
-      showToast('Initiating payment...', 'info');
+      // Create the scrim
+      showToast('Creating scrim...', 'info');
       const scrimDataItems = await createScrimAfterPayment();
 
       // Check if payment is required (which it should be for scrim plans)

@@ -718,17 +718,19 @@ const TournamentDetail = () => {
               </div>
 
               {/* Watch Live */}
-              <a
-                href="https://www.youtube.com/@ArgoOGGAMING"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="td-watch-live-btn"
-              >
-                <div className="td-watch-live-pulse" />
-                <IconVideo className="td-watch-live-icon" />
-                <span className="td-watch-live-label">Watch Live</span>
-                <IconExternalLink />
-              </a>
+              {tournament.live_link && (
+                <a
+                  href={tournament.live_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="td-watch-live-btn"
+                >
+                  <div className="td-watch-live-pulse" />
+                  <IconVideo className="td-watch-live-icon" />
+                  <span className="td-watch-live-label">Watch Live</span>
+                  <IconExternalLink />
+                </a>
+              )}
             </div>
           </div>
         </div>

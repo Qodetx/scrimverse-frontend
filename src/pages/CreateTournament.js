@@ -34,6 +34,7 @@ const CreateTournament = () => {
     rules: '',
     num_rounds: '',
     plan_type: 'basic',
+    live_link: '',
   });
 
   const [bannerImage, setBannerImage] = useState(null);
@@ -183,6 +184,9 @@ const CreateTournament = () => {
       formDataToSend.append('description', formData.description);
       formDataToSend.append('rules', formData.rules);
       formDataToSend.append('plan_type', formData.plan_type);
+      if (formData.live_link) {
+        formDataToSend.append('live_link', formData.live_link);
+      }
 
       // Date and time
       if (formData.tournament_date) {
@@ -288,8 +292,8 @@ const CreateTournament = () => {
         return;
       }
 
-      // Create tournament (backend will return payment redirect URL)
-      showToast('Initiating payment...', 'info');
+      // Create tournament
+      showToast('Creating tournament...', 'info');
       const tournamentData = await createTournamentAfterPayment();
 
       // Check if payment is required
@@ -729,6 +733,21 @@ const CreateTournament = () => {
                         className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-accent-cyan/50 font-mono"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-400 mb-2 uppercase tracking-widest ml-1">
+                      Live Stream Link{' '}
+                      <span className="text-gray-600 normal-case text-xs">(optional)</span>
+                    </label>
+                    <input
+                      type="url"
+                      name="live_link"
+                      value={formData.live_link}
+                      onChange={handleChange}
+                      placeholder="https://youtube.com/..."
+                      className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:border-accent-cyan/50 transition-all"
+                    />
                   </div>
                 </div>
               </div>

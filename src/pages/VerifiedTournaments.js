@@ -222,9 +222,6 @@ const VerifiedTournaments = () => {
             <Link to="/tournaments" className="cta-btn gaming-button find-battles-btn">
               BROWSE TOURNAMENTS
             </Link>
-            <Link to="/host/register" className="cta-btn secondary help-centre-btn">
-              BECOME A HOST
-            </Link>
           </div>
         </div>
       </section>

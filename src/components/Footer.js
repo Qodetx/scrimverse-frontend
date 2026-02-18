@@ -78,9 +78,6 @@ const Footer = () => {
               <li>
                 <Link to="/search">Teams</Link>
               </li>
-              <li>
-                <Link to="/host/register">Host Tournament</Link>
-              </li>
             </ul>
           </div>
 
