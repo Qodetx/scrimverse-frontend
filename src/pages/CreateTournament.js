@@ -233,12 +233,15 @@ const CreateTournament = () => {
       });
       formDataToSend.append('prize_distribution', JSON.stringify(prizeDistributionObj));
 
-      // Placement Points - Convert array to object format: {"1": 10, "2": 6, ...}
-      const placementPointsObj = {};
-      placementPoints.forEach((item) => {
-        placementPointsObj[item.position.toString()] = parseInt(item.points) || 0;
-      });
-      formDataToSend.append('placement_points', JSON.stringify(placementPointsObj));
+      // Placement Points - Only for non-competitive games (not Valorant or COD)
+      const shouldIncludePlacementPoints = !['Valorant', 'COD'].includes(formData.game_name);
+      if (shouldIncludePlacementPoints) {
+        const placementPointsObj = {};
+        placementPoints.forEach((item) => {
+          placementPointsObj[item.position.toString()] = parseInt(item.points) || 0;
+        });
+        formDataToSend.append('placement_points', JSON.stringify(placementPointsObj));
+      }
 
       // Files
       if (bannerImage) {
@@ -1025,84 +1028,11 @@ const CreateTournament = () => {
               </div>
             </div>
 
-            {/* Placement Points */}
-            <div className="rounded-lg border bg-white/5 text-white shadow-sm cyber-card">
-              <div className="flex flex-col space-y-1.5 p-6 pb-3 px-3 sm:px-6 pt-4 sm:pt-6">
-                <h3 className="font-semibold tracking-tight flex items-center gap-2 text-base sm:text-lg">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400"
-                  >
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <circle cx="12" cy="12" r="6"></circle>
-                    <circle cx="12" cy="12" r="2"></circle>
-                  </svg>
-                  Placement Points
-                </h3>
-              </div>
-              <div className="p-6 pt-0 space-y-3 px-3 sm:px-6 pb-4 sm:pb-6">
-                <div className="grid grid-cols-2 gap-2">
-                  {placementPoints.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/10 rounded-lg border border-white/20"
-                    >
-                      <span className="text-[10px] sm:text-xs text-gray-400 min-w-[32px] sm:min-w-[40px]">
-                        #{item.position}
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={item.points}
-                        onChange={(e) => updatePlacementPoints(index, e.target.value)}
-                        placeholder="0"
-                        className="w-full rounded-md border border-white/20 py-2 h-7 sm:h-8 text-xs sm:text-sm text-center bg-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400/30 focus:border-cyan-400/50 px-1 sm:px-2"
-                      />
-                      <span className="text-[10px] sm:text-xs text-gray-400">pts</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          // For placement points, we can keep deletion simple or disable for fixed 8
-                          // For now, keeping it functional but this can be removed if you want fixed 8
-                        }}
-                        className="inline-flex items-center justify-center h-6 w-6 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                        style={{ display: 'none' }} // Hide delete for placement points (fixed 8)
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-3 w-3"
-                        >
-                          <path d="M3 6h18"></path>
-                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                          <line x1="10" x2="10" y1="11" y2="17"></line>
-                          <line x1="14" x2="14" y1="11" y2="17"></line>
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="p-2 sm:p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
-                  <div className="flex items-center gap-2">
+            {/* Placement Points - Only for non-competitive games */}
+            {!['Valorant', 'COD'].includes(formData.game_name) && (
+              <div className="rounded-lg border bg-white/5 text-white shadow-sm cyber-card">
+                <div className="flex flex-col space-y-1.5 p-6 pb-3 px-3 sm:px-6 pt-4 sm:pt-6">
+                  <h3 className="font-semibold tracking-tight flex items-center gap-2 text-base sm:text-lg">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -1113,26 +1043,101 @@ const CreateTournament = () => {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-4 w-4 text-cyan-400"
+                      className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400"
                     >
-                      <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"></path>
-                      <circle cx="12" cy="8" r="6"></circle>
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <circle cx="12" cy="12" r="6"></circle>
+                      <circle cx="12" cy="12" r="2"></circle>
                     </svg>
-                    <div>
-                      <p className="text-xs sm:text-sm font-medium">Kill Points</p>
-                      <p className="text-[10px] sm:text-xs text-gray-400">
-                        Every finish = <span className="font-bold text-cyan-400">1 point</span>
-                      </p>
+                    Placement Points
+                  </h3>
+                </div>
+                <div className="p-6 pt-0 space-y-3 px-3 sm:px-6 pb-4 sm:pb-6">
+                  <div className="grid grid-cols-2 gap-2">
+                    {placementPoints.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/10 rounded-lg border border-white/20"
+                      >
+                        <span className="text-[10px] sm:text-xs text-gray-400 min-w-[32px] sm:min-w-[40px]">
+                          #{item.position}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={item.points}
+                          onChange={(e) => updatePlacementPoints(index, e.target.value)}
+                          placeholder="0"
+                          className="w-full rounded-md border border-white/20 py-2 h-7 sm:h-8 text-xs sm:text-sm text-center bg-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400/30 focus:border-cyan-400/50 px-1 sm:px-2"
+                        />
+                        <span className="text-[10px] sm:text-xs text-gray-400">pts</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // For placement points, we can keep deletion simple or disable for fixed 8
+                            // For now, keeping it functional but this can be removed if you want fixed 8
+                          }}
+                          className="inline-flex items-center justify-center h-6 w-6 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                          style={{ display: 'none' }} // Hide delete for placement points (fixed 8)
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3 w-3"
+                          >
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            <line x1="10" x2="10" y1="11" y2="17"></line>
+                            <line x1="14" x2="14" y1="11" y2="17"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-2 sm:p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+                    <div className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 text-cyan-400"
+                      >
+                        <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"></path>
+                        <circle cx="12" cy="8" r="6"></circle>
+                      </svg>
+                      <div>
+                        <p className="text-xs sm:text-sm font-medium">Kill Points</p>
+                        <p className="text-[10px] sm:text-xs text-gray-400">
+                          Every finish = <span className="font-bold text-cyan-400">1 point</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="text-[10px] sm:text-xs text-gray-400 space-y-0.5">
-                  <p>• Total Points = Placement Points + Kill Points</p>
-                  <p>• Preset values shown, editable as needed</p>
+                  <div className="text-[10px] sm:text-xs text-gray-400 space-y-0.5">
+                    <p>• Total Points = Placement Points + Kill Points</p>
+                    <p>• Preset values shown, editable as needed</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
           <div className="glass-card cyber-card rounded-3xl p-8 hover-glow transition-all">
             <div className="flex items-center gap-4 mb-8">

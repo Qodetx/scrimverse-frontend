@@ -71,6 +71,12 @@
   transition: all 0.3s ease;
 }
 
+.search-select option {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 8px 12px;
+}
+
 .search-btn {
   padding: 0 32px;
   background: #8b5cf6;
