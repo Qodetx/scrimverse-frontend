@@ -49,6 +49,7 @@ const HostRegister = () => {
         navigate('/host/verification-pending');
       }
     } catch (err) {
+      console.error('Host register error:', err);
       if (err.response && err.response.data) {
         const data = err.response.data;
         const userFriendlyErrors = [];
@@ -81,7 +82,10 @@ const HostRegister = () => {
 
         setError(userFriendlyErrors.join('\n'));
       } else {
-        setError('Something went wrong. Please try again.');
+        const errDetail = err?.response?.data || err?.message || err;
+        setError(
+          typeof errDetail === 'object' ? JSON.stringify(errDetail, null, 2) : String(errDetail)
+        );
       }
     } finally {
       setLoading(false);
@@ -109,8 +113,31 @@ const HostRegister = () => {
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px]"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px]"></div>
 
+      {/* Floating Star Field (copied from HomePage) */}
+      <div className="star-field">
+        {[...Array(50)].map((_, i) => {
+          const left = Math.random() * 100;
+          const duration = Math.random() * 20 + 10;
+          const delay = Math.random() * 20;
+          const opacity = Math.random() * 0.5 + 0.3;
+
+          return (
+            <div
+              key={i}
+              className="star-particle"
+              style={{
+                left: `${left}%`,
+                animationDuration: `${duration}s`,
+                animationDelay: `-${delay}s`,
+                '--star-opacity': opacity,
+              }}
+            />
+          );
+        })}
+      </div>
+
       <div className="max-w-2xl w-full z-10">
-        <div className="bg-[#111114] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
+        <div className="gaming-card border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
           <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 rounded-full bg-[#1c1c21] flex items-center justify-center mb-6">
               <svg
@@ -188,7 +215,7 @@ const HostRegister = () => {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="Enter your email"
-                      className="block w-full pl-12 pr-4 py-3 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
+                      className="block w-full pl-12 pr-4 py-3 bg-white border border-white/10 rounded-xl text-[#0a0a0c] placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                     />
                   </div>
                 </div>
@@ -219,7 +246,7 @@ const HostRegister = () => {
                       value={formData.username}
                       onChange={handleChange}
                       placeholder="Enter your username"
-                      className="block w-full pl-12 pr-4 py-3 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
+                      className="block w-full pl-12 pr-4 py-3 bg-white border border-white/10 rounded-xl text-[#0a0a0c] placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                     />
                   </div>
                 </div>
@@ -250,7 +277,7 @@ const HostRegister = () => {
                       value={formData.phone_number}
                       onChange={handleChange}
                       placeholder="Enter your phone number"
-                      className="block w-full pl-12 pr-4 py-3 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
+                      className="block w-full pl-12 pr-4 py-3 bg-white border border-white/10 rounded-xl text-[#0a0a0c] placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                     />
                   </div>
                 </div>

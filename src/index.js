@@ -14,7 +14,9 @@ console.debug('GoogleOAuthProvider type:', typeof GoogleOAuthProvider, GoogleOAu
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <App />
+      </GoogleOAuthProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
