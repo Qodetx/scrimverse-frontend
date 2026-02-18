@@ -155,6 +155,18 @@ const PlayerDashboard = () => {
     fetchInvitations();
   }, []);
 
+  // Check if user logged in via Google and needs to complete profile
+  useEffect(() => {
+    if (!loading && location.state?.showProfileEdit) {
+      // Check if profile is incomplete
+      if (!user?.profile?.in_game_name || !user?.profile?.game_id || !user?.user?.phone_number) {
+        setShowEditProfileModal(true);
+        // Clear the state after showing the modal
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [loading, location.state, user]);
+
   // Refetch user data when game filter changes
   useEffect(() => {
     if (!loading) {
