@@ -222,7 +222,7 @@ const PlayerTournamentCard = ({ registration }) => {
   };
 
   return (
-    <>
+    <div className="player-tournament-card-wrapper">
       <Link
         to={
           (tournament.event_mode || '').toUpperCase() === 'SCRIM'
@@ -232,7 +232,11 @@ const PlayerTournamentCard = ({ registration }) => {
         className="player-tournament-card"
         onClick={(e) => {
           // Prevent navigation when clicking on interactive elements
-          if (e.target.closest('.copy-btn') || e.target.closest('.points-table-btn')) {
+          if (
+            e.target.closest('.copy-btn') ||
+            e.target.closest('.points-table-btn') ||
+            e.target.closest('.time-toggle-btn')
+          ) {
             e.preventDefault();
           }
         }}
@@ -673,7 +677,7 @@ const PlayerTournamentCard = ({ registration }) => {
 
       {/* Toast Notification */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-    </>
+    </div>
   );
 };
 

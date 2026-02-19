@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { tournamentAPI, authAPI, paymentsAPI } from '../utils/api';
+import { tournamentAPI, authAPI, paymentsAPI, teamAPI } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import RegistrationModal from '../components/RegistrationModal';
 import './TournamentDetail.css';
@@ -299,6 +299,7 @@ const TournamentDetail = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showTeamRegistration, setShowTeamRegistration] = useState(false);
+  const [userHasTeam, setUserHasTeam] = useState(false);
   const [registrationData, setRegistrationData] = useState({
     team_name: '',
     teammate_emails: [],
@@ -394,6 +395,17 @@ const TournamentDetail = () => {
       });
       setUsernameSuggestions({});
       setShowSuggestions({});
+      // Check if user has a permanent (non-temporary) team
+      if (isAuthenticated() && isPlayer()) {
+        teamAPI
+          .getTeams({ mine: 'true' })
+          .then((res) => {
+            const teams = res.data.results || res.data || [];
+            const permanentTeams = teams.filter((t) => !t.is_temporary);
+            setUserHasTeam(permanentTeams.length > 0);
+          })
+          .catch(() => setUserHasTeam(false));
+      }
     }
     return () => {
       Object.values(suggestionTimeoutRef.current).forEach((t) => t && clearTimeout(t));
@@ -1503,18 +1515,20 @@ const TournamentDetail = () => {
               <h2 className="text-lg font-semibold text-white">Join Tournament</h2>
               <p className="text-gray-400 text-sm">Register for &quot;{tournament.title}&quot;</p>
             </div>
-            <div className="mb-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRegisterModal(false);
-                  setShowTeamRegistration(true);
-                }}
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-semibold py-2 rounded-md transition-colors"
-              >
-                ✨ Use Team Still ✨
-              </button>
-            </div>
+            {userHasTeam && (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRegisterModal(false);
+                    setShowTeamRegistration(true);
+                  }}
+                  className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-semibold py-2 rounded-md transition-colors"
+                >
+                  ✨ Use Team Still ✨
+                </button>
+              </div>
+            )}
             <form onSubmit={handleRegister}>
               <div className="mb-3">
                 <label className="block text-gray-400 text-sm mb-1">Your Username</label>

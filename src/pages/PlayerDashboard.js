@@ -252,7 +252,7 @@ const PlayerDashboard = () => {
 
   const profile = user?.profile || {};
   const teamsArray = Array.isArray(teams) ? teams : teams?.results || [];
-  const activeTeams = teamsArray.filter((t) => !t.is_temporary);
+  const activeTeams = teamsArray;
   const isInTeam = activeTeams.length > 0 || !!profile.current_team;
 
   return (
