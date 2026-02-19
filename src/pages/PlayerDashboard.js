@@ -161,8 +161,12 @@ const PlayerDashboard = () => {
       // Check if profile is incomplete
       if (!user?.profile?.in_game_name || !user?.profile?.game_id || !user?.user?.phone_number) {
         setShowEditProfileModal(true);
-        // Clear the state after showing the modal
+        // Do NOT clear location.state yet — we need the `next` value in onSuccess
+      } else if (location.state?.next) {
+        // Profile already complete, redirect immediately
+        const dest = location.state.next;
         window.history.replaceState({}, document.title);
+        navigate(dest);
       }
     }
   }, [loading, location.state, user]);
@@ -763,7 +767,7 @@ const PlayerDashboard = () => {
                         className="w-full py-4 bg-transparent border-2 border-primary-500/30 hover:border-primary-500 hover:bg-primary-500/10 text-sm font-bold transition-all text-primary-400 hover:text-primary-300 tracking-widest uppercase relative overflow-hidden group"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/player/team/dashboard`);
+                          navigate(`/player/team/dashboard/${team.id}`);
                         }}
                       >
                         <span className="relative z-10">Manage Team</span>
@@ -777,7 +781,7 @@ const PlayerDashboard = () => {
                   <p className="text-gray-400 mb-4">Loading your team details...</p>
                   <button
                     className="px-6 py-2 bg-primary-600 text-white rounded-lg font-bold"
-                    onClick={() => navigate(`/player/team/dashboard`)}
+                    onClick={() => navigate(`/player/team/dashboard/${profile.current_team?.id}`)}
                   >
                     Go to {profile.current_team.name}
                   </button>
@@ -816,8 +820,14 @@ const PlayerDashboard = () => {
         // If user has no phone number (e.g. signed up via Google), make phone mandatory
         requirePhone={!user?.user?.phone_number}
         onSuccess={async () => {
-          // Refresh user data after successful edit
           await fetchUserData();
+          setShowEditProfileModal(false);
+          // If opened after Google signup with a pending invite link, redirect there
+          const redirectNext = location.state?.next;
+          if (redirectNext) {
+            window.history.replaceState({}, document.title);
+            navigate(redirectNext);
+          }
         }}
       />
     </div>

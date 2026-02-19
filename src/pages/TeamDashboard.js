@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { teamAPI } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import JoinRequestsModal from '../components/JoinRequestsModal';
@@ -11,6 +11,7 @@ import Toast from '../components/Toast';
 
 const TeamDashboard = () => {
   const navigate = useNavigate();
+  const { teamId: teamIdParam } = useParams();
   const { user, fetchUserData } = useContext(AuthContext);
   const { toast, showToast, hideToast } = useToast();
   const [team, setTeam] = useState(null);
@@ -23,8 +24,8 @@ const TeamDashboard = () => {
   const [showAddPlayersModal, setShowAddPlayersModal] = useState(false);
   const [pastTournaments, setPastTournaments] = useState([]);
 
-  // Get the current user's team ID from the context
-  const teamId = user?.profile?.current_team?.id;
+  // Use team ID from URL param if present, else fall back to user's current team
+  const teamId = teamIdParam || user?.profile?.current_team?.id;
 
   const fetchTeam = useCallback(async () => {
     if (!teamId) return;

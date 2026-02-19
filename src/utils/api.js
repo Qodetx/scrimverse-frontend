@@ -243,6 +243,9 @@ export const teamAPI = {
   requestJoin: (teamId) => api.post(`/accounts/teams/${teamId}/request_join/`),
   getPastTournaments: (teamId) => api.get(`/accounts/teams/${teamId}/past_tournaments/`),
   getMyInvites: () => api.get('/accounts/teams/my_invites/'),
+  handleInvite: (inviteId, action) =>
+    api.post('/accounts/teams/handle_invite/', { invite_id: inviteId, action }),
+  getMyTournamentInvites: () => api.get('/accounts/teams/my_tournament_invites/'),
 };
 
 // Leaderboard APIs

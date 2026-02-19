@@ -156,6 +156,7 @@ function App() {
             <Route path="/player/dashboard" element={<PlayerDashboard />} />
             <Route path="/player/create-team" element={<CreateTeam />} />
             <Route path="/player/team/dashboard" element={<TeamDashboard />} />
+            <Route path="/player/team/dashboard/:teamId" element={<TeamDashboard />} />
             <Route path="/player/profile/:id" element={<PlayerProfile />} />
             <Route path="/team/:id" element={<TeamProfile />} />
             <Route path="/join-team/:token" element={<JoinTeam />} />

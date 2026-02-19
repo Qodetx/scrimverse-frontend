@@ -14,9 +14,16 @@ export default function JoinTeam() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Re-fetch invite whenever the token changes OR auth loading settles
+  // This fixes the bug where the accept/decline form disappears after login redirect:
+  // after redirect, AuthContext briefly sets loading=true while restoring auth from
+  // storage; we must wait for that to finish before fetching the invite.
   useEffect(() => {
+    if (loading) return; // Wait for auth to finish settling after login redirect
     const load = async () => {
       setLoadingInvite(true);
+      setError(null);
+      setMessage(null);
       try {
         const res = await inviteAPI.getInviteDetails(token);
         setInvite(res.data);
@@ -27,7 +34,7 @@ export default function JoinTeam() {
       }
     };
     load();
-  }, [token]);
+  }, [token, loading]); // `loading` dep ensures re-run once auth settles after login redirect
 
   const handleAccept = async () => {
     // If not authenticated, send to login with redirect back

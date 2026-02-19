@@ -11,14 +11,46 @@ import './TournamentDetail.css';
 
 /* ─── Map pool data ──────────────────────────────────────── */
 const gameMaps = {
-  BGMI: ['Erangel', 'Miramar', 'Sanhok', 'Rondo', 'Vikendi', 'Karakin', 'Livik', 'Nusa'],
-  'Free Fire': ['Bermuda', 'Purgatory', 'Kalahari', 'Alpine'],
-  Scarfall: ['Norvania', 'Gorge', 'Tropicana', 'Bayfront'],
-  Valorant: ['Bind', 'Haven', 'Split', 'Ascent', 'Icebox', 'Breeze', 'Fracture', 'Pearl'],
-  'COD Mobile': ['Crossfire', 'Crash', 'Firing Range', 'Nuketown', 'Standoff', 'Summit'],
+  BGMI: {
+    maps: ['Erangel', 'Miramar', 'Rondo'],
+    matchCount: 4,
+    boInfo: '',
+  },
+  'Free Fire': {
+    maps: ['Bermuda', 'Purgatory', 'Kalahari', 'Alpine'],
+    matchCount: 3,
+    boInfo: '',
+  },
+  Scarfall: {
+    maps: ['Norvania', 'Gorge', 'Tropicana', 'Bayfront'],
+    matchCount: 3,
+    boInfo: '',
+  },
+  Valorant: {
+    maps: ['Split', 'Breeze', 'Pearl', 'Bind', 'Abyss', 'Corrode', 'Haven'],
+    matchCount: 0,
+    boInfo: 'BO3',
+  },
+  'COD Mobile': {
+    maps: [],
+    matchCount: 0,
+    boInfo: 'BO5',
+  },
 };
 
 const getGameMaps = (gameName = '') => {
+  const exact = gameMaps[gameName];
+  if (exact) return exact.maps;
+  const lc = gameName.toLowerCase();
+  if (lc.includes('bgmi') || lc.includes('pubg')) return gameMaps['BGMI'].maps;
+  if (lc.includes('free fire') || lc.includes('freefire')) return gameMaps['Free Fire'].maps;
+  if (lc.includes('scar')) return gameMaps['Scarfall'].maps;
+  if (lc.includes('valorant')) return gameMaps['Valorant'].maps;
+  if (lc.includes('cod')) return gameMaps['COD Mobile'].maps;
+  return gameMaps['BGMI'].maps;
+};
+
+const getGameMapInfo = (gameName = '') => {
   const exact = gameMaps[gameName];
   if (exact) return exact;
   const lc = gameName.toLowerCase();
@@ -357,7 +389,7 @@ const TournamentDetail = () => {
       const teammateCount = Math.max(0, requiredPlayers - 1);
       setRegistrationData({
         team_name: '',
-        teammate_emails: Array(teammateCount).fill(''),
+        teammate_emails: Array(teammateCount).fill(''), // Show the correct number of fields but they are optional
         in_game_details: { ign: '', uid: '', rank: '' },
       });
       setUsernameSuggestions({});
@@ -396,6 +428,20 @@ const TournamentDetail = () => {
     setRegistrationData({ ...registrationData, teammate_emails: newEmails });
   };
 
+  const addTeammateField = () => {
+    if (registrationData.teammate_emails.length < 5) {
+      setRegistrationData({
+        ...registrationData,
+        teammate_emails: [...registrationData.teammate_emails, ''],
+      });
+    }
+  };
+
+  const removeTeammateField = (index) => {
+    const newEmails = registrationData.teammate_emails.filter((_, i) => i !== index);
+    setRegistrationData({ ...registrationData, teammate_emails: newEmails });
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!isAuthenticated() || !isPlayer()) {
@@ -406,30 +452,36 @@ const TournamentDetail = () => {
       alert('Please enter a team name');
       return;
     }
+
     const emails = registrationData.teammate_emails || [];
-    const requiredPlayers = getRequiredPlayers(tournament.game_mode);
-    const expectedTeammates = Math.max(0, requiredPlayers - 1);
-    if (emails.length !== expectedTeammates) {
-      alert(`This tournament requires ${expectedTeammates} teammate email(s).`);
+
+    // Allow 0 to 5 teammates (flexible team size)
+    if (emails.length > 5) {
+      alert('Maximum 5 teammates allowed');
       return;
     }
-    const normalized = emails.map((e) => (e || '').trim().toLowerCase());
+
+    // Only validate emails that are provided (filter out empty ones)
+    const nonEmptyEmails = emails.filter((e) => e && e.trim());
+    const normalized = nonEmptyEmails.map((e) => e.trim().toLowerCase());
+
+    // Validate emails
     for (let i = 0; i < normalized.length; i++) {
       const eMail = normalized[i];
-      if (!eMail) {
-        alert('Please enter all teammate email fields');
-        return;
-      }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(eMail)) {
         alert(`Invalid email at teammate ${i + 1}: ${eMail}`);
         return;
       }
     }
+
+    // Check for duplicates
     const uniqueSet = new Set(normalized);
     if (uniqueSet.size !== normalized.length) {
       alert('Duplicate teammate emails are not allowed');
       return;
     }
+
+    // Check captain email not in list
     const captainEmail = (user?.user?.email || '').toLowerCase();
     if (captainEmail && normalized.includes(captainEmail)) {
       alert('You cannot include your own (captain) email in the teammate list.');
@@ -438,7 +490,7 @@ const TournamentDetail = () => {
     try {
       const payload = {
         team_name: registrationData.team_name,
-        teammate_emails: registrationData.teammate_emails,
+        teammate_emails: normalized, // Send only non-empty, validated emails
       };
       const initResp = await tournamentAPI.registerInitiate(id, payload);
       const registration = initResp.data;
@@ -629,7 +681,6 @@ const TournamentDetail = () => {
     resolveUrl(tournament?.image) ||
     resolveUrl(tournament?.poster) ||
     null;
-  const maps = getGameMaps(tournament.game_name);
   const is5v5 = is5v5Game(tournament.game_name, tournament.game_mode);
   const entryFeeNum = parseFloat(tournament.entry_fee) === 0 ? 'FREE' : `₹${tournament.entry_fee}`;
 
@@ -844,13 +895,50 @@ const TournamentDetail = () => {
                     <p className="td-section-heading">Rounds</p>
                     {tournament.rounds.map((round) => {
                       const matchCount = round.max_matches || tournament.max_matches;
+                      const rd = tournament.round_dates?.[String(round.round)] || {};
+                      const formatShortDate = (d) => {
+                        if (!d) return '';
+                        const dt = new Date(d + 'T00:00:00');
+                        return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      };
+                      const startStr = formatShortDate(rd.start_date);
+                      const endStr = formatShortDate(rd.end_date);
+                      let dateLabel = '';
+                      if (startStr && endStr && startStr !== endStr) {
+                        dateLabel = `${startStr}–${endStr}`;
+                      } else if (startStr) {
+                        dateLabel = startStr;
+                      }
+                      const modeLabel = rd.mode ? rd.mode.toUpperCase() : '';
+                      const modeColor = rd.mode === 'online' ? '#10b981' : '#f97316'; // green for online, orange for offline
                       return (
                         <div key={round.round} className="td-round-item">
                           <span className="td-round-badge">
                             {round.round_name || `Round ${round.round}`}
                           </span>
                           <span className="td-round-meta">
-                            {matchCount ? `${matchCount} match${matchCount > 1 ? 'es' : ''}` : ''}
+                            {dateLabel && <span className="td-round-date">{dateLabel}</span>}
+                            {modeLabel && (
+                              <span
+                                style={{
+                                  background: `${modeColor}18`,
+                                  border: `1.5px solid ${modeColor}`,
+                                  color: modeColor,
+                                  padding: '2px 10px',
+                                  borderRadius: '20px',
+                                  fontSize: '10px',
+                                  fontWeight: '800',
+                                  letterSpacing: '1px',
+                                  textTransform: 'uppercase',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {modeLabel}
+                              </span>
+                            )}
+                            {matchCount && (
+                              <span className="td-round-matches">{`${matchCount} match${matchCount > 1 ? 'es' : ''}`}</span>
+                            )}
                           </span>
                         </div>
                       );
@@ -861,48 +949,139 @@ const TournamentDetail = () => {
                 {/* Map Pool */}
                 <hr className="td-divider" />
                 <p className="td-section-heading">Map Pool</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {maps.slice(0, 6).map((map) => (
-                    <span key={map} className="td-map-badge">
-                      <IconMapPin /> {map}
-                    </span>
-                  ))}
-                </div>
+                {(() => {
+                  const mapInfo = getGameMapInfo(tournament.game_name);
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          borderBottom: '1px solid hsl(220 5% 25%)',
+                          paddingBottom: 12,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                            {tournament.game_name}
+                          </span>
+                          {mapInfo.boInfo && (
+                            <span
+                              style={{
+                                fontSize: 12,
+                                color: 'hsl(220 5% 60%)',
+                                padding: '2px 6px',
+                                backgroundColor: 'hsl(220 5% 20%)',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              {mapInfo.boInfo}
+                            </span>
+                          )}
+                        </div>
+                        {mapInfo.matchCount > 0 && (
+                          <span
+                            style={{
+                              fontSize: 12,
+                              color: 'hsl(220 5% 60%)',
+                              fontWeight: '500',
+                            }}
+                          >
+                            {mapInfo.matchCount} matches
+                          </span>
+                        )}
+                      </div>
+                      {mapInfo.maps.length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {mapInfo.maps.map((map) => (
+                            <span key={map} className="td-map-badge">
+                              <IconMapPin /> {map}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ color: 'hsl(220 5% 55%)', fontSize: 13 }}>
+                          Map pool not specified for {tournament.game_name}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Right column: prize distribution */}
               <div>
                 <p className="td-section-heading">Prize Distribution</p>
 
-                <div className="td-prize-row td-prize-row-1">
-                  <div className="td-prize-label td-prize-label-1">
-                    <IconTrophy style={{ width: 18, height: 18 }} />
-                    1st Place
-                  </div>
-                  <span className="td-prize-amount td-prize-amount-1">
-                    {formatPrize(prizePool * 0.5)}
-                  </span>
-                </div>
+                {(() => {
+                  // Use actual prize_distribution if available, otherwise calculate from pool
+                  let prizeData = [];
 
-                <div className="td-prize-row td-prize-row-2">
-                  <div className="td-prize-label td-prize-label-2">
-                    <IconTrophy style={{ width: 18, height: 18 }} />
-                    2nd Place
-                  </div>
-                  <span className="td-prize-amount td-prize-amount-2">
-                    {formatPrize(prizePool * 0.3)}
-                  </span>
-                </div>
+                  if (
+                    tournament.prize_distribution &&
+                    typeof tournament.prize_distribution === 'object' &&
+                    Object.keys(tournament.prize_distribution).length > 0
+                  ) {
+                    // Use actual prize distribution from DB
+                    prizeData = Object.entries(tournament.prize_distribution).map(
+                      ([place, amount]) => ({
+                        place,
+                        amount: parseInt(amount) || 0,
+                      })
+                    );
+                  } else {
+                    // Fallback: calculate from pool (50/30/20 split)
+                    prizeData = [
+                      { place: '1st', amount: prizePool * 0.5 },
+                      { place: '2nd', amount: prizePool * 0.3 },
+                      { place: '3rd', amount: prizePool * 0.2 },
+                    ];
+                  }
 
-                <div className="td-prize-row td-prize-row-3">
-                  <div className="td-prize-label td-prize-label-3">
-                    <IconTrophy style={{ width: 18, height: 18 }} />
-                    3rd Place
-                  </div>
-                  <span className="td-prize-amount td-prize-amount-3">
-                    {formatPrize(prizePool * 0.2)}
-                  </span>
-                </div>
+                  const placeColors = {
+                    '1st': {
+                      row: 'td-prize-row-1',
+                      label: 'td-prize-label-1',
+                      amount: 'td-prize-amount-1',
+                    },
+                    '2nd': {
+                      row: 'td-prize-row-2',
+                      label: 'td-prize-label-2',
+                      amount: 'td-prize-amount-2',
+                    },
+                    '3rd': {
+                      row: 'td-prize-row-3',
+                      label: 'td-prize-label-3',
+                      amount: 'td-prize-amount-3',
+                    },
+                  };
+                  const defaultColors = {
+                    row: 'td-prize-row-2',
+                    label: 'td-prize-label-2',
+                    amount: 'td-prize-amount-2',
+                  };
+
+                  return (
+                    <>
+                      {prizeData.map((prize) => {
+                        const colors = placeColors[prize.place] || defaultColors;
+                        return (
+                          <div key={prize.place} className={`td-prize-row ${colors.row}`}>
+                            <div className={`td-prize-label ${colors.label}`}>
+                              <IconTrophy style={{ width: 18, height: 18 }} />
+                              {prize.place} Place
+                            </div>
+                            <span className={`td-prize-amount ${colors.amount}`}>
+                              {formatPrize(prize.amount)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
 
                 <p className="td-prize-total">
                   Total Prize Pool:{' '}
@@ -1365,26 +1544,22 @@ const TournamentDetail = () => {
                 />
               </div>
               <div className="mb-3">
-                <label className="block text-gray-300 mb-2">
-                  Teammate Email IDs <span className="text-red-400">*</span>
-                </label>
+                <label className="block text-gray-300 mb-2">Teammate Email IDs (Optional)</label>
                 <div className="space-y-2">
                   {registrationData.teammate_emails.map((email, index) => (
                     <input
                       key={index}
                       type="email"
-                      required
                       value={email}
                       onChange={(e) => handleTeammateEmailChange(index, e.target.value)}
-                      placeholder={`Teammate ${index + 2} email`}
+                      placeholder={`Teammate ${index + 2} email (optional)`}
                       className="w-full px-3 py-2 bg-[#0b0b0d] border border-[#222] rounded-md text-white"
                     />
                   ))}
                 </div>
                 <div className="text-purple-300 text-xs bg-[#1b0b2b] border border-[#2b153b] rounded-md p-3 mt-3">
-                  <strong>First time only.</strong> Once your teammates join and you&apos;re part of
-                  a team, you can register for future tournaments in 30 seconds by selecting players
-                  directly.
+                  <strong>Optional.</strong> You can leave teammate fields blank and register with
+                  fewer players. Fill only the ones you want to invite.
                 </div>
               </div>
               <div className="flex items-center justify-between bg-transparent py-3 mt-3 border-t border-[#222]">

@@ -53,13 +53,13 @@ const PlayerLogin = () => {
       });
 
       login(response.data.user, response.data.tokens);
-      navigate('/player/dashboard');
+      navigate(nextPath);
     } catch (err) {
       // Check if account doesn't exist
       if (err.response?.status === 404 && err.response?.data?.error === 'account_not_found') {
         setError('No account found with this Google account. Redirecting to signup...');
         setTimeout(() => {
-          navigate('/player/register');
+          navigate('/player/register', { state: { next: nextPath } });
         }, 2000);
       } else {
         setError(
@@ -225,6 +225,7 @@ const PlayerLogin = () => {
                 Don't have an account?{' '}
                 <Link
                   to="/player/register"
+                  state={{ next: nextPath }}
                   className="text-white hover:text-primary-400 font-black transition-colors ml-1"
                 >
                   Sign up

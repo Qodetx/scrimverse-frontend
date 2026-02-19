@@ -18,6 +18,7 @@ const BulkScheduleModal = ({ isOpen, onClose, tournament, onSuccess }) => {
   const [date, setDate] = useState('');
   const [matchTimes, setMatchTimes] = useState({});
   const [mapPreset, setMapPreset] = useState('default');
+  const [customMapName, setCustomMapName] = useState('');
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState([]);
 
@@ -123,15 +124,14 @@ const BulkScheduleModal = ({ isOpen, onClose, tournament, onSuccess }) => {
   };
 
   const getMapForMatch = (matchIndex) => {
+    if (mapPreset === 'other') {
+      return customMapName.trim() || 'Custom Map';
+    }
     if (mapPreset === 'default') {
       return gameMaps[matchIndex % gameMaps.length];
     }
-    // If a specific map name is selected, use it for all matches
-    if (gameMaps.includes(mapPreset)) {
-      return mapPreset;
-    }
-    // Fallback
-    return gameMaps[0];
+    // Specific map selected — use for all matches
+    return mapPreset;
   };
 
   useEffect(() => {
@@ -173,7 +173,7 @@ const BulkScheduleModal = ({ isOpen, onClose, tournament, onSuccess }) => {
     } else {
       setPreview([]);
     }
-  }, [selectedMatches, date, matchTimes, mapPreset]);
+  }, [selectedMatches, date, matchTimes, mapPreset, customMapName]);
 
   const handleApplySchedule = async () => {
     if (preview.length === 0) {
@@ -447,7 +447,28 @@ const BulkScheduleModal = ({ isOpen, onClose, tournament, onSuccess }) => {
                       {map}
                     </option>
                   ))}
+                <option value="other">Other (custom)</option>
               </select>
+              {mapPreset === 'other' && (
+                <input
+                  type="text"
+                  className="map-custom-input"
+                  placeholder="Enter map name..."
+                  value={customMapName}
+                  onChange={(e) => setCustomMapName(e.target.value)}
+                  style={{
+                    marginTop: '8px',
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    outline: 'none',
+                  }}
+                />
+              )}
               <p className="map-preset-info">
                 Default: M1→{gameMaps[0]}, M2→{gameMaps[1 % gameMaps.length]}, M3→
                 {gameMaps[2 % gameMaps.length]}, M4→{gameMaps[3 % gameMaps.length]}

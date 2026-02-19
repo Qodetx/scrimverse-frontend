@@ -36,6 +36,8 @@ const ManageTournament = () => {
   const [bannerPreview, setBannerPreview] = useState(null);
   const [roundNames, setRoundNames] = useState({});
   const [showRoundNamesModal, setShowRoundNamesModal] = useState(false);
+  const [roundDates, setRoundDates] = useState({});
+  const [editPrizeDistribution, setEditPrizeDistribution] = useState([]);
   const [showTeamsModal, setShowTeamsModal] = useState(false);
   const [teamsTab, setTeamsTab] = useState('active'); // 'active' or 'rejected'
   const [finalStandings, setFinalStandings] = useState(null);
@@ -159,6 +161,30 @@ const ManageTournament = () => {
           : response.data.tournament.round_names || {};
       setRoundNames(initialRoundNames);
 
+      // Parse round_dates
+      const initialRoundDates =
+        typeof response.data.tournament.round_dates === 'string'
+          ? JSON.parse(response.data.tournament.round_dates)
+          : response.data.tournament.round_dates || {};
+      setRoundDates(initialRoundDates);
+
+      // Parse prize_distribution
+      const pd = response.data.tournament.prize_distribution;
+      if (pd && typeof pd === 'object' && Object.keys(pd).length > 0) {
+        const pdArray = Object.entries(pd).map(([place, amount]) => ({
+          place,
+          amount: parseInt(amount) || 0,
+        }));
+        setEditPrizeDistribution(pdArray);
+      } else {
+        const pool = parseFloat(response.data.tournament.prize_pool) || 0;
+        setEditPrizeDistribution([
+          { place: '1st', amount: Math.round(pool * 0.5) },
+          { place: '2nd', amount: Math.round(pool * 0.3) },
+          { place: '3rd', amount: Math.round(pool * 0.2) },
+        ]);
+      }
+
       // Load selected teams for current round
       if (currentRoundNum > 0) {
         // Fetch groups for current round if tournament is ongoing
@@ -200,12 +226,33 @@ const ManageTournament = () => {
       });
       setBannerPreview(tournament.banner_image || null);
       setRoundNames(tournament.round_names || {});
+      setRoundDates(tournament.round_dates || {});
+      // Reset prize distribution
+      const pd = tournament.prize_distribution;
+      if (pd && typeof pd === 'object' && Object.keys(pd).length > 0) {
+        setEditPrizeDistribution(
+          Object.entries(pd).map(([place, amount]) => ({
+            place,
+            amount: parseInt(amount) || 0,
+          }))
+        );
+      }
     }
     setIsEditing(!isEditing);
   };
 
   const handleSaveRoundNames = (names) => {
     setRoundNames(names);
+  };
+
+  const handleRoundDateChange = (roundNum, field, value) => {
+    setRoundDates((prev) => ({
+      ...prev,
+      [String(roundNum)]: {
+        ...prev[String(roundNum)],
+        [field]: value,
+      },
+    }));
   };
 
   const handleEditChange = (e) => {
@@ -251,6 +298,25 @@ const ManageTournament = () => {
       // Add round names if they exist
       if (Object.keys(roundNames).length > 0) {
         formData.append('round_names', JSON.stringify(roundNames));
+      }
+
+      // Add round dates & mode if they exist
+      if (Object.keys(roundDates).length > 0) {
+        formData.append('round_dates', JSON.stringify(roundDates));
+      }
+
+      // Add prize distribution
+      if (editPrizeDistribution.length > 0) {
+        const prizeObj = {};
+        editPrizeDistribution.forEach((item) => {
+          prizeObj[item.place] = item.amount;
+        });
+        formData.append('prize_distribution', JSON.stringify(prizeObj));
+      }
+
+      // Add banner image if a new file was selected
+      if (editData.banner_image instanceof File) {
+        formData.append('banner_image', editData.banner_image);
       }
 
       await tournamentAPI.updateTournamentFields(id, formData);
@@ -740,6 +806,128 @@ const ManageTournament = () => {
                         ? 'Set between 1-6 rounds'
                         : 'Locked after tournament starts'}
                     </p>
+
+                    {/* Read-only Round Structure — match count per round */}
+                    {tournament.rounds && tournament.rounds.length > 0 && (
+                      <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-4">
+                        <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em] mb-3">
+                          Round Structure
+                        </p>
+                        <div className="space-y-2">
+                          {tournament.rounds.map((round) => {
+                            const roundNum = round.round;
+                            const roundName =
+                              roundNames[String(roundNum)] ||
+                              tournament.round_names?.[String(roundNum)] ||
+                              `Round ${roundNum}`;
+                            const matchCount = round.max_matches || tournament.max_matches || '—';
+                            const maxTeams = round.max_teams || round.qualifying_teams || '—';
+                            return (
+                              <div
+                                key={roundNum}
+                                className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-xl"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 flex items-center justify-center bg-accent-purple/20 text-accent-purple rounded-lg text-xs font-black">
+                                    {roundNum}
+                                  </span>
+                                  <span className="text-white text-sm font-bold">{roundName}</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-gray-400 text-xs font-medium">
+                                    {typeof maxTeams === 'number' ? `${maxTeams} teams` : ''}
+                                  </span>
+                                  <span className="text-accent-purple text-xs font-black">
+                                    {typeof matchCount === 'number'
+                                      ? `${matchCount} match${matchCount > 1 ? 'es' : ''}`
+                                      : 'Matches set on start'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-gray-600 text-[8px] mt-2 ml-1 font-medium">
+                          Match counts are set when each round is configured via "Start Round"
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Round Dates & Mode Editor */}
+                    {tournament.status === 'upcoming' &&
+                      (editData.rounds || tournament.rounds?.length || 0) > 0 && (
+                        <div className="mt-4 space-y-3">
+                          <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em]">
+                            Round Schedule & Mode
+                          </p>
+                          {Array.from(
+                            { length: editData.rounds || tournament.rounds?.length || 0 },
+                            (_, i) => {
+                              const rn = i + 1;
+                              const rd = roundDates[String(rn)] || {};
+                              const roundLabel =
+                                roundNames[String(rn)] ||
+                                tournament.round_names?.[String(rn)] ||
+                                `Round ${rn}`;
+                              return (
+                                <div
+                                  key={rn}
+                                  className="bg-white/5 border border-white/10 rounded-2xl p-4"
+                                >
+                                  <p className="text-white text-sm font-bold mb-3">{roundLabel}</p>
+                                  <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                      <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.15em] mb-1">
+                                        Start Date
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={rd.start_date || ''}
+                                        onChange={(e) =>
+                                          handleRoundDateChange(rn, 'start_date', e.target.value)
+                                        }
+                                        className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-accent-purple/50 transition-all [color-scheme:dark]"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.15em] mb-1">
+                                        End Date
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={rd.end_date || ''}
+                                        onChange={(e) =>
+                                          handleRoundDateChange(rn, 'end_date', e.target.value)
+                                        }
+                                        className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-accent-purple/50 transition-all [color-scheme:dark]"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.15em] mb-1">
+                                      Mode
+                                    </label>
+                                    <select
+                                      value={rd.mode || 'online'}
+                                      onChange={(e) =>
+                                        handleRoundDateChange(rn, 'mode', e.target.value)
+                                      }
+                                      className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-accent-purple/50 transition-all appearance-none cursor-pointer"
+                                    >
+                                      <option value="online" className="bg-dark-900">
+                                        Online
+                                      </option>
+                                      <option value="offline" className="bg-dark-900">
+                                        Offline
+                                      </option>
+                                    </select>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
                   </div>
 
                   <div>
@@ -757,6 +945,52 @@ const ManageTournament = () => {
                       required
                     />
                   </div>
+
+                  {/* Banner Image Upload - Premium only */}
+                  {tournament.plan_type === 'premium' && (
+                    <div>
+                      <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.2em] mb-2 ml-1">
+                        Banner Image
+                      </label>
+                      {bannerPreview && (
+                        <img
+                          src={bannerPreview}
+                          alt="Banner preview"
+                          className="w-full h-28 object-cover rounded-2xl mb-2 border border-white/10"
+                        />
+                      )}
+                      <label
+                        htmlFor="banner-edit-upload"
+                        className="flex items-center justify-center gap-2 w-full py-3 bg-white/5 border border-dashed border-white/20 hover:border-accent-purple/50 hover:bg-white/10 rounded-2xl cursor-pointer transition-all group"
+                      >
+                        <svg
+                          className="w-4 h-4 text-gray-400 group-hover:text-accent-purple transition-colors"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span className="text-xs text-gray-400 group-hover:text-white transition-colors font-semibold">
+                          {editData.banner_image instanceof File
+                            ? editData.banner_image.name
+                            : 'Change Banner Image'}
+                        </span>
+                        <input
+                          id="banner-edit-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -769,12 +1003,134 @@ const ManageTournament = () => {
                       value={editData.rules}
                       onChange={handleEditChange}
                       disabled={tournament.status !== 'upcoming'}
-                      rows={12}
+                      rows={8}
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white font-mono text-sm focus:outline-none focus:border-accent-purple focus:ring-4 focus:ring-accent-purple/10 transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Rules & guidelines..."
                       required
                     />
                   </div>
+
+                  {tournament.status === 'upcoming' && (
+                    <div>
+                      <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.2em] mb-2 ml-1">
+                        Prize Distribution
+                      </label>
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
+                        {editPrizeDistribution.map((prize, index) => {
+                          let trophyColor = 'text-gray-400';
+                          if (prize.place === '1st') trophyColor = 'text-yellow-500';
+                          else if (prize.place === '2nd') trophyColor = 'text-gray-400';
+                          else if (prize.place === '3rd') trophyColor = 'text-orange-500';
+                          return (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 min-w-[56px]">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className={`h-3.5 w-3.5 ${trophyColor}`}
+                                >
+                                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                                  <path d="M4 22h16"></path>
+                                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                                </svg>
+                                <span className="text-xs font-medium text-gray-300">
+                                  {prize.place}
+                                </span>
+                              </div>
+                              <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                                  ₹
+                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={prize.amount}
+                                  onChange={(e) => {
+                                    const updated = [...editPrizeDistribution];
+                                    updated[index].amount = parseInt(e.target.value) || 0;
+                                    setEditPrizeDistribution(updated);
+                                  }}
+                                  onWheel={(e) => e.target.blur()}
+                                  className="w-full rounded-xl border border-white/20 px-3 py-1.5 pl-6 text-xs bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500/50"
+                                />
+                              </div>
+                              {editPrizeDistribution.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditPrizeDistribution(
+                                      editPrizeDistribution.filter((_, i) => i !== index)
+                                    )
+                                  }
+                                  className="w-7 h-7 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all flex-shrink-0"
+                                >
+                                  <svg
+                                    className="w-3.5 h-3.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const places = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
+                            const nextPlace =
+                              places[editPrizeDistribution.length] ||
+                              `${editPrizeDistribution.length + 1}th`;
+                            setEditPrizeDistribution([
+                              ...editPrizeDistribution,
+                              { place: nextPlace, amount: 0 },
+                            ]);
+                          }}
+                          disabled={editPrizeDistribution.length >= 8}
+                          className="w-full py-1.5 text-xs text-gray-400 hover:text-white border border-white/10 hover:border-white/20 rounded-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          + Add Place
+                        </button>
+                        <div className="pt-2 border-t border-white/5 flex justify-between items-center">
+                          <span className="text-[9px] text-gray-500 font-black uppercase tracking-[0.15em]">
+                            Total Distributed
+                          </span>
+                          <span
+                            className={`text-sm font-black ${
+                              editPrizeDistribution.reduce((s, p) => s + p.amount, 0) ===
+                              parseFloat(tournament.prize_pool || 0)
+                                ? 'text-green-400'
+                                : 'text-yellow-400'
+                            }`}
+                          >
+                            ₹
+                            {editPrizeDistribution
+                              .reduce((s, p) => s + p.amount, 0)
+                              .toLocaleString()}{' '}
+                            / ₹{parseFloat(tournament.prize_pool || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

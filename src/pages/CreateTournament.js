@@ -68,6 +68,7 @@ const CreateTournament = () => {
   }, []);
   const [roundNames, setRoundNames] = useState({});
   const [showRoundNamesModal, setShowRoundNamesModal] = useState(false);
+  const [roundDates, setRoundDates] = useState({});
 
   // Prize Distribution & Placement Points
   const [prizeDistribution, setPrizeDistribution] = useState([
@@ -107,6 +108,16 @@ const CreateTournament = () => {
 
   const handleSaveRoundNames = (names) => {
     setRoundNames(names);
+  };
+
+  const handleRoundDateChange = (roundNum, field, value) => {
+    setRoundDates((prev) => ({
+      ...prev,
+      [String(roundNum)]: {
+        ...prev[String(roundNum)],
+        [field]: value,
+      },
+    }));
   };
 
   // Prize Distribution Handlers
@@ -228,6 +239,11 @@ const CreateTournament = () => {
       // Round names
       if (Object.keys(roundNames).length > 0) {
         formDataToSend.append('round_names', JSON.stringify(roundNames));
+      }
+
+      // Round dates & mode
+      if (Object.keys(roundDates).length > 0) {
+        formDataToSend.append('round_dates', JSON.stringify(roundDates));
       }
 
       // Prize Distribution - Convert array to object format: {"1st": 5000, "2nd": 3000, ...}
@@ -697,6 +713,75 @@ const CreateTournament = () => {
                         </svg>
                         Edit Round Names
                       </button>
+                    )}
+
+                    {/* Round Dates & Mode */}
+                    {formData.num_rounds > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">
+                          Round Schedule & Mode
+                        </p>
+                        {Array.from({ length: formData.num_rounds }, (_, i) => {
+                          const rn = i + 1;
+                          const rd = roundDates[String(rn)] || {};
+                          const roundLabel = roundNames[String(rn)] || `Round ${rn}`;
+                          return (
+                            <div
+                              key={rn}
+                              className="bg-white/5 border border-white/10 rounded-2xl p-4"
+                            >
+                              <p className="text-white text-sm font-bold mb-3">{roundLabel}</p>
+                              <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                  <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.15em] mb-1">
+                                    Start Date
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={rd.start_date || ''}
+                                    onChange={(e) =>
+                                      handleRoundDateChange(rn, 'start_date', e.target.value)
+                                    }
+                                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-accent-blue/50 transition-all [color-scheme:dark]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.15em] mb-1">
+                                    End Date
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={rd.end_date || ''}
+                                    onChange={(e) =>
+                                      handleRoundDateChange(rn, 'end_date', e.target.value)
+                                    }
+                                    className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-accent-blue/50 transition-all [color-scheme:dark]"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.15em] mb-1">
+                                  Mode
+                                </label>
+                                <select
+                                  value={rd.mode || 'online'}
+                                  onChange={(e) =>
+                                    handleRoundDateChange(rn, 'mode', e.target.value)
+                                  }
+                                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-accent-blue/50 transition-all appearance-none cursor-pointer"
+                                >
+                                  <option value="online" className="bg-dark-900">
+                                    Online
+                                  </option>
+                                  <option value="offline" className="bg-dark-900">
+                                    Offline
+                                  </option>
+                                </select>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
 

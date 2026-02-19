@@ -67,7 +67,8 @@ const PlayerRegister = () => {
       if (response.data?.tokens && response.data?.user) {
         login(response.data.user, response.data.tokens);
         if (!response.data.profile?.in_game_name || !response.data.profile?.game_id) {
-          navigate('/player/dashboard', { state: { showProfileEdit: true } });
+          // Pass nextPath so after profile edit the user gets back to e.g. /join-team/:token
+          navigate('/player/dashboard', { state: { showProfileEdit: true, next: nextPath } });
         } else {
           navigate(nextPath);
         }
