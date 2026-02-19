@@ -1145,96 +1145,6 @@ const TournamentDetail = () => {
                   </>
                 )}
               </div>
-
-              {/* Right: points system */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <IconTarget />
-                  <p
-                    className="td-section-heading"
-                    style={{ margin: 0, color: 'hsl(270 60% 65%)' }}
-                  >
-                    {is5v5 ? '5v5 Scoring' : 'Placement Points'}
-                  </p>
-                </div>
-
-                {is5v5 ? (
-                  <div className="td-5v5-info">
-                    <div className="td-5v5-row" style={{ background: 'hsl(270 60% 55% / 0.1)' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'hsl(270 60% 65%)' }}>
-                        Format
-                      </span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'hsl(270 60% 65%)' }}>
-                        Team vs Team
-                      </span>
-                    </div>
-                    <div className="td-5v5-row">
-                      <span style={{ fontSize: 13, color: 'hsl(220 5% 55%)' }}>Scoring Range</span>
-                      <span className="td-points-value td-points-value-1">10 – 50 pts</span>
-                    </div>
-                    <div className="td-5v5-row">
-                      <span style={{ fontSize: 13, color: 'hsl(220 5% 55%)' }}>
-                        Winner Selection
-                      </span>
-                      <span style={{ fontSize: 12, color: 'hsl(220 5% 55%)' }}>
-                        By score or direct pick
-                      </span>
-                    </div>
-                    <div className="td-5v5-row">
-                      <span style={{ fontSize: 13, color: 'hsl(220 5% 55%)' }}>Advancement</span>
-                      <span style={{ fontSize: 12, color: 'hsl(220 5% 55%)' }}>
-                        Winner advances
-                      </span>
-                    </div>
-                    <div className="td-points-footer">
-                      <p className="td-points-footer-note">
-                        Higher score wins • No placement/kill points
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="td-points-table">
-                    {[
-                      { place: 1, label: '1st Place', points: 10 },
-                      { place: 2, label: '2nd Place', points: 6 },
-                      { place: 3, label: '3rd Place', points: 5 },
-                      { place: 4, label: '4th Place', points: 4 },
-                      { place: 5, label: '5th Place', points: 3 },
-                      { place: 6, label: '6th Place', points: 2 },
-                      { place: 7, label: '7th Place', points: 1 },
-                      { place: 8, label: '8th Place', points: 1 },
-                    ].map((item) => (
-                      <div key={item.place} className="td-points-row">
-                        <span className="td-points-place">{item.label}</span>
-                        <span
-                          className={`td-points-value ${
-                            item.place === 1
-                              ? 'td-points-value-1'
-                              : item.place === 3
-                                ? 'td-points-value-3'
-                                : 'td-points-value-def'
-                          }`}
-                        >
-                          {item.points} pts
-                        </span>
-                      </div>
-                    ))}
-                    <div className="td-points-footer">
-                      <div
-                        className="td-points-row"
-                        style={{
-                          border: 'none',
-                          borderTop: '1px solid hsl(0 0% 100% / 0.06)',
-                          padding: '10px 0 0',
-                        }}
-                      >
-                        <span className="td-points-place">Per Finish / Kill</span>
-                        <span className="td-points-value td-points-value-kill">+1 pt</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -1515,6 +1425,8 @@ const TournamentDetail = () => {
               <h2 className="text-lg font-semibold text-white">Join Tournament</h2>
               <p className="text-gray-400 text-sm">Register for &quot;{tournament.title}&quot;</p>
             </div>
+            {/* "Use Team Still" button hidden for now */}
+            {/* 
             {userHasTeam && (
               <div className="mb-4">
                 <button
@@ -1529,6 +1441,7 @@ const TournamentDetail = () => {
                 </button>
               </div>
             )}
+            */}
             <form onSubmit={handleRegister}>
               <div className="mb-3">
                 <label className="block text-gray-400 text-sm mb-1">Your Username</label>
