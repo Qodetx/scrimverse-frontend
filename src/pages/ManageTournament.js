@@ -2199,13 +2199,13 @@ const ManageTournament = () => {
         isOpen={showRoundConfigModal}
         onClose={() => setShowRoundConfigModal(false)}
         onSubmit={handleSubmitRoundConfig}
-        roundNumber={currentRound}
+        roundNumber={currentRound + 1}
         totalTeams={
-          currentRound === 1
+          currentRound + 1 === 1
             ? registrations.filter((r) => r.status === 'confirmed').length
-            : tournament.selected_teams?.[String(currentRound - 1)]?.length || 0
+            : tournament.selected_teams?.[String(currentRound)]?.length || 0
         }
-        isFinalRound={currentRound === tournament.rounds?.length}
+        isFinalRound={currentRound + 1 === tournament.rounds?.length}
         tournament={tournament}
       />
 
