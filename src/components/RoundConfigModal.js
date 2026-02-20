@@ -86,12 +86,18 @@ const RoundConfigModal = ({
         matches_per_group: bestOf,
       });
 
-      if (response.groups) {
-        setLobbies(response.groups);
+      const groups = response.data?.groups;
+      if (groups && groups.length > 0) {
+        // Show lobby preview before finalizing
+        setLobbies(groups);
         setShowPreview(true);
+      } else {
+        // No preview data – round configured, just close and refresh
+        onSubmit({ _alreadyConfigured: true });
       }
     } catch (err) {
-      setError(err.message || 'Failed to configure round');
+      const msg = err.response?.data?.error || err.message || 'Failed to configure round';
+      setError(msg);
       console.error('Error configuring round:', err);
     } finally {
       setLoading(false);
@@ -99,14 +105,10 @@ const RoundConfigModal = ({
   };
 
   const handlePreviewConfirm = () => {
-    // Call original onSubmit callback to proceed
-    onSubmit({
-      teams_per_group: 2,
-      qualifying_per_group: 1,
-      matches_per_group: bestOf,
-    });
+    // Round already created by handleConfigureRound – signal parent to refresh only
     setShowPreview(false);
     onClose();
+    onSubmit({ _alreadyConfigured: true });
   };
 
   if (!isOpen) return null;
