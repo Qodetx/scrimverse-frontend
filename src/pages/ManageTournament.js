@@ -428,8 +428,11 @@ const ManageTournament = () => {
   const handleSubmitRoundConfig = async (configData) => {
     try {
       setLoading(true);
-      // Request backend to configure/create groups for the round
-      await tournamentAPI.configureRound(id, currentRound, configData);
+      // For 5v5 games the round is already configured by the modal's API call.
+      // Skip the configureRound call to avoid a duplicate-configuration error.
+      if (!configData?._alreadyConfigured) {
+        await tournamentAPI.configureRound(id, currentRound, configData);
+      }
       setShowRoundConfigModal(false);
       showToast('Round configured successfully!');
 
@@ -2199,13 +2202,13 @@ const ManageTournament = () => {
         isOpen={showRoundConfigModal}
         onClose={() => setShowRoundConfigModal(false)}
         onSubmit={handleSubmitRoundConfig}
-        roundNumber={currentRound + 1}
+        roundNumber={currentRound === 0 ? 1 : currentRound}
         totalTeams={
-          currentRound + 1 === 1
+          currentRound <= 1
             ? registrations.filter((r) => r.status === 'confirmed').length
-            : tournament.selected_teams?.[String(currentRound)]?.length || 0
+            : tournament.selected_teams?.[String(currentRound - 1)]?.length || 0
         }
-        isFinalRound={currentRound + 1 === tournament.rounds?.length}
+        isFinalRound={(currentRound === 0 ? 1 : currentRound) === tournament.rounds?.length}
         tournament={tournament}
       />
 
