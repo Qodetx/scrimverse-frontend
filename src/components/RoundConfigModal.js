@@ -152,7 +152,7 @@ const RoundConfigModal = ({
                   <div className="form-group">
                     <label>Best Of (matches per lobby)</label>
                     <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                      {[1, 3, 5].map((bo) => (
+                      {[1, 2, 3, 4].map((bo) => (
                         <button
                           key={bo}
                           type="button"
@@ -190,7 +190,7 @@ const RoundConfigModal = ({
                       <span className="preview-value">{totalTeams}</span>
 
                       <span className="preview-label">Lobbies:</span>
-                      <span className="preview-value">{Math.ceil(totalTeams / 2)}</span>
+                      <span className="preview-value">{Math.floor(totalTeams / 2)}</span>
 
                       <span className="preview-label">Teams per Lobby:</span>
                       <span className="preview-value">2</span>
