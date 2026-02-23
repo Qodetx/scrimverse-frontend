@@ -177,6 +177,20 @@ const HomePage = () => {
     }
   };
 
+  const formatPrizeMoney = (amountStr) => {
+    const amount = parseFloat(amountStr) || 0;
+    // Show lakhs (L) for >= 1,00,000, thousands (K) for >= 1,000, otherwise show full amount
+    if (amount >= 100000) {
+      const lakhs = Math.floor(amount / 100000);
+      return `${lakhs}L+`;
+    }
+    if (amount >= 1000) {
+      const thousands = Math.floor(amount / 1000);
+      return `${thousands}K+`;
+    }
+    return amount.toLocaleString();
+  };
+
   const fetchFeaturedTournaments = async () => {
     try {
       const response = await tournamentAPI.getTournaments({
@@ -417,8 +431,7 @@ const HomePage = () => {
                   </svg>
                 </div>
                 <div className="text-3xl font-black text-white">
-                  ₹{stats ? (parseFloat(stats.total_prize_money) / 100000).toFixed(0) : '10,000'}
-                  <span className="text-[#8b5cf6]">+</span>
+                  {stats ? `₹${formatPrizeMoney(stats.total_prize_money)}` : '₹10,000'}
                 </div>
               </div>
               <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">

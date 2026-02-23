@@ -1936,7 +1936,10 @@ const ManageTournament = () => {
                             the competition.
                           </p>
                           <button
-                            onClick={() => setShowRoundConfigModal(true)}
+                            onClick={() => {
+                              setCurrentRound(1);
+                              setShowRoundConfigModal(true);
+                            }}
                             className="group relative inline-flex items-center gap-3 px-10 py-4 bg-white text-black rounded-2xl font-black transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] shadow-2xl active:scale-95 text-sm uppercase tracking-widest"
                           >
                             <span className="text-lg">▶</span>

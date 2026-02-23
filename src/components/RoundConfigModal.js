@@ -34,12 +34,14 @@ const RoundConfigModal = ({
   const totalMatches = numGroups * matchesPerGroup;
 
   useEffect(() => {
-    // For final round, set teams per group to total teams
+    // For final round, set teams per group to total teams and reset qualifying to 1
     if (isFinalRound) {
       setTeamsPerGroup(totalTeams);
       setQualifyingPerGroup(1);
     }
-  }, [isFinalRound, totalTeams]);
+    // NOTE: Do NOT reset qualifying when totalTeams changes for non-final rounds —
+    // that would override user input.
+  }, [isFinalRound]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Validate on change
@@ -225,16 +227,18 @@ const RoundConfigModal = ({
               ) : (
                 /* ======== BATTLE ROYALE MODE ======== */
                 <>
-                  <div className="final-round-disclaimer">
-                    <div className="disclaimer-icon">🏆</div>
-                    <div className="disclaimer-text">
-                      <strong>Final Round Configuration</strong>
-                      <p>
-                        All remaining teams will compete in a single group. Only the number of
-                        matches can be configured.
-                      </p>
+                  {isFinalRound && (
+                    <div className="final-round-disclaimer">
+                      <div className="disclaimer-icon">🏆</div>
+                      <div className="disclaimer-text">
+                        <strong>Final Round Configuration</strong>
+                        <p>
+                          All remaining teams will compete in a single group. Only the number of
+                          matches can be configured.
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="form-group">
                     <label htmlFor="teamsPerGroup">How many teams per group?</label>
