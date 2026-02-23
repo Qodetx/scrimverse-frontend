@@ -120,12 +120,18 @@ export const tournamentAPI = {
   },
   updateTournament: (id, data) => api.put(`/tournaments/${id}/update/`, data),
   deleteTournament: (id) => api.delete(`/tournaments/${id}/delete/`),
-  getHostTournaments: (hostId) => api.get(`/tournaments/host/${hostId}/`),
+  // getHostTournaments: (hostId) => api.get(`/tournaments/host/${hostId}/`// ),
   registerForTournament: (tournamentId, data) =>
     api.post(`/tournaments/${tournamentId}/register/`, data),
   registerInitiate: (tournamentId, data) =>
     api.post(`/tournaments/${tournamentId}/register-init/`, data),
   getMyRegistrations: () => api.get('/tournaments/my-registrations/'),
+  getRegistrationDetail: (tournamentId, registrationId) =>
+    api.get(`/tournaments/${tournamentId}/registrations/${registrationId}/`),
+  resendInvite: (tournamentId, registrationId, email) =>
+    api.post(`/tournaments/${tournamentId}/registrations/${registrationId}/resend-invite/`, {
+      email,
+    }),
   // Platform Stats
   getPlatformStats: () => api.get('/tournaments/stats/platform/'),
   // Host dashboard stats

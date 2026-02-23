@@ -390,7 +390,7 @@ const TournamentDetail = () => {
       const teammateCount = Math.max(0, requiredPlayers - 1);
       setRegistrationData({
         team_name: '',
-        teammate_emails: Array(teammateCount).fill(''), // Show the correct number of fields but they are optional
+        teammate_emails: Array(teammateCount).fill(''), // Show the correct number of fields (all required)
         in_game_details: { ign: '', uid: '', rank: '' },
       });
       setUsernameSuggestions({});
@@ -466,8 +466,22 @@ const TournamentDetail = () => {
     }
 
     const emails = registrationData.teammate_emails || [];
+    const requiredPlayers = getRequiredPlayers(tournament.game_mode);
+    const requiredTeammateEmails = Math.max(0, requiredPlayers - 1);
 
-    // Allow 0 to 5 teammates (flexible team size)
+    // Check if all required teammate emails are provided
+    if (requiredTeammateEmails > 0) {
+      // For 5v5 (Valorant/COD) and Squad modes, all teammate emails are MANDATORY
+      const nonEmptyEmails = emails.filter((e) => e && e.trim());
+      if (nonEmptyEmails.length < requiredTeammateEmails) {
+        alert(
+          `This tournament requires ${requiredTeammateEmails} teammate email(s). You provided ${nonEmptyEmails.length}.`
+        );
+        return;
+      }
+    }
+
+    // Maximum 5 teammates allowed
     if (emails.length > 5) {
       alert('Maximum 5 teammates allowed');
       return;
@@ -1471,22 +1485,25 @@ const TournamentDetail = () => {
                 />
               </div>
               <div className="mb-3">
-                <label className="block text-gray-300 mb-2">Teammate Email IDs (Optional)</label>
+                <label className="block text-gray-300 mb-2">
+                  Teammate Email IDs <span className="text-red-400">*</span>
+                </label>
                 <div className="space-y-2">
                   {registrationData.teammate_emails.map((email, index) => (
                     <input
                       key={index}
                       type="email"
+                      required
                       value={email}
                       onChange={(e) => handleTeammateEmailChange(index, e.target.value)}
-                      placeholder={`Teammate ${index + 2} email (optional)`}
+                      placeholder={`Teammate ${index + 2} email`}
                       className="w-full px-3 py-2 bg-[#0b0b0d] border border-[#222] rounded-md text-white"
                     />
                   ))}
                 </div>
-                <div className="text-purple-300 text-xs bg-[#1b0b2b] border border-[#2b153b] rounded-md p-3 mt-3">
-                  <strong>Optional.</strong> You can leave teammate fields blank and register with
-                  fewer players. Fill only the ones you want to invite.
+                <div className="text-yellow-300 text-xs bg-[#2b2b0b] border border-[#3b3b1b] rounded-md p-3 mt-3">
+                  <strong>All teammate email fields are required.</strong> Players must provide all
+                  teammate emails to complete registration for this tournament.
                 </div>
               </div>
               <div className="flex items-center justify-between bg-transparent py-3 mt-3 border-t border-[#222]">

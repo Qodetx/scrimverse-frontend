@@ -86,12 +86,18 @@ const RoundConfigModal = ({
         matches_per_group: bestOf,
       });
 
-      if (response.groups) {
-        setLobbies(response.groups);
+      const groups = response.data?.groups;
+      if (groups && groups.length > 0) {
+        // Show lobby preview before finalizing
+        setLobbies(groups);
         setShowPreview(true);
+      } else {
+        // No preview data – round configured, just close and refresh
+        onSubmit({ _alreadyConfigured: true });
       }
     } catch (err) {
-      setError(err.message || 'Failed to configure round');
+      const msg = err.response?.data?.error || err.message || 'Failed to configure round';
+      setError(msg);
       console.error('Error configuring round:', err);
     } finally {
       setLoading(false);
@@ -99,14 +105,10 @@ const RoundConfigModal = ({
   };
 
   const handlePreviewConfirm = () => {
-    // Call original onSubmit callback to proceed
-    onSubmit({
-      teams_per_group: 2,
-      qualifying_per_group: 1,
-      matches_per_group: bestOf,
-    });
+    // Round already created by handleConfigureRound – signal parent to refresh only
     setShowPreview(false);
     onClose();
+    onSubmit({ _alreadyConfigured: true });
   };
 
   if (!isOpen) return null;
@@ -152,7 +154,7 @@ const RoundConfigModal = ({
                   <div className="form-group">
                     <label>Best Of (matches per lobby)</label>
                     <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                      {[1, 3, 5].map((bo) => (
+                      {[1, 2, 3, 4].map((bo) => (
                         <button
                           key={bo}
                           type="button"
@@ -190,7 +192,7 @@ const RoundConfigModal = ({
                       <span className="preview-value">{totalTeams}</span>
 
                       <span className="preview-label">Lobbies:</span>
-                      <span className="preview-value">{Math.ceil(totalTeams / 2)}</span>
+                      <span className="preview-value">{Math.floor(totalTeams / 2)}</span>
 
                       <span className="preview-label">Teams per Lobby:</span>
                       <span className="preview-value">2</span>
