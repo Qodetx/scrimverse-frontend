@@ -613,6 +613,29 @@ const ManageTournament = () => {
     }
   }, [currentRound, tournament?.use_groups_system, getRoundStatus, fetchRoundGroups]);
 
+  const handleExportCSV = async () => {
+    try {
+      showToast('Exporting tournament registrations...');
+      const response = await tournamentAPI.exportTournamentRegistrationsCSV(id);
+
+      // Create a blob from the response
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${tournament.title}_registrations.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showToast('Tournament registrations exported successfully!');
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      showToast(error.response?.data?.error || 'Failed to export registrations', 'error');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-transparent flex items-center justify-center">
@@ -761,6 +784,21 @@ const ManageTournament = () => {
                       ? 'Edit'
                       : 'View'}
                 </span>
+              </button>
+
+              <button
+                onClick={handleExportCSV}
+                className="header-tab flex-1 xl:flex-none px-6 py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5 active:scale-95 whitespace-nowrap"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2.5"
+                    d="M12 19l9 2-9-18-9 18 9-2m0 0v-8m0 8H3m0 0h18"
+                  />
+                </svg>
+                <span>Export CSV</span>
               </button>
             </div>
           </div>

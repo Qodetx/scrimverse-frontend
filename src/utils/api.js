@@ -140,6 +140,10 @@ export const tournamentAPI = {
   },
   getTournamentRegistrations: (tournamentId) =>
     api.get(`/tournaments/${tournamentId}/registrations/`),
+  exportTournamentRegistrationsCSV: (tournamentId) =>
+    api.get(`/tournaments/${tournamentId}/registrations/export/`, {
+      responseType: 'blob',
+    }),
   startRound: (tournamentId, roundNumber) =>
     api.post(`/tournaments/${tournamentId}/start-round/${roundNumber}/`),
   selectTeams: (tournamentId, data) => api.post(`/tournaments/${tournamentId}/select-teams/`, data),
