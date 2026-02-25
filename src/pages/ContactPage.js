@@ -107,7 +107,7 @@ const ContactPage = () => {
                   </svg>
                 </div>
                 <div className="info-content">
-                  <span className="info-label">support@scrimverse.space</span>
+                  <span className="info-label">support@scrimverse.com</span>
                   <p className="info-desc">For detailed inquiries and partnerships</p>
                 </div>
               </div>
@@ -115,7 +115,7 @@ const ContactPage = () => {
 
             <div className="founder-block glass-card">
               <div className="founder-info">
-                <h3 className="founder-name">Vamshi</h3>
+                <h3 className="founder-name">Dhiraj</h3>
                 <span className="founder-title">Founder & CEO</span>
                 <p className="founder-tagline">Building the future of Indian esports</p>
               </div>

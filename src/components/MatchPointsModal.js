@@ -7,7 +7,6 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
 
   useEffect(() => {
     if (isOpen && teams) {
-      // Initialize scores for all teams with empty strings
       const initialScores = teams.map((team) => ({
         team_id: team.id,
         team_name: team.team_name,
@@ -16,6 +15,7 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
         kill_points: '',
       }));
       setScores(initialScores);
+      setWinner(null);
     }
   }, [isOpen, teams]);
 
@@ -27,31 +27,52 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
     );
   };
 
+  const handleScoreIncrement = (teamId, delta) => {
+    setScores((prev) =>
+      prev.map((score) => {
+        if (score.team_id !== teamId) return score;
+        const current = score.position_points === '' ? 0 : Number(score.position_points);
+        const newVal = Math.max(0, current + delta);
+        return { ...score, position_points: newVal };
+      })
+    );
+  };
+
   const calculateTotal = (score) => {
-    // Total = Position Points + Kill Points (wins NOT counted)
-    // Handle empty strings by treating them as 0
     const positionPts = score.position_points === '' ? 0 : Number(score.position_points);
     const killPts = score.kill_points === '' ? 0 : Number(score.kill_points);
     return positionPts + killPts;
   };
 
+  // Auto-detect winner from scores (higher score wins)
+  const getScoreBasedWinner = () => {
+    if (scores.length !== 2) return null;
+    const s0 = scores[0].position_points === '' ? 0 : Number(scores[0].position_points);
+    const s1 = scores[1].position_points === '' ? 0 : Number(scores[1].position_points);
+    if (s0 > s1) return scores[0].team_id;
+    if (s1 > s0) return scores[1].team_id;
+    return null;
+  };
+
+  // Effective winner: manual selection or auto from scores
+  const effectiveWinner = winner || getScoreBasedWinner();
+  const winnerName = scores.find((s) => s.team_id === effectiveWinner)?.team_name;
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (is5v5Game) {
-      // For 5v5: Simple winner selection
-      if (!winner) {
-        alert('Please select a winner');
+      if (!effectiveWinner) {
+        alert('Please select a winner or enter scores');
         return;
       }
       const processedScores = scores.map((score) => ({
         ...score,
-        wins: score.team_id === winner ? 1 : 0,
+        wins: score.team_id === effectiveWinner ? 1 : 0,
         position_points: score.position_points === '' ? 0 : Number(score.position_points),
-        kill_points: score.kill_points === '' ? 0 : Number(score.kill_points),
+        kill_points: 0,
       }));
       onSubmit({ scores: processedScores });
     } else {
-      // For BR: Standard multiple team scoring
       const processedScores = scores.map((score) => ({
         ...score,
         wins: score.wins === '' ? 0 : Number(score.wins),
@@ -66,9 +87,14 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content match-points-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`modal-content match-points-modal ${is5v5Game ? 'match-points-modal-5v5' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
-          <h2 className="gradient-text">Enter Points - Match {match?.match_number}</h2>
+          <h2 className={is5v5Game ? '' : 'gradient-text'}>
+            {is5v5Game ? 'Select Winner' : `Enter Points - Match ${match?.match_number}`}
+          </h2>
           <button type="button" className="close-btn" onClick={onClose}>
             ✕
           </button>
@@ -79,75 +105,99 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
             {is5v5Game ? (
               // 5v5 WINNER SELECTION LAYOUT
               <div className="points-5v5-container">
-                <div className="info-box">
-                  <p>
-                    <strong>Match Result:</strong> Select the winning team for this head-to-head
-                    match.
-                  </p>
-                </div>
+                <p className="select-winner-subtitle">
+                  Enter scores or simply select the winning team
+                </p>
 
+                <p className="quick-select-label">Quick Select Winner</p>
                 <div className="winner-selection-grid">
-                  {scores.map((score, index) => (
+                  {scores.map((score) => (
                     <button
                       key={score.team_id}
                       type="button"
-                      className={`winner-card ${winner === score.team_id ? 'selected' : ''}`}
+                      className={`winner-card ${effectiveWinner === score.team_id ? 'selected' : ''}`}
                       onClick={() => setWinner(score.team_id)}
                     >
-                      <div className="winner-card-icon">{index === 0 ? '🅰️' : '🅱️'}</div>
-                      <div className="winner-card-name">{score.team_name}</div>
-                      <div className="winner-indicator">
-                        {winner === score.team_id && (
-                          <svg className="checkmark" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                          </svg>
-                        )}
+                      <div className="winner-card-abbr">
+                        {score.team_name?.substring(0, 3).toUpperCase()}
                       </div>
+                      <div className="winner-card-name">{score.team_name}</div>
+                      {effectiveWinner === score.team_id && (
+                        <div className="winner-crown">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z" />
+                          </svg>
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>
 
-                <div className="points-section-5v5">
-                  <h3>Match Details</h3>
-                  <div className="points-inputs-5v5">
-                    {scores.map((score) => (
-                      <div key={score.team_id} className="team-points-entry">
-                        <div className="team-label">{score.team_name}</div>
-                        <div className="points-inputs-row">
-                          <div className="points-field">
-                            <label>Position Pts</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={score.position_points}
-                              onChange={(e) =>
-                                handleScoreChange(score.team_id, 'position_points', e.target.value)
-                              }
-                              placeholder="0"
-                              className="score-input-5v5"
-                            />
-                          </div>
-                          <div className="points-field">
-                            <label>Kill Pts</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={score.kill_points}
-                              onChange={(e) =>
-                                handleScoreChange(score.team_id, 'kill_points', e.target.value)
-                              }
-                              placeholder="0"
-                              className="score-input-5v5"
-                            />
-                          </div>
-                          <div className="points-field total">
-                            <label>Total</label>
-                            <div className="total-display">{calculateTotal(score)}</div>
-                          </div>
-                        </div>
+                <div className="score-divider">
+                  <span>OR ENTER SCORES</span>
+                </div>
+
+                <div className="score-inputs-row-5v5">
+                  {scores.map((score) => (
+                    <div key={score.team_id} className="score-column-5v5">
+                      <div className="score-team-label">{score.team_name}</div>
+                      <div className="score-stepper">
+                        <button
+                          type="button"
+                          className="stepper-btn"
+                          onClick={() => handleScoreIncrement(score.team_id, -1)}
+                        >
+                          —
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={score.position_points === '' ? 0 : score.position_points}
+                          onChange={(e) =>
+                            handleScoreChange(score.team_id, 'position_points', e.target.value)
+                          }
+                          className="score-stepper-input"
+                        />
+                        <button
+                          type="button"
+                          className="stepper-btn"
+                          onClick={() => handleScoreIncrement(score.team_id, 1)}
+                        >
+                          +
+                        </button>
                       </div>
-                    ))}
+                    </div>
+                  ))}
+                </div>
+
+                {effectiveWinner && (
+                  <div className="winner-banner">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z" />
+                    </svg>
+                    <span>
+                      <strong>{winnerName}</strong> wins!
+                    </span>
                   </div>
+                )}
+
+                <div className="modal-actions-5v5">
+                  <button type="button" className="btn-cancel-5v5" onClick={onClose}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-confirm-winner" disabled={!effectiveWinner}>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Confirm Winner
+                  </button>
                 </div>
               </div>
             ) : (
@@ -259,26 +309,20 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
               </>
             )}
 
-            <button
-              type="submit"
-              className="btn-submit-points"
-              style={
-                is5v5Game && !winner
-                  ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' }
-                  : {}
-              }
-            >
-              <svg
-                className="check-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              Submit Points
-            </button>
+            {!is5v5Game && (
+              <button type="submit" className="btn-submit-points">
+                <svg
+                  className="check-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Submit Points
+              </button>
+            )}
           </div>
         </form>
       </div>

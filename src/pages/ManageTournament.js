@@ -470,6 +470,32 @@ const ManageTournament = () => {
     }
   };
 
+  const handleResetRound = async () => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Reset Round Configuration',
+      message:
+        'Are you sure you want to reset this round? This will delete groups and matches so you can reconfigure the round.',
+      confirmText: 'Reset Round',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await tournamentAPI.resetRound(id, currentRound);
+          showToast('Round reset. You may reconfigure now.');
+          setRoundGroups([]);
+          await fetchTournamentData();
+        } catch (error) {
+          console.error('Error resetting round:', error);
+          showToast(error.response?.data?.error || 'Failed to reset round', 'error');
+        } finally {
+          setLoading(false);
+          setConfirmModal((c) => ({ ...c, isOpen: false }));
+        }
+      },
+    });
+  };
+
   const handleGroupSelect = (group) => {
     setSelectedGroup(group);
   };
@@ -2012,6 +2038,18 @@ const ManageTournament = () => {
                                   Active Battle Fronts: {roundGroups.length}
                                 </p>
                               </div>
+                              {/* Reconfigure button - only when no matches have started */}
+                              {roundGroups.length > 0 &&
+                                roundGroups.every((g) =>
+                                  (g.matches || []).every((m) => m.status === 'waiting')
+                                ) && (
+                                  <button
+                                    onClick={handleResetRound}
+                                    className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"
+                                  >
+                                    Reconfigure Round
+                                  </button>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2243,6 +2281,8 @@ const ManageTournament = () => {
         isOpen={showRoundConfigModal}
         onClose={() => setShowRoundConfigModal(false)}
         onSubmit={handleSubmitRoundConfig}
+        onReset={handleResetRound}
+        isRoundConfigured={roundGroups.length > 0}
         roundNumber={currentRound === 0 ? 1 : currentRound}
         totalTeams={
           currentRound <= 1

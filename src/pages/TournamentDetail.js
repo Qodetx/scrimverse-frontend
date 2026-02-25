@@ -293,8 +293,11 @@ const TournamentDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [matchSchedule, setMatchSchedule] = useState([]);
+  const [scheduleByRound, setScheduleByRound] = useState({});
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [expandedSchedule, setExpandedSchedule] = useState(true);
+  const [selectedScheduleRound, setSelectedScheduleRound] = useState(null);
+  const [selectedScheduleGroup, setSelectedScheduleGroup] = useState(null);
   const [activeTab, setActiveTab] = useState('schedule');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -348,24 +351,43 @@ const TournamentDetail = () => {
     setScheduleLoading(true);
     try {
       const allMatches = [];
+      const byRound = {};
       for (const roundConfig of tournamentData.rounds) {
         try {
           const response = await tournamentAPI.getRoundGroups(tournamentData.id, roundConfig.round);
           const groups = response.data.groups || [];
-          groups.forEach((group) => {
-            (group.matches || []).forEach((match) => {
-              allMatches.push({
+          if (groups.length > 0) {
+            byRound[roundConfig.round] = { groups: [] };
+            groups.forEach((group) => {
+              const groupMatches = (group.matches || []).map((match) => ({
                 ...match,
                 group_name: group.group_name,
                 round_number: roundConfig.round,
+              }));
+              byRound[roundConfig.round].groups.push({
+                group_name: group.group_name,
+                group_id: group.id,
+                matches: groupMatches,
               });
+              allMatches.push(...groupMatches);
             });
-          });
+          }
         } catch (err) {
           console.debug(`No groups for round ${roundConfig.round}:`, err.message);
         }
       }
       setMatchSchedule(allMatches);
+      setScheduleByRound(byRound);
+      // Auto-select first available round
+      const roundKeys = Object.keys(byRound)
+        .map(Number)
+        .sort((a, b) => a - b);
+      if (roundKeys.length > 0 && !selectedScheduleRound) {
+        setSelectedScheduleRound(roundKeys[0]);
+        if (byRound[roundKeys[0]].groups.length > 0) {
+          setSelectedScheduleGroup(byRound[roundKeys[0]].groups[0].group_name);
+        }
+      }
     } catch (error) {
       console.error('Error fetching match schedule:', error);
     } finally {
@@ -377,6 +399,16 @@ const TournamentDetail = () => {
     if (tournament?.rounds?.length) fetchMatchSchedule(tournament);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournament?.id]);
+
+  // Auto-refresh match schedule every 30s for live tournaments
+  useEffect(() => {
+    if (!tournament || tournament.status !== 'ongoing') return;
+    const interval = setInterval(() => {
+      if (tournament?.rounds?.length) fetchMatchSchedule(tournament);
+    }, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournament?.id, tournament?.status]);
 
   /* ─── Registration helpers ───────────────────────────────── */
   const getRequiredPlayers = (gameMode) => {
@@ -1322,16 +1354,26 @@ const TournamentDetail = () => {
       ══════════════════════════════════════ */}
       {(matchSchedule.length > 0 || scheduleLoading) && (
         <div className="td-match-schedule">
-          <div className="bg-dark-bg-primary rounded-lg border border-dark-bg-hover overflow-hidden">
+          <div className="bg-dark-bg-primary rounded-2xl border border-dark-bg-hover overflow-hidden">
+            {/* Header */}
             <button
               onClick={() => setExpandedSchedule(!expandedSchedule)}
               className="w-full flex items-center justify-between p-4 hover:bg-dark-bg-hover transition-colors"
             >
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                🗓️ Match Schedule
-                <span className="text-xs bg-accent-blue/20 text-accent-blue px-2 py-0.5 rounded-full font-bold">
-                  {matchSchedule.length} {matchSchedule.length === 1 ? 'match' : 'matches'}
-                </span>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <svg
+                  className="w-5 h-5 text-accent-purple"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Match Schedule
               </h3>
               <svg
                 className={`w-5 h-5 text-gray-400 transition-transform ${expandedSchedule ? 'rotate-180' : ''}`}
@@ -1348,66 +1390,173 @@ const TournamentDetail = () => {
               </svg>
             </button>
 
-            {expandedSchedule && matchSchedule.length > 0 && (
+            {expandedSchedule && Object.keys(scheduleByRound).length > 0 && (
               <div className="border-t border-dark-bg-hover">
-                <div className="grid grid-cols-5 gap-2 px-4 py-2 bg-dark-bg-hover/50 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                  <span>Match</span>
-                  <span>Group</span>
-                  <span>Map</span>
-                  <span>Date</span>
-                  <span>Time</span>
+                {/* Round Tabs */}
+                <div className="flex gap-1 p-3 pb-0">
+                  {Object.keys(scheduleByRound)
+                    .map(Number)
+                    .sort((a, b) => a - b)
+                    .map((roundNum) => {
+                      const roundName =
+                        tournament?.round_names?.[String(roundNum)] || `Round ${roundNum}`;
+                      const isActive = selectedScheduleRound === roundNum;
+                      return (
+                        <button
+                          key={roundNum}
+                          onClick={() => {
+                            setSelectedScheduleRound(roundNum);
+                            const groups = scheduleByRound[roundNum]?.groups || [];
+                            if (groups.length > 0) {
+                              setSelectedScheduleGroup(groups[0].group_name);
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                            isActive
+                              ? 'bg-accent-purple text-white shadow-lg shadow-accent-purple/30'
+                              : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {roundName}
+                        </button>
+                      );
+                    })}
                 </div>
-                <div className="divide-y divide-dark-bg-hover/50">
-                  {matchSchedule
-                    .sort((a, b) => {
-                      if (a.round_number !== b.round_number) return a.round_number - b.round_number;
-                      if (a.group_name !== b.group_name)
-                        return (a.group_name || '').localeCompare(b.group_name || '');
-                      return a.match_number - b.match_number;
-                    })
-                    .map((match) => (
-                      <div
-                        key={match.id}
-                        className={`grid grid-cols-5 gap-2 px-4 py-3 text-sm items-center transition-colors hover:bg-dark-bg-hover/30 ${match.status === 'ongoing' ? 'bg-green-500/5 border-l-2 border-green-500' : match.status === 'completed' ? 'opacity-60' : ''}`}
-                      >
-                        <span className="text-white font-semibold flex items-center gap-2">
-                          #{match.match_number}
-                          {match.status === 'ongoing' && (
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                          )}
-                          {match.status === 'completed' && (
-                            <span className="text-[9px] text-gray-500 font-bold uppercase">
-                              Done
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-accent-purple font-medium text-xs">
-                          {match.group_name || '—'}
-                        </span>
-                        <span className="text-gray-300 text-xs">{match.map_name || '—'}</span>
-                        <span className="text-gray-300 text-xs">
-                          {match.scheduled_date
-                            ? new Date(match.scheduled_date + 'T00:00:00').toLocaleDateString(
-                                'en-US',
-                                { month: 'short', day: 'numeric' }
-                              )
-                            : '—'}
-                        </span>
-                        <span className="text-accent-cyan font-medium text-xs">
-                          {match.scheduled_time
-                            ? (() => {
-                                const [h, m] = match.scheduled_time.split(':');
-                                const d = new Date();
-                                d.setHours(parseInt(h), parseInt(m));
-                                return d.toLocaleTimeString('en-US', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                });
-                              })()
-                            : '—'}
-                        </span>
-                      </div>
-                    ))}
+
+                {/* Group Switcher */}
+                {selectedScheduleRound &&
+                  scheduleByRound[selectedScheduleRound]?.groups?.length > 1 && (
+                    <div className="flex gap-1 px-3 pt-3">
+                      {scheduleByRound[selectedScheduleRound].groups.map((g) => {
+                        const isActive = selectedScheduleGroup === g.group_name;
+                        return (
+                          <button
+                            key={g.group_name}
+                            onClick={() => setSelectedScheduleGroup(g.group_name)}
+                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                              isActive
+                                ? 'bg-white/10 text-white border border-white/20'
+                                : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                            }`}
+                          >
+                            {g.group_name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                {/* Match Cards */}
+                <div className="p-3 space-y-2 max-h-[400px] overflow-y-auto">
+                  {(() => {
+                    const currentRoundData = scheduleByRound[selectedScheduleRound];
+                    if (!currentRoundData) return null;
+                    const currentGroup =
+                      currentRoundData.groups.find((g) => g.group_name === selectedScheduleGroup) ||
+                      currentRoundData.groups[0];
+                    if (!currentGroup) return null;
+
+                    return currentGroup.matches
+                      .sort((a, b) => a.match_number - b.match_number)
+                      .map((match) => {
+                        const timeStr = match.scheduled_time
+                          ? (() => {
+                              const [h, m] = match.scheduled_time.split(':');
+                              const d = new Date();
+                              d.setHours(parseInt(h), parseInt(m));
+                              return d.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              });
+                            })()
+                          : null;
+                        const dateStr = match.scheduled_date
+                          ? new Date(match.scheduled_date + 'T00:00:00').toLocaleDateString(
+                              'en-US',
+                              { month: 'short', day: 'numeric' }
+                            )
+                          : null;
+
+                        return (
+                          <div
+                            key={match.id}
+                            className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                              match.status === 'ongoing'
+                                ? 'bg-green-500/5 border-green-500/30'
+                                : match.status === 'completed'
+                                  ? 'bg-white/[0.02] border-white/5 opacity-60'
+                                  : 'bg-white/[0.02] border-white/5 hover:border-white/10'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black border ${
+                                  match.status === 'ongoing'
+                                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                                    : match.status === 'completed'
+                                      ? 'bg-white/5 border-white/10 text-gray-500'
+                                      : 'bg-accent-purple/10 border-accent-purple/30 text-accent-purple'
+                                }`}
+                              >
+                                M{match.match_number}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  {match.map_name && (
+                                    <span className="text-gray-300 text-sm flex items-center gap-1">
+                                      <svg
+                                        className="w-3 h-3 text-gray-500"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                        />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                      </svg>
+                                      {match.map_name}
+                                    </span>
+                                  )}
+                                  {match.status === 'ongoing' && (
+                                    <span className="flex items-center gap-1 text-[9px] font-bold text-green-400 uppercase">
+                                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                                      Live
+                                    </span>
+                                  )}
+                                  {match.status === 'completed' && (
+                                    <span className="text-[9px] font-bold text-gray-500 uppercase">
+                                      Completed
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              {timeStr ? (
+                                <>
+                                  <p className="text-accent-purple font-bold text-sm">{timeStr}</p>
+                                  {dateStr && (
+                                    <p className="text-gray-500 text-[11px]">{dateStr}</p>
+                                  )}
+                                </>
+                              ) : dateStr ? (
+                                <p className="text-gray-400 text-xs">{dateStr}</p>
+                              ) : (
+                                <p className="text-gray-600 text-xs">TBD</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                  })()}
                 </div>
               </div>
             )}

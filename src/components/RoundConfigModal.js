@@ -7,6 +7,8 @@ const RoundConfigModal = ({
   isOpen,
   onClose,
   onSubmit,
+  onReset, // optional handler to reset an already-configured round
+  isRoundConfigured = false, // whether the round already has groups configured
   roundNumber,
   totalTeams,
   isFinalRound = false,
@@ -113,6 +115,27 @@ const RoundConfigModal = ({
     onSubmit({ _alreadyConfigured: true });
   };
 
+  const handleResetClick = async () => {
+    if (!onReset) return;
+    // ask user to confirm
+    // eslint-disable-next-line no-restricted-globals
+    const ok = window.confirm(
+      'Reset this round configuration? This will delete groups and matches so you can reconfigure.'
+    );
+    if (!ok) return;
+    setLoading(true);
+    try {
+      await onReset();
+      onClose();
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to reset round';
+      setError(msg);
+      console.error('Error resetting round:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -154,34 +177,30 @@ const RoundConfigModal = ({
                   </div>
 
                   <div className="form-group">
-                    <label>Best Of (matches per lobby)</label>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                      {[1, 2, 3, 4].map((bo) => (
-                        <button
-                          key={bo}
-                          type="button"
-                          onClick={() => setBestOf(bo)}
-                          style={{
-                            flex: 1,
-                            padding: '14px 0',
-                            borderRadius: '12px',
-                            border:
-                              bestOf === bo
-                                ? '2px solid hsl(280 60% 55%)'
-                                : '1px solid hsl(0 0% 100% / 0.15)',
-                            background:
-                              bestOf === bo ? 'hsl(280 60% 55% / 0.2)' : 'hsl(0 0% 100% / 0.05)',
-                            color: bestOf === bo ? '#fff' : 'hsl(0 0% 60%)',
-                            fontWeight: 700,
-                            fontSize: '1rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                          }}
-                        >
-                          BO{bo}
-                        </button>
-                      ))}
-                    </div>
+                    <label htmlFor="bestOf">Best Of (matches per lobby)</label>
+                    <input
+                      id="bestOf"
+                      type="number"
+                      min="1"
+                      value={bestOf}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '') {
+                          setBestOf('');
+                        } else {
+                          const numValue = Number(value);
+                          if (numValue >= 1) {
+                            setBestOf(numValue);
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                          e.preventDefault();
+                        }
+                      }}
+                      required
+                    />
                     <p className="helper-text" style={{ marginTop: '8px' }}>
                       Each lobby plays {bestOf} match{bestOf > 1 ? 'es' : ''}, winner advances
                     </p>
@@ -223,6 +242,17 @@ const RoundConfigModal = ({
                     </svg>
                     Confirm & Create Lobbies
                   </button>
+                  {isRoundConfigured && (
+                    <button
+                      type="button"
+                      className="btn-destruct"
+                      onClick={handleResetClick}
+                      style={{ marginLeft: '12px' }}
+                      disabled={loading}
+                    >
+                      Reconfigure Round
+                    </button>
+                  )}
                 </>
               ) : (
                 /* ======== BATTLE ROYALE MODE ======== */
@@ -313,19 +343,21 @@ const RoundConfigModal = ({
                     <label htmlFor="matchesPerGroup">How many matches per group?</label>
                     <input
                       id="matchesPerGroup"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[1-4]"
+                      type="number"
+                      min="1"
                       value={matchesPerGroup}
                       onChange={(e) => {
                         const value = e.target.value;
-                        // Only allow numbers 1-4
-                        if (value === '' || /^[1-4]$/.test(value)) {
-                          setMatchesPerGroup(value === '' ? '' : Number(value));
+                        if (value === '') {
+                          setMatchesPerGroup('');
+                        } else {
+                          const numValue = Number(value);
+                          if (numValue >= 1) {
+                            setMatchesPerGroup(numValue);
+                          }
                         }
                       }}
                       onKeyDown={(e) => {
-                        // Prevent arrow keys from changing value
                         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                           e.preventDefault();
                         }
@@ -335,9 +367,6 @@ const RoundConfigModal = ({
                     <p className="helper-text">
                       Each group will play {matchesPerGroup} match
                       {matchesPerGroup !== 1 ? 'es' : ''} in this round
-                    </p>
-                    <p className="helper-text" style={{ color: '#f59e0b', marginTop: '4px' }}>
-                      ⚠️ Maximum 4 matches allowed per group
                     </p>
                   </div>
 
@@ -375,6 +404,17 @@ const RoundConfigModal = ({
                     </svg>
                     Confirm & Start Round
                   </button>
+                  {isRoundConfigured && (
+                    <button
+                      type="button"
+                      className="btn-destruct"
+                      onClick={handleResetClick}
+                      style={{ marginLeft: '12px' }}
+                      disabled={loading}
+                    >
+                      Reconfigure Round
+                    </button>
+                  )}
                 </>
               )}
             </div>

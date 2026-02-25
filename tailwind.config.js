@@ -46,10 +46,10 @@ module.exports = {
         },
         // Keep legacy dark-bg for compatibility
         'dark-bg': {
-          primary: '#0a0e27',
-          secondary: '#0f1420',
-          card: '#1a1f35',
-          hover: '#232945',
+          primary: '#050505',
+          secondary: '#0a0a0a',
+          card: '#111111',
+          hover: '#1a1a1a',
         },
       },
       borderRadius: {
@@ -60,7 +60,7 @@ module.exports = {
       backgroundImage: {
         'gradient-purple': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         'gradient-blue': 'linear-gradient(135deg, #4f7cff 0%, #7c3aed 100%)',
-        'gradient-dark': 'linear-gradient(180deg, #0a0e27 0%, #1a1f35 100%)',
+        'gradient-dark': 'linear-gradient(180deg, #050505 0%, #111111 100%)',
         'gradient-radial': 'radial-gradient(circle at 50% 0%, rgba(79, 124, 255, 0.1) 0%, transparent 50%)',
       },
       keyframes: {

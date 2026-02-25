@@ -167,6 +167,9 @@ export const tournamentAPI = {
   // Configure a round (e.g., create lobbies/groups for 5v5)
   configureRound: (tournamentId, roundNumber, data) =>
     api.post(`/tournaments/${tournamentId}/rounds/${roundNumber}/configure/`, data),
+  // Reset a round configuration (delete groups/matches so organizer can reconfigure)
+  resetRound: (tournamentId, roundNumber) =>
+    api.delete(`/tournaments/${tournamentId}/rounds/${roundNumber}/configure/`),
   // Start a specific match (by groupId)
   startMatch: (tournamentId, groupId, data) =>
     api.post(`/tournaments/${tournamentId}/groups/${groupId}/matches/start/`, data),

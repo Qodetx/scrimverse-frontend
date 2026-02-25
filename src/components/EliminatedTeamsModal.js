@@ -1,8 +1,12 @@
-import React from 'react';
 import './EliminatedTeamsModal.css';
 
 const EliminatedTeamsModal = ({ isOpen, onClose, onProceed, roundData, tournament }) => {
   if (!isOpen || !roundData) return null;
+
+  const is5v5 =
+    roundData.format === '5v5_head_to_head' ||
+    tournament?.game_mode === '5v5' ||
+    ['COD', 'Call of Duty', 'Valorant'].includes(tournament?.game_name);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -31,103 +35,104 @@ const EliminatedTeamsModal = ({ isOpen, onClose, onProceed, roundData, tournamen
           </div>
 
           {roundData.groups &&
-            roundData.groups.map((group) => (
-              <div key={group.group_name} className="group-section">
-                <h3 className="group-title">{group.group_name}</h3>
-                <div className="group-stats">
-                  <span className="qualified">✓ {group.qualified_count} Qualified</span>
-                  <span className="eliminated">✕ {group.eliminated_count} Eliminated</span>
+            roundData.groups.map((group) => {
+              const groupIs5v5 = group.format === '5v5_head_to_head' || is5v5;
+
+              return (
+                <div key={group.group_name} className="group-section">
+                  <h3 className="group-title">{group.group_name}</h3>
+                  <div className="group-stats">
+                    <span className="qualified">✓ {group.qualified_count} Qualified</span>
+                    <span className="eliminated">✕ {group.eliminated_count} Eliminated</span>
+                  </div>
+
+                  {/* Combined Results Table */}
+                  <div className="teams-table-wrapper">
+                    <table className="results-table">
+                      <thead>
+                        <tr>
+                          <th className="col-rank">RANK</th>
+                          <th className="col-team">TEAM NAME</th>
+                          <th className="col-points">TOTAL POINTS</th>
+                          <th className="col-wins">{groupIs5v5 ? 'MATCH WINS' : 'WINS'}</th>
+                          {!groupIs5v5 && <th className="col-extra">POSITION PTS</th>}
+                          {groupIs5v5 && <th className="col-extra">KILLS</th>}
+                          <th className="col-status">STATUS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Qualified Teams */}
+                        {group.qualified_teams &&
+                          group.qualified_teams.map((team, index) => (
+                            <tr key={team.team_id} className="result-row qualified-row">
+                              <td className="col-rank">
+                                <span className="rank-number">{team.rank || index + 1}</span>
+                              </td>
+                              <td className="col-team">
+                                <span className="team-name-text">{team.team_name}</span>
+                              </td>
+                              <td className="col-points">
+                                <span className="points-value">{team.total_points || 0}</span>
+                              </td>
+                              <td className="col-wins">
+                                {groupIs5v5 ? team.match_wins || 0 : team.wins || 0}
+                              </td>
+                              {!groupIs5v5 && (
+                                <td className="col-extra">{team.position_points || 0}</td>
+                              )}
+                              {groupIs5v5 && <td className="col-extra">{team.total_kills || 0}</td>}
+                              <td className="col-status">
+                                <span className="status-tag status-qualified">QUALIFIED</span>
+                              </td>
+                            </tr>
+                          ))}
+
+                        {/* Eliminated Teams */}
+                        {group.eliminated_teams &&
+                          group.eliminated_teams.map((team, index) => {
+                            const qualifiedCount = group.qualified_teams?.length || 0;
+                            return (
+                              <tr key={team.team_id} className="result-row eliminated-row">
+                                <td className="col-rank">
+                                  <span className="rank-number eliminated-rank">
+                                    {team.rank || qualifiedCount + index + 1}
+                                  </span>
+                                </td>
+                                <td className="col-team">
+                                  <span className="team-name-text eliminated-name">
+                                    {team.team_name}
+                                  </span>
+                                </td>
+                                <td className="col-points">
+                                  <span className="points-value eliminated-points">
+                                    {team.total_points || 0}
+                                  </span>
+                                </td>
+                                <td className="col-wins eliminated-text">
+                                  {groupIs5v5 ? team.match_wins || 0 : team.wins || 0}
+                                </td>
+                                {!groupIs5v5 && (
+                                  <td className="col-extra eliminated-text">
+                                    {team.position_points || 0}
+                                  </td>
+                                )}
+                                {groupIs5v5 && (
+                                  <td className="col-extra eliminated-text">
+                                    {team.total_kills || 0}
+                                  </td>
+                                )}
+                                <td className="col-status">
+                                  <span className="status-tag status-eliminated">ELIMINATED</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-
-                {/* Qualified Teams Section */}
-                {group.qualified_teams && group.qualified_teams.length > 0 && (
-                  <div className="teams-section qualified-section">
-                    <h4 className="section-title qualified-title">
-                      <svg
-                        className="section-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M5 13l4 4L19 7" />
-                      </svg>
-                      Qualified Teams
-                    </h4>
-                    <div className="teams-table-wrapper">
-                      <table className="teams-table qualified-table">
-                        <thead>
-                          <tr>
-                            <th>Rank</th>
-                            <th>Team Name</th>
-                            <th>Total Points</th>
-                            <th>Wins</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.qualified_teams.map((team) => (
-                            <tr key={team.team_id} className="qualified-row">
-                              <td className="rank">#{team.rank}</td>
-                              <td className="team-name">{team.team_name}</td>
-                              <td className="points">{team.total_points}</td>
-                              <td className="wins">{team.wins}</td>
-                              <td className="status">
-                                <span className="status-badge qualified-badge">✓ Qualified</span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Eliminated Teams Section */}
-                {group.eliminated_teams && group.eliminated_teams.length > 0 && (
-                  <div className="teams-section eliminated-section">
-                    <h4 className="section-title eliminated-title">
-                      <svg
-                        className="section-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Eliminated Teams
-                    </h4>
-                    <div className="teams-table-wrapper">
-                      <table className="teams-table eliminated-table">
-                        <thead>
-                          <tr>
-                            <th>Rank</th>
-                            <th>Team Name</th>
-                            <th>Total Points</th>
-                            <th>Wins</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.eliminated_teams.map((team) => (
-                            <tr key={team.team_id} className="eliminated-row">
-                              <td className="rank">#{team.rank}</td>
-                              <td className="team-name">{team.team_name}</td>
-                              <td className="points">{team.total_points}</td>
-                              <td className="wins">{team.wins}</td>
-                              <td className="status">
-                                <span className="status-badge eliminated-badge">✕ Eliminated</span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
 
           <button type="button" className="btn-proceed" onClick={onProceed}>
             <svg

@@ -80,7 +80,10 @@ const ScrimPointsTableModal = ({
       total_points: (score.position_points || 0) + (score.kill_points || 0),
     }));
 
-    standings.sort((a, b) => b.total_points - a.total_points);
+    standings.sort(
+      (a, b) =>
+        b.total_points - a.total_points || b.wins - a.wins || b.position_points - a.position_points
+    );
     return standings;
   };
 
@@ -119,7 +122,10 @@ const ScrimPointsTableModal = ({
     });
 
     const standings = Object.values(teamScores);
-    standings.sort((a, b) => b.total_points - a.total_points);
+    standings.sort(
+      (a, b) =>
+        b.total_points - a.total_points || b.wins - a.wins || b.position_points - a.position_points
+    );
 
     return standings;
   };

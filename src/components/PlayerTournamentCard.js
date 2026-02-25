@@ -13,7 +13,10 @@ const PlayerTournamentCard = ({ registration }) => {
   const [fullTournament, setFullTournament] = useState(null); // Store full tournament with rounds
   const [toast, setToast] = useState(null);
   const [matchSchedule, setMatchSchedule] = useState([]);
+  const [scheduleByRound, setScheduleByRound] = useState({});
   const [showSchedule, setShowSchedule] = useState(false);
+  const [selRound, setSelRound] = useState(null);
+  const [selGroup, setSelGroup] = useState(null);
 
   const tournament = registration.tournament || registration.tournament_details;
   const status = tournament?.status;
@@ -35,6 +38,7 @@ const PlayerTournamentCard = ({ registration }) => {
           try {
             const tournamentResponse = await tournamentAPI.getTournament(tournament.id);
             currentRound = tournamentResponse.data.current_round;
+            setFullTournament(tournamentResponse.data);
           } catch (err) {
             console.error('Failed to fetch full tournament details:', err);
             return;
@@ -116,23 +120,30 @@ const PlayerTournamentCard = ({ registration }) => {
 
     const fetchSchedule = async () => {
       try {
-        // Try to get rounds - use current_round or round 1
         const rounds = tournament.rounds || [];
         const allMatches = [];
+        const byRound = {};
 
         for (const roundConfig of rounds) {
           try {
             const response = await tournamentAPI.getRoundGroups(tournament.id, roundConfig.round);
             const groups = response.data.groups || [];
-            groups.forEach((group) => {
-              (group.matches || []).forEach((match) => {
-                allMatches.push({
+            if (groups.length > 0) {
+              byRound[roundConfig.round] = { groups: [] };
+              groups.forEach((group) => {
+                const groupMatches = (group.matches || []).map((match) => ({
                   ...match,
                   group_name: group.group_name,
                   round_number: roundConfig.round,
+                }));
+                byRound[roundConfig.round].groups.push({
+                  group_name: group.group_name,
+                  group_id: group.id,
+                  matches: groupMatches,
                 });
+                allMatches.push(...groupMatches);
               });
-            });
+            }
           } catch (err) {
             // Round not configured yet
           }
@@ -146,21 +157,39 @@ const PlayerTournamentCard = ({ registration }) => {
               tournament.current_round
             );
             const groups = response.data.groups || [];
-            groups.forEach((group) => {
-              (group.matches || []).forEach((match) => {
-                allMatches.push({
+            if (groups.length > 0) {
+              byRound[tournament.current_round] = { groups: [] };
+              groups.forEach((group) => {
+                const groupMatches = (group.matches || []).map((match) => ({
                   ...match,
                   group_name: group.group_name,
                   round_number: tournament.current_round,
+                }));
+                byRound[tournament.current_round].groups.push({
+                  group_name: group.group_name,
+                  group_id: group.id,
+                  matches: groupMatches,
                 });
+                allMatches.push(...groupMatches);
               });
-            });
+            }
           } catch (err) {
             // No groups available
           }
         }
 
         setMatchSchedule(allMatches);
+        setScheduleByRound(byRound);
+        // Auto-select first round/group if not yet selected
+        const roundKeys = Object.keys(byRound)
+          .map(Number)
+          .sort((a, b) => a - b);
+        if (roundKeys.length > 0 && !selRound) {
+          setSelRound(roundKeys[0]);
+          if (byRound[roundKeys[0]].groups.length > 0) {
+            setSelGroup(byRound[roundKeys[0]].groups[0].group_name);
+          }
+        }
       } catch (error) {
         console.error('Error fetching match schedule:', error);
       }
@@ -484,152 +513,290 @@ const PlayerTournamentCard = ({ registration }) => {
       </Link>
 
       {/* Match Schedule Display (toggled by Time button) */}
-      {showSchedule && matchSchedule.length > 0 && (
+      {showSchedule && Object.keys(scheduleByRound).length > 0 && (
         <div
           className="match-schedule-section"
           style={{
             marginTop: '12px',
-            padding: '16px',
-            background: 'rgba(17, 24, 39, 0.95)',
-            border: '1px solid rgba(59, 130, 246, 0.2)',
-            borderRadius: '12px',
+            background: '#0a0a0a',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '16px',
+            overflow: 'hidden',
             animation: 'slideDown 0.3s ease-out',
           }}
         >
-          <h4
-            style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#fff',
-              marginBottom: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
+          {/* Header */}
+          <div
+            style={{ padding: '12px 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
+              <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" />
+              <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" />
+              <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" />
             </svg>
-            Match Schedule ({matchSchedule.length} matches)
-          </h4>
-          <div className="schedule-table" style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  <th
-                    style={{ padding: '8px', color: '#9ca3af', textAlign: 'left', fontWeight: 600 }}
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Match Schedule</span>
+          </div>
+
+          {/* Round Tabs */}
+          <div style={{ display: 'flex', gap: '4px', padding: '12px 16px 0' }}>
+            {Object.keys(scheduleByRound)
+              .map(Number)
+              .sort((a, b) => a - b)
+              .map((roundNum) => {
+                const roundName =
+                  tournament?.round_names?.[String(roundNum)] || `Round ${roundNum}`;
+                const isActive = selRound === roundNum;
+                return (
+                  <button
+                    key={roundNum}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelRound(roundNum);
+                      const groups = scheduleByRound[roundNum]?.groups || [];
+                      if (groups.length > 0) setSelGroup(groups[0].group_name);
+                    }}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      background: isActive ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
+                      color: isActive ? '#fff' : '#9ca3af',
+                      boxShadow: isActive ? '0 4px 12px rgba(139,92,246,0.3)' : 'none',
+                    }}
                   >
-                    Match
-                  </th>
-                  <th
-                    style={{ padding: '8px', color: '#9ca3af', textAlign: 'left', fontWeight: 600 }}
+                    {roundName}
+                  </button>
+                );
+              })}
+          </div>
+
+          {/* Group Switcher */}
+          {selRound && scheduleByRound[selRound]?.groups?.length > 1 && (
+            <div style={{ display: 'flex', gap: '4px', padding: '8px 16px 0' }}>
+              {scheduleByRound[selRound].groups.map((g) => {
+                const isActive = selGroup === g.group_name;
+                return (
+                  <button
+                    key={g.group_name}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelGroup(g.group_name);
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      border: isActive
+                        ? '1px solid rgba(255,255,255,0.2)'
+                        : '1px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                      color: isActive ? '#fff' : '#6b7280',
+                    }}
                   >
-                    Group
-                  </th>
-                  <th
-                    style={{ padding: '8px', color: '#9ca3af', textAlign: 'left', fontWeight: 600 }}
-                  >
-                    Map
-                  </th>
-                  <th
-                    style={{ padding: '8px', color: '#9ca3af', textAlign: 'left', fontWeight: 600 }}
-                  >
-                    Date
-                  </th>
-                  <th
-                    style={{ padding: '8px', color: '#9ca3af', textAlign: 'left', fontWeight: 600 }}
-                  >
-                    Time
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {matchSchedule
-                  .sort((a, b) => {
-                    if (a.round_number !== b.round_number) return a.round_number - b.round_number;
-                    if (a.group_name !== b.group_name)
-                      return a.group_name.localeCompare(b.group_name);
-                    return a.match_number - b.match_number;
-                  })
-                  .map((match, idx) => (
-                    <tr
-                      key={idx}
+                    {g.group_name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Match Cards */}
+          <div
+            style={{
+              padding: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              maxHeight: '350px',
+              overflowY: 'auto',
+            }}
+          >
+            {(() => {
+              const currentRoundData = scheduleByRound[selRound];
+              if (!currentRoundData) return null;
+              const currentGroup =
+                currentRoundData.groups.find((g) => g.group_name === selGroup) ||
+                currentRoundData.groups[0];
+              if (!currentGroup) return null;
+
+              return currentGroup.matches
+                .sort((a, b) => a.match_number - b.match_number)
+                .map((match) => {
+                  const timeStr = match.scheduled_time
+                    ? (() => {
+                        const [h, m] = match.scheduled_time.split(':');
+                        const d = new Date();
+                        d.setHours(parseInt(h), parseInt(m));
+                        return d.toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        });
+                      })()
+                    : null;
+                  const dateStr = match.scheduled_date
+                    ? new Date(match.scheduled_date + 'T00:00:00').toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : null;
+
+                  return (
+                    <div
+                      key={match.id}
                       style={{
-                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        border:
+                          match.status === 'ongoing'
+                            ? '1px solid rgba(34,197,94,0.3)'
+                            : '1px solid rgba(255,255,255,0.05)',
                         background:
-                          match.status === 'ongoing' ? 'rgba(34, 197, 94, 0.05)' : 'transparent',
+                          match.status === 'ongoing'
+                            ? 'rgba(34,197,94,0.05)'
+                            : 'rgba(255,255,255,0.02)',
+                        opacity: match.status === 'completed' ? 0.6 : 1,
+                        transition: 'all 0.2s',
                       }}
                     >
-                      <td
-                        style={{
-                          padding: '10px 8px',
-                          color: '#fff',
-                          fontWeight: match.status === 'ongoing' ? 700 : 500,
-                        }}
-                      >
-                        #{match.match_number}
-                        {match.status === 'ongoing' && (
-                          <span
-                            style={{
-                              marginLeft: '6px',
-                              padding: '2px 6px',
-                              background: 'rgba(34, 197, 94, 0.2)',
-                              color: '#22c55e',
-                              borderRadius: '4px',
-                              fontSize: '10px',
-                              fontWeight: 700,
-                            }}
-                          >
-                            LIVE
-                          </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            border:
+                              match.status === 'ongoing'
+                                ? '1px solid rgba(34,197,94,0.3)'
+                                : match.status === 'completed'
+                                  ? '1px solid rgba(255,255,255,0.1)'
+                                  : '1px solid rgba(139,92,246,0.3)',
+                            background:
+                              match.status === 'ongoing'
+                                ? 'rgba(34,197,94,0.1)'
+                                : match.status === 'completed'
+                                  ? 'rgba(255,255,255,0.05)'
+                                  : 'rgba(139,92,246,0.1)',
+                            color:
+                              match.status === 'ongoing'
+                                ? '#22c55e'
+                                : match.status === 'completed'
+                                  ? '#6b7280'
+                                  : '#a855f7',
+                          }}
+                        >
+                          M{match.match_number}
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {match.map_name && (
+                              <span
+                                style={{
+                                  fontSize: '13px',
+                                  color: '#d1d5db',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  fill="none"
+                                  stroke="#6b7280"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth="2"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                  />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                  />
+                                </svg>
+                                {match.map_name}
+                              </span>
+                            )}
+                            {match.status === 'ongoing' && (
+                              <span
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  fontSize: '9px',
+                                  fontWeight: 700,
+                                  color: '#22c55e',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: '5px',
+                                    height: '5px',
+                                    borderRadius: '50%',
+                                    background: '#22c55e',
+                                    animation: 'pulse 2s infinite',
+                                  }}
+                                />
+                                Live
+                              </span>
+                            )}
+                            {match.status === 'completed' && (
+                              <span
+                                style={{
+                                  fontSize: '9px',
+                                  fontWeight: 700,
+                                  color: '#6b7280',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                Completed
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        {timeStr ? (
+                          <>
+                            <div style={{ fontSize: '13px', fontWeight: 700, color: '#a855f7' }}>
+                              {timeStr}
+                            </div>
+                            {dateStr && (
+                              <div style={{ fontSize: '10px', color: '#6b7280' }}>{dateStr}</div>
+                            )}
+                          </>
+                        ) : dateStr ? (
+                          <div style={{ fontSize: '12px', color: '#9ca3af' }}>{dateStr}</div>
+                        ) : (
+                          <div style={{ fontSize: '11px', color: '#4b5563' }}>TBD</div>
                         )}
-                        {match.status === 'completed' && (
-                          <span
-                            style={{
-                              marginLeft: '6px',
-                              fontSize: '11px',
-                              color: '#6b7280',
-                            }}
-                          >
-                            Done
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px 8px', color: '#a855f7', fontWeight: 600 }}>
-                        {match.group_name}
-                      </td>
-                      <td style={{ padding: '10px 8px', color: '#9ca3af' }}>
-                        {match.map_name || 'TBD'}
-                      </td>
-                      <td style={{ padding: '10px 8px', color: '#9ca3af' }}>
-                        {match.scheduled_date
-                          ? new Date(match.scheduled_date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })
-                          : 'TBD'}
-                      </td>
-                      <td style={{ padding: '10px 8px', color: '#06b6d4', fontWeight: 600 }}>
-                        {match.scheduled_time
-                          ? new Date(`1970-01-01T${match.scheduled_time}`).toLocaleTimeString(
-                              'en-US',
-                              {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true,
-                              }
-                            )
-                          : 'TBD'}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                  );
+                });
+            })()}
           </div>
         </div>
       )}
@@ -641,7 +808,7 @@ const PlayerTournamentCard = ({ registration }) => {
           style={{
             marginTop: '12px',
             padding: '16px',
-            background: 'rgba(17, 24, 39, 0.95)',
+            background: '#0a0a0a',
             border: '1px solid rgba(249, 115, 22, 0.2)',
             borderRadius: '12px',
             textAlign: 'center',
@@ -650,19 +817,6 @@ const PlayerTournamentCard = ({ registration }) => {
             fontWeight: 600,
           }}
         >
-          <svg
-            style={{ width: '24px', height: '24px', margin: '0 auto 8px', opacity: 0.7 }}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
           No match schedule available yet. The host will update this soon.
         </div>
       )}
