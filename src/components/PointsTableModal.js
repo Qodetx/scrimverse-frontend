@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { tournamentAPI } from '../utils/api';
-import { generateStandingsImage } from './standingsImageGenerator';
+import { generateStandingsImage, generate5v5Image } from './standingsImageGenerator';
 import './PointsTableModal.css';
 
 // Helper function to get full image URL
@@ -289,22 +289,38 @@ const PointsTableModal = ({
 
     setDownloading(true);
     try {
-      // Get ALL standings data (not just visible)
-      const allStandings =
-        viewMode === 'match'
-          ? getMatchStandings(selectedGroup, selectedMatch)
-          : getGroupCumulativeStandings(selectedGroup);
+      let imageDataUrl;
 
-      // Generate custom image with all teams
-      const imageDataUrl = await generateStandingsImage({
-        tournament,
-        standings: allStandings,
-        viewMode,
-        selectedRound,
-        selectedMatch,
-        selectedGroup,
-        getRoundLabel,
-      });
+      if (is5v5) {
+        // 5v5 mode: generate lobby-based image with all lobbies
+        const lobbies =
+          viewMode === 'match' ? get5v5LobbyResults(selectedMatch) : get5v5CumulativeResults();
+
+        imageDataUrl = await generate5v5Image({
+          tournament,
+          lobbies,
+          viewMode,
+          selectedRound,
+          selectedMatch,
+          getRoundLabel,
+        });
+      } else {
+        // BR mode: generate table-based standings image
+        const allStandings =
+          viewMode === 'match'
+            ? getMatchStandings(selectedGroup, selectedMatch)
+            : getGroupCumulativeStandings(selectedGroup);
+
+        imageDataUrl = await generateStandingsImage({
+          tournament,
+          standings: allStandings,
+          viewMode,
+          selectedRound,
+          selectedMatch,
+          selectedGroup,
+          getRoundLabel,
+        });
+      }
 
       // Download the image — use Blob for better mobile compatibility
       const fileName =

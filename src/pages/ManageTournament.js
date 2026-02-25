@@ -2038,18 +2038,15 @@ const ManageTournament = () => {
                                   Active Battle Fronts: {roundGroups.length}
                                 </p>
                               </div>
-                              {/* Reconfigure button - only when no matches have started */}
-                              {roundGroups.length > 0 &&
-                                roundGroups.every((g) =>
-                                  (g.matches || []).every((m) => m.status === 'waiting')
-                                ) && (
-                                  <button
-                                    onClick={handleResetRound}
-                                    className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"
-                                  >
-                                    Reconfigure Round
-                                  </button>
-                                )}
+                              {/* Reconfigure button - always visible when groups exist, backend validates */}
+                              {roundGroups.length > 0 && (
+                                <button
+                                  onClick={handleResetRound}
+                                  className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"
+                                >
+                                  Reconfigure Round
+                                </button>
+                              )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
