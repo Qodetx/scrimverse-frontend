@@ -71,7 +71,11 @@ const ManageTournament = () => {
 
   const getRoundStatus = useCallback(
     (roundNum) => {
-      return tournament?.round_status?.[String(roundNum)] || 'upcoming';
+      const val = tournament?.round_status?.[String(roundNum)];
+      if (!val) return 'upcoming';
+      // Backend sometimes stores {"status": "ongoing"} and sometimes just "ongoing"
+      if (typeof val === 'object' && val !== null) return val.status || 'upcoming';
+      return val;
     },
     [tournament?.round_status]
   );

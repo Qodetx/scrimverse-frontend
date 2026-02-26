@@ -1350,9 +1350,9 @@ const TournamentDetail = () => {
       {/* end td-tabs-section */}
 
       {/* ══════════════════════════════════════
-          MATCH SCHEDULE
+          MATCH SCHEDULE — hidden from tournament detail page
       ══════════════════════════════════════ */}
-      {(matchSchedule.length > 0 || scheduleLoading) && (
+      {false && (matchSchedule.length > 0 || scheduleLoading) && (
         <div className="td-match-schedule">
           <div className="bg-dark-bg-primary rounded-2xl border border-dark-bg-hover overflow-hidden">
             {/* Header */}

@@ -13,6 +13,9 @@ const GAME_OPTIONS = [
   { value: 'Freefire', label: 'Free Fire' },
 ];
 
+// 5v5 games use wins-only scoring (no position/kill points)
+const WINS_ONLY_GAMES = ['Valorant', 'COD'];
+
 const LeaderboardPage = () => {
   const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('tournaments'); // 'tournaments' or 'scrims'
@@ -136,10 +139,16 @@ const LeaderboardPage = () => {
               <div className="leaderboard-header">
                 <div className="header-cell rank-col">Rank</div>
                 <div className="header-cell team-col">Team Name</div>
-                <div className="header-cell wins-col">Overall Wins</div>
-                <div className="header-cell points-col">Position Pts</div>
-                <div className="header-cell points-col">Kill Pts</div>
-                <div className="header-cell total-col">Total Points</div>
+                <div className="header-cell wins-col">
+                  {WINS_ONLY_GAMES.includes(gameFilter) ? 'Wins' : 'Overall Wins'}
+                </div>
+                {!WINS_ONLY_GAMES.includes(gameFilter) && (
+                  <>
+                    <div className="header-cell points-col">Position Pts</div>
+                    <div className="header-cell points-col">Kill Pts</div>
+                    <div className="header-cell total-col">Total Points</div>
+                  </>
+                )}
               </div>
 
               {/* Table Body */}
@@ -168,18 +177,22 @@ const LeaderboardPage = () => {
                     </div>
                     <div className="cell wins-col">
                       <span className="stat-value wins">
-                        {team.tournament_wins || team.scrim_wins}
+                        {activeTab === 'scrims' ? team.scrim_wins : team.tournament_wins}
                       </span>
                     </div>
-                    <div className="cell points-col">
-                      <span className="stat-value position">{team.total_position_points}</span>
-                    </div>
-                    <div className="cell points-col">
-                      <span className="stat-value kills">{team.total_kill_points}</span>
-                    </div>
-                    <div className="cell total-col">
-                      <span className="stat-value total">{team.total_points}</span>
-                    </div>
+                    {!WINS_ONLY_GAMES.includes(gameFilter) && (
+                      <>
+                        <div className="cell points-col">
+                          <span className="stat-value position">{team.total_position_points}</span>
+                        </div>
+                        <div className="cell points-col">
+                          <span className="stat-value kills">{team.total_kill_points}</span>
+                        </div>
+                        <div className="cell total-col">
+                          <span className="stat-value total">{team.total_points}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>

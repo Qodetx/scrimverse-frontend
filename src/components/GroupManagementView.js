@@ -35,7 +35,7 @@ const GroupManagementView = ({
     if (match.match_number === 1) return true;
     const previousMatch = group.matches?.find((m) => m.match_number === match.match_number - 1);
     if (!previousMatch) return false;
-    return previousMatch.status === 'completed' && previousMatch.scores_submitted;
+    return previousMatch.status === 'completed';
   };
 
   const totalMatches = group.matches?.length || 0;
