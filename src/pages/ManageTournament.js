@@ -409,13 +409,12 @@ const ManageTournament = () => {
   };
 
   const handleTeamClick = (team) => {
-    // Find the registration for this team
-    const teamReg = registrations.find((r) => r.team === team.id || r.team_name === team.team_name);
-    if (teamReg) {
-      // Set the team with the registration ID for the API call
-      setSelectedTeam({ ...team, id: teamReg.id, team_name: teamReg.team_name });
-      setShowTeamDetails(true);
-    }
+    // team.id from groups API is already the registration ID
+    setSelectedTeam({
+      id: team.id, // registration ID from groups API
+      team_name: team.team_name,
+    });
+    setShowTeamDetails(true);
   };
 
   const handleWinnerClick = (winner) => {
