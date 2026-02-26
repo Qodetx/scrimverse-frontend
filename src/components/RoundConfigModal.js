@@ -83,22 +83,18 @@ const RoundConfigModal = ({
 
   const handleConfigureRound = async () => {
     setLoading(true);
+    setError(''); // Clear previous errors
     try {
-      const response = await tournamentAPI.configureRound(tournament.id, roundNumber, {
+      await tournamentAPI.configureRound(tournament.id, roundNumber, {
         teams_per_group: 2,
         qualifying_per_group: 1,
         matches_per_group: bestOf,
       });
 
-      const groups = response.data?.groups;
-      if (groups && groups.length > 0) {
-        // Show lobby preview before finalizing
-        setLobbies(groups);
-        setShowPreview(true);
-      } else {
-        // No preview data – round configured, just close and refresh
-        onSubmit({ _alreadyConfigured: true });
-      }
+      // API succeeded — lobbies created. Close the modal immediately and signal parent to refresh.
+      // (No need for a second preview step — user already saw Lobbies count in the form's Preview.)
+      onClose();
+      onSubmit({ _alreadyConfigured: true });
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Failed to configure round';
       setError(msg);
@@ -110,9 +106,12 @@ const RoundConfigModal = ({
 
   const handlePreviewConfirm = () => {
     // Round already created by handleConfigureRound – signal parent to refresh only
+    // Auto-close after preview confirmation
     setShowPreview(false);
-    onClose();
-    onSubmit({ _alreadyConfigured: true });
+    setTimeout(() => {
+      onClose();
+      onSubmit({ _alreadyConfigured: true });
+    }, 300); // Brief delay for smooth transition
   };
 
   const handleResetClick = async () => {
@@ -229,6 +228,12 @@ const RoundConfigModal = ({
                       )}
                     </div>
                   </div>
+
+                  {error && (
+                    <div className="error-message" style={{ marginTop: 12 }}>
+                      {error}
+                    </div>
+                  )}
 
                   <button type="submit" className="btn-confirm">
                     <svg

@@ -361,7 +361,9 @@ const ManageTournament = () => {
     // New system - show configuration modal
     let totalTeams = 0;
     if (roundNumber === 1) {
-      totalTeams = registrations.filter((r) => r.status === 'confirmed').length;
+      totalTeams = registrations.filter(
+        (r) => r.status === 'confirmed' || r.status === 'approved'
+      ).length;
     } else {
       const prevRoundKey = String(roundNumber - 1);
       totalTeams = tournament.selected_teams?.[prevRoundKey]?.length || 0;
@@ -2166,7 +2168,10 @@ const ManageTournament = () => {
                                     Total Squads
                                   </p>
                                   <p className="text-2xl font-black text-white tracking-tighter">
-                                    {roundGroups[0]?.teams?.length || 0}
+                                    {roundGroups.reduce(
+                                      (acc, g) => acc + (g.teams?.length || 0),
+                                      0
+                                    )}
                                   </p>
                                 </div>
                                 <div>
@@ -2174,7 +2179,10 @@ const ManageTournament = () => {
                                     Force Qualified
                                   </p>
                                   <p className="text-2xl font-black text-white tracking-tighter">
-                                    {roundGroups[0]?.qualifying_teams || 0}
+                                    {roundGroups.reduce(
+                                      (acc, g) => acc + (g.qualifying_teams || 0),
+                                      0
+                                    )}
                                   </p>
                                 </div>
                               </div>
@@ -2287,7 +2295,8 @@ const ManageTournament = () => {
         roundNumber={currentRound === 0 ? 1 : currentRound}
         totalTeams={
           currentRound <= 1
-            ? registrations.filter((r) => r.status === 'confirmed').length
+            ? registrations.filter((r) => r.status === 'confirmed' || r.status === 'approved')
+                .length
             : tournament.selected_teams?.[String(currentRound - 1)]?.length || 0
         }
         isFinalRound={(currentRound === 0 ? 1 : currentRound) === tournament.rounds?.length}
@@ -2384,8 +2393,12 @@ const ManageTournament = () => {
                 >
                   ACTIVE (
                   {
-                    registrations.filter((r) => r.status === 'confirmed' || r.status === 'pending')
-                      .length
+                    registrations.filter(
+                      (r) =>
+                        r.status === 'confirmed' ||
+                        r.status === 'approved' ||
+                        r.status === 'pending'
+                    ).length
                   }
                   )
                 </button>
@@ -2406,7 +2419,10 @@ const ManageTournament = () => {
               {teamsTab === 'active' ? (
                 // Active Teams Tab
                 registrations.filter(
-                  (reg) => reg.status === 'confirmed' || reg.status === 'pending'
+                  (reg) =>
+                    reg.status === 'confirmed' ||
+                    reg.status === 'approved' ||
+                    reg.status === 'pending'
                 ).length === 0 ? (
                   <div className="text-center py-20">
                     <div className="text-5xl mb-6 grayscale opacity-20">👥</div>
@@ -2463,7 +2479,12 @@ const ManageTournament = () => {
                     )}
                     <div className="grid gap-3">
                       {registrations
-                        .filter((reg) => reg.status === 'confirmed' || reg.status === 'pending')
+                        .filter(
+                          (reg) =>
+                            reg.status === 'confirmed' ||
+                            reg.status === 'approved' ||
+                            reg.status === 'pending'
+                        )
                         .map((reg) => (
                           <div
                             key={reg.id}
