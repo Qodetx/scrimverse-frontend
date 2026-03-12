@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import { render, mockScrim } from '../../utils/testUtils';
-import ScrimCard from '../ScrimCard';
+import ScrimCard from '../../features/scrims/ui/ScrimCard';
 
 describe.skip('ScrimCard Component', () => {
   test('renders scrim information correctly', () => {

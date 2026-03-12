@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import { render, mockTournament } from '../../utils/testUtils';
-import TournamentCard from '../TournamentCard';
+import TournamentCard from '../../features/tournaments/ui/TournamentCard';
 
 describe.skip('TournamentCard Component', () => {
   test('renders tournament information correctly', () => {

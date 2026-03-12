@@ -1,8 +1,8 @@
 import React, { useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import EditPlayerProfileModal from './EditPlayerProfileModal';
-import EditHostProfileModal from './EditHostProfileModal';
+import EditPlayerProfileModal from '../features/players/ui/EditPlayerProfileModal';
+import EditHostProfileModal from '../features/hosts/ui/EditHostProfileModal';
 import './Navbar.css';
 
 const Navbar = () => {

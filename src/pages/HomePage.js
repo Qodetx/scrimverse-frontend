@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { tournamentAPI } from '../utils/api';
-import TournamentCard from '../components/TournamentCard';
+import TournamentCard from '../features/tournaments/ui/TournamentCard';
 import Footer from '../components/Footer';
 import { useIsMobile } from '../hooks/use-mobile';
 import './HomePage.css';
