@@ -36,3 +36,8 @@ yarn-error.log*
 *.swo
 *~
 
+# Local development files (not pushed)
+.claude
+CLAUDE.md
+TEAMMATE_TASKS.md
+
