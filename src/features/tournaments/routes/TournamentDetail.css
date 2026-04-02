@@ -5,22 +5,38 @@
 /* ---- Hero Section ---- */
 .td-hero-section {
   position: relative;
+  background: hsl(220 10% 6%);
 }
 
+/* Image wrapper — fixed heights at each breakpoint */
 .td-hero-image-wrapper {
   position: relative;
-  height: 260px;
+  height: 300px;
   overflow: hidden;
+  background: hsl(220 10% 6%);
+}
+
+@media (min-width: 480px) {
+  .td-hero-image-wrapper {
+    height: 340px;
+  }
 }
 
 @media (min-width: 640px) {
   .td-hero-image-wrapper {
-    height: 320px;
+    height: 420px;
   }
 }
+
 @media (min-width: 768px) {
   .td-hero-image-wrapper {
-    height: 400px;
+    height: 500px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .td-hero-image-wrapper {
+    height: 580px;
   }
 }
 
@@ -31,10 +47,19 @@
   object-position: center;
 }
 
+/* Strong bottom gradient — fades banner into the dark content section */
 .td-hero-gradient-bottom {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, hsl(0 0% 4%) 0%, hsl(0 0% 4% / 0.7) 50%, transparent 100%);
+  background: linear-gradient(
+    to top,
+    hsl(220 10% 6%) 0%,
+    hsl(220 10% 6%) 18%,
+    hsl(220 10% 6% / 0.92) 35%,
+    hsl(220 10% 6% / 0.6) 55%,
+    hsl(220 10% 6% / 0.2) 75%,
+    transparent 100%
+  );
 }
 
 .td-hero-gradient-sides {
@@ -42,10 +67,12 @@
   inset: 0;
   background: linear-gradient(
     to right,
-    hsl(0 0% 4% / 0.8) 0%,
-    transparent 40%,
-    transparent 60%,
-    hsl(0 0% 4% / 0.8) 100%
+    hsl(220 10% 6%) 0%,
+    hsl(220 10% 6% / 0.92) 15%,
+    hsl(220 10% 6% / 0.6) 35%,
+    transparent 55%,
+    transparent 70%,
+    hsl(220 10% 6% / 0.5) 100%
   );
 }
 
@@ -74,38 +101,51 @@
 }
 
 /* ---- Hero Content ---- */
+/* Pull-up technique: negative margin overlaps the image bottom */
 .td-hero-content {
   position: relative;
   z-index: 10;
-  max-width: 1200px;
-  margin: -70px auto 0;
-  padding: 0 16px;
+  margin-top: -160px;
+  padding: 0 24px 20px;
+}
+
+@media (min-width: 480px) {
+  .td-hero-content {
+    margin-top: -180px;
+    padding: 0 32px 20px;
+  }
 }
 
 @media (min-width: 640px) {
   .td-hero-content {
-    margin-top: -88px;
+    margin-top: -210px;
+    padding: 0 40px 24px;
   }
 }
+
 @media (min-width: 768px) {
   .td-hero-content {
-    margin-top: -120px;
-  }
-}
-
-.td-hero-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-@media (min-width: 640px) {
-  .td-hero-inner {
-    gap: 24px;
+    margin-top: -240px;
+    padding: 0 48px 28px;
   }
 }
 
 @media (min-width: 1024px) {
+  .td-hero-content {
+    margin-top: -280px;
+    padding: 0 64px 32px;
+  }
+}
+
+.td-hero-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
   .td-hero-inner {
     flex-direction: row;
     align-items: flex-end;
@@ -165,6 +205,9 @@
   letter-spacing: -0.04em;
   line-height: 1.1;
   margin: 4px 0;
+  text-shadow:
+    0 2px 12px hsl(220 10% 6% / 0.8),
+    0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 @media (min-width: 480px) {
@@ -284,16 +327,18 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 11px 20px;
+  padding: 14px 28px;
   background: hsl(0 75% 50%);
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
   overflow: hidden;
-  box-shadow: 0 4px 20px hsl(0 75% 50% / 0.3);
+  box-shadow: 0 6px 28px hsl(0 75% 50% / 0.45);
   transition: background 0.2s ease;
   text-decoration: none;
   color: #fff;
+  align-self: flex-start;
+  width: fit-content;
 }
 
 .td-watch-live-btn:hover {
@@ -319,7 +364,7 @@
 
 .td-watch-live-label {
   position: relative;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: #fff;
@@ -327,33 +372,20 @@
 
 .td-watch-live-icon {
   position: relative;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   color: #fff;
 }
 
 /* =============================================
-   Quick Actions Bar
+   Quick Actions (inside hero left column)
    ============================================= */
-.td-actions-bar {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 16px;
-}
-
 .td-actions-inner {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-}
-
-@media (min-width: 640px) {
-  .td-actions-inner {
-    flex-direction: row;
-    align-items: center;
-    gap: 16px;
-  }
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
 /* ---- Join Button ---- */
@@ -373,13 +405,7 @@
   box-shadow: 0 4px 20px hsl(270 60% 55% / 0.3);
   transition: all 0.2s ease;
   white-space: nowrap;
-  flex: 1;
-}
-
-@media (min-width: 640px) {
-  .td-join-btn {
-    flex: none;
-  }
+  flex: none;
 }
 
 .td-join-btn:hover:not(:disabled) {
@@ -409,13 +435,7 @@
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
-  flex: 1;
-}
-
-@media (min-width: 640px) {
-  .td-reg-status {
-    flex: none;
-  }
+  flex: none;
 }
 
 .td-reg-status-pending {
@@ -498,9 +518,33 @@
    Tab Section
    ============================================= */
 .td-tabs-section {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 16px 48px;
+  padding: 0 24px;
+}
+
+@media (min-width: 480px) {
+  .td-tabs-section {
+    padding: 0 32px;
+  }
+}
+
+@media (min-width: 640px) {
+  .td-tabs-section {
+    padding: 0 40px;
+  }
+}
+
+@media (min-width: 768px) {
+  .td-tabs-section {
+    padding: 0 48px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .td-tabs-section {
+    padding: 0 64px;
+  }
 }
 
 .td-tab-list {
@@ -570,9 +614,8 @@
 
 /* ---- Tab Panel ---- */
 .td-tab-panel {
-  background: hsl(220 10% 10% / 0.35);
-  backdrop-filter: blur(8px);
-  border: 1px solid hsl(0 0% 100% / 0.08);
+  background: hsl(220 10% 10%);
+  border: 1px solid hsl(0 0% 100% / 0.07);
   border-radius: 14px;
   padding: 20px;
   animation: tab-fade-in 0.2s ease;
@@ -1128,15 +1171,49 @@
 
 @media (min-width: 1024px) {
   .td-three-col {
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+/* Briefing tab uses a wider left column for rules */
+.td-briefing-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .td-briefing-col {
+    grid-template-columns: 3fr 2fr;
   }
 }
 
 /* ---- Match Schedule section ---- */
 .td-match-schedule {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto 48px;
-  padding: 0 16px;
+  padding: 0 24px;
+}
+
+@media (min-width: 480px) {
+  .td-match-schedule {
+    padding: 0 32px;
+  }
+}
+@media (min-width: 640px) {
+  .td-match-schedule {
+    padding: 0 40px;
+  }
+}
+@media (min-width: 768px) {
+  .td-match-schedule {
+    padding: 0 48px;
+  }
+}
+@media (min-width: 1024px) {
+  .td-match-schedule {
+    padding: 0 64px;
+  }
 }
 
 /* ---- Loading / Not found ---- */

@@ -1,0 +1,231 @@
+/* HostSlotListView.css */
+
+/* ── Header block (centered sub-header) ─────────────────────────────────── */
+.hsl-header-block {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.hsl-header-block .hsl-header-brand {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.35rem;
+}
+
+.hsl-header-block .hsl-header-title {
+  font-size: 1.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.35rem;
+}
+
+.hsl-header-block .hsl-header-subtitle {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.6rem;
+}
+
+.hsl-header-divider {
+  width: 3rem;
+  height: 2px;
+  background-color: hsl(var(--foreground) / 0.2);
+  border-radius: 9999px;
+  margin: 0 auto;
+}
+
+/* ── Slot row (base) ─────────────────────────────────────────────────────── */
+.hsl-row {
+  display: flex;
+  align-items: center;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.2);
+  background: hsl(var(--card) / 0.6);
+  padding: 0.75rem 1rem;
+  transition: border-color 0.15s ease;
+}
+
+.hsl-row:hover {
+  border-color: hsl(var(--foreground) / 0.1);
+}
+
+/* ── Slot number ─────────────────────────────────────────────────────────── */
+.hsl-number {
+  width: 2.5rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  flex-shrink: 0;
+}
+
+/* ── Team name ───────────────────────────────────────────────────────────── */
+.hsl-team-name {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: hsl(var(--foreground));
+}
+
+/* ── Confirmed badge ─────────────────────────────────────────────────────── */
+.hsl-confirmed-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hsl-confirmed-badge .hsl-confirmed-text {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: rgb(74, 222, 128);
+}
+
+.hsl-confirmed-badge .hsl-confirmed-icon-wrap {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.375rem;
+  background: rgba(34, 197, 94, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.hsl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.hsl-empty .hsl-empty-icon {
+  color: hsl(var(--muted-foreground) / 0.4);
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.hsl-empty .hsl-empty-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.hsl-empty .hsl-empty-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(to right, hsl(var(--purple)), hsl(var(--purple-dark)));
+  text-decoration: none;
+  margin-top: 0.25rem;
+  transition: opacity 0.15s ease;
+}
+
+.hsl-empty .hsl-empty-link:hover {
+  opacity: 0.85;
+}
+
+/* ── No-slots placeholder ────────────────────────────────────────────────── */
+.hsl-no-slots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px dashed hsl(var(--border) / 0.4);
+  background: hsl(var(--card) / 0.3);
+}
+
+.hsl-no-slots-text {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  max-width: 22rem;
+  line-height: 1.5;
+}
+
+/* ── Skeleton animation ──────────────────────────────────────────────────── */
+@keyframes hsl-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.hsl-skeleton {
+  height: 3.25rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--card) / 0.6) 25%,
+    hsl(var(--secondary) / 0.5) 50%,
+    hsl(var(--card) / 0.6) 75%
+  );
+  background-size: 800px 100%;
+  animation: hsl-shimmer 1.6s infinite linear;
+  border: 1px solid hsl(var(--border) / 0.15);
+}
+
+/* ── Dropdown ────────────────────────────────────────────────────────────── */
+.hsl-filter-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.375rem);
+  min-width: 14rem;
+  max-width: 20rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: 0.625rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.hsl-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.875rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hsl-filter-option:hover {
+  background: hsl(var(--secondary) / 0.5);
+}
+
+.hsl-filter-option.selected {
+  color: hsl(var(--purple));
+  background: hsl(var(--purple) / 0.08);
+}

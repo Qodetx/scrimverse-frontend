@@ -41,7 +41,7 @@
   flex: 1;
 }
 
-.header-icon {
+.compact-modal-header .header-icon {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -50,9 +50,13 @@
   font-weight: 900;
   letter-spacing: 0.1em;
   margin-bottom: 4px;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
 }
 
-.header-icon svg {
+.compact-modal-header .header-icon svg {
   color: #a78bfa;
 }
 
@@ -354,9 +358,9 @@
 }
 
 .team-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   background: rgba(139, 92, 246, 0.2);
   display: flex;
   align-items: center;
@@ -370,7 +374,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 4px;
+  object-position: center;
+  border-radius: 6px;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 .team-icon-fallback {

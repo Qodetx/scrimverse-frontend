@@ -1,0 +1,395 @@
+/* HostUpcomingView.css */
+
+.upcom-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.upcom-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.upcom-refresh-btn:hover {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--accent) / 0.5);
+}
+
+/* ─── Card container (cyber-card wrapper) ────────────────────────────────── */
+.upcom-card-container {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.upcom-card-container-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.3);
+}
+
+.upcom-card-container-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.upcom-card-container-title svg {
+  color: hsl(var(--accent));
+  flex-shrink: 0;
+}
+
+.upcom-card-container-body {
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ─── Card list ──────────────────────────────────────────────────────────── */
+.upcom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ─── Card ───────────────────────────────────────────────────────────────── */
+.upcom-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: hsl(var(--secondary) / 0.2);
+  border-radius: 0.625rem;
+  border: 1px solid;
+  transition: border-color 0.15s;
+}
+
+@media (min-width: 640px) {
+  .upcom-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+}
+
+.upcom-card--default {
+  border-color: hsl(var(--border) / 0.3);
+}
+.upcom-card--default:hover {
+  border-color: hsl(var(--accent) / 0.3);
+}
+
+.upcom-card--scrim {
+  border-color: hsl(265 80% 65% / 0.2);
+}
+.upcom-card--scrim:hover {
+  border-color: hsl(265 80% 65% / 0.4);
+}
+
+.upcom-card--lobby {
+  border-color: hsl(var(--accent) / 0.2);
+}
+.upcom-card--lobby:hover {
+  border-color: hsl(var(--accent) / 0.4);
+}
+
+/* ─── Card left ──────────────────────────────────────────────────────────── */
+.upcom-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.upcom-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .upcom-icon-box {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+.upcom-icon-bg--scrim {
+  background: hsl(265 80% 65% / 0.2);
+}
+.upcom-icon-bg--accent {
+  background: hsl(var(--accent) / 0.2);
+}
+
+.upcom-icon-scrim {
+  color: hsl(265 80% 65%);
+}
+.upcom-icon-accent {
+  color: hsl(var(--accent));
+}
+
+.upcom-card-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.upcom-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .upcom-card-title {
+    font-size: 1rem;
+  }
+}
+
+.upcom-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.upcom-badge {
+  font-size: 0.625rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+@media (min-width: 640px) {
+  .upcom-badge {
+    font-size: 0.6875rem;
+  }
+}
+
+.upcom-badge--default {
+  border-color: hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+.upcom-badge--scrim {
+  border-color: hsl(265 80% 65% / 0.5);
+  color: hsl(265 80% 75%);
+}
+.upcom-badge--lobby {
+  border-color: hsl(var(--accent) / 0.5);
+  color: hsl(var(--accent));
+}
+
+.upcom-card-count {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.625rem;
+  color: hsl(var(--muted-foreground));
+}
+
+@media (min-width: 640px) {
+  .upcom-card-count {
+    font-size: 0.6875rem;
+  }
+}
+
+/* ─── Card right ─────────────────────────────────────────────────────────── */
+.upcom-card-right {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  /* on mobile, offset to align with card info (past the icon) */
+  margin-left: 3.375rem;
+}
+
+@media (min-width: 640px) {
+  .upcom-card-right {
+    margin-left: 0;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+}
+
+.upcom-card-datetime {
+  text-align: left;
+}
+
+@media (min-width: 640px) {
+  .upcom-card-datetime {
+    text-align: right;
+  }
+}
+
+.upcom-card-date {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+@media (min-width: 640px) {
+  .upcom-card-date {
+    font-size: 0.875rem;
+  }
+}
+
+.upcom-card-time {
+  font-size: 0.625rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.125rem;
+}
+
+@media (min-width: 640px) {
+  .upcom-card-time {
+    font-size: 0.6875rem;
+  }
+}
+
+.upcom-manage-btn {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 0;
+  background: linear-gradient(to right, hsl(var(--purple)), hsl(var(--purple-dark)));
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+@media (min-width: 640px) {
+  .upcom-manage-btn {
+    font-size: 0.875rem;
+  }
+}
+
+.upcom-manage-btn:hover {
+  opacity: 0.88;
+}
+
+/* ─── Skeleton ───────────────────────────────────────────────────────────── */
+.upcom-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.upcom-skeleton-card {
+  height: 4.5rem;
+  border-radius: 0.625rem;
+  background: hsl(var(--secondary) / 0.3);
+  animation: upcom-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes upcom-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────────── */
+.upcom-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.upcom-empty-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: hsl(var(--muted-foreground));
+  opacity: 0.4;
+  margin-bottom: 0.5rem;
+}
+
+.upcom-empty-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.upcom-empty-sub {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* ─── Error state ────────────────────────────────────────────────────────── */
+.upcom-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.upcom-error-msg {
+  font-size: 0.875rem;
+  color: hsl(var(--destructive));
+  margin: 0;
+}
+
+.upcom-retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.upcom-retry-btn:hover {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--accent) / 0.4);
+}

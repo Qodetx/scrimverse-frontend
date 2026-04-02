@@ -1,7 +1,17 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
-import './PlayerGuidelines.css';
+import {
+  Users,
+  CheckCircle2,
+  Shield,
+  Check,
+  X,
+  HelpCircle,
+  MessageCircle,
+  AlertCircle,
+} from 'lucide-react';
 
 const PlayerGuidelines = () => {
   useEffect(() => {
@@ -9,270 +19,243 @@ const PlayerGuidelines = () => {
   }, []);
 
   return (
-    <div className="guidelines-wrapper">
-      <div className="glow-purple"></div>
-      <div className="glow-blue"></div>
-      <div className="neon-line"></div>
+    <>
+      <Navbar />
+      <main className="pt-24 pb-16 px-4">
+        <div className="max-w-4xl mx-auto space-y-10">
+          {/* Hero */}
+          <header className="text-center">
+            <span className="text-xs font-semibold uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
+              Community Standards
+            </span>
+            <h1 className="text-4xl font-bold text-foreground tracking-tight mt-4 mb-3">
+              Player Guidelines
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Rules and behavioral standards for the Scrimverse community.
+            </p>
+          </header>
 
-      <div className="guidelines-container">
-        {/* Hero Section */}
-        <header className="guidelines-hero">
-          <span className="hero-tag">Community Standards</span>
-          <h1 className="guidelines-hero-title">Player Guidelines</h1>
-          <p className="guidelines-hero-subtitle">
-            Rules and behavioral standards for the Scrimverse community.
-          </p>
-        </header>
+          {/* Fundamental Principles */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                icon: <Users className="h-6 w-6 text-primary" />,
+                title: 'Respectful Conduct',
+                text: 'Treat all players, organizers, and staff with courtesy. Harassment or toxicity is not tolerated.',
+              },
+              {
+                icon: <CheckCircle2 className="h-6 w-6 text-primary" />,
+                title: 'Fair Play',
+                text: 'Competitors must play to the best of their ability while following all game and tournament rules.',
+              },
+              {
+                icon: <Shield className="h-6 w-6 text-primary" />,
+                title: 'Community Safety',
+                text: 'Maintain a safe environment. Report any suspicious or harmful behavior immediately.',
+              },
+            ].map((card) => (
+              <div key={card.title} className="cyber-card p-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mx-auto mb-3">
+                  {card.icon}
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">{card.title}</h3>
+                <p className="text-sm text-muted-foreground">{card.text}</p>
+              </div>
+            ))}
+          </div>
 
-        {/* Fundamental Principles */}
-        <div className="principles-grid">
-          <div className="guide-card">
-            <div className="card-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          {/* Tournament Rules */}
+          <section>
+            <div className="text-center mb-5">
+              <span className="text-xs font-semibold uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
+                Regulations
+              </span>
+              <h2 className="text-2xl font-bold text-foreground mt-3">Tournament Rules</h2>
+            </div>
+            <div className="cyber-card divide-y divide-border">
+              {[
+                {
+                  num: '01',
+                  title: 'No Cheating',
+                  desc: 'Use of any third-party software, exploits, or hacks is strictly prohibited.',
+                },
+                {
+                  num: '02',
+                  title: 'Accurate Info',
+                  desc: 'Players must provide correct IGNs and team details during registration.',
+                },
+                {
+                  num: '03',
+                  title: 'Punctuality',
+                  desc: 'Be ready at least 15 minutes before the scheduled match time.',
+                },
+                {
+                  num: '04',
+                  title: 'Result Reporting',
+                  desc: 'Winners must upload clear screenshots as proof of victory within the specified time.',
+                },
+              ].map((rule) => (
+                <div key={rule.num} className="flex items-start gap-4 p-5">
+                  <span className="text-2xl font-bold text-primary/40 font-mono flex-shrink-0 w-8">
+                    {rule.num}
+                  </span>
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-0.5">{rule.title}</h4>
+                    <p className="text-sm text-muted-foreground">{rule.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Violation Levels */}
+          <section>
+            <div className="text-center mb-5">
+              <span className="text-xs font-semibold uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
+                Enforcement
+              </span>
+              <h2 className="text-2xl font-bold text-foreground mt-3">
+                Violation Levels & Consequences
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="cyber-card p-5">
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Level 1
+                </span>
+                <h3 className="font-semibold text-foreground mt-1 mb-2">Low Severity</h3>
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Issues:</strong> Minor rule confusion or
+                  first-time minor behavior issues.
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <strong className="text-foreground">Consequences:</strong> Warning, temporary
+                  restrictions, short suspension.
+                </p>
+              </div>
+              <div className="cyber-card p-5 border-primary/20">
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">
+                  Level 2
+                </span>
+                <h3 className="font-semibold text-foreground mt-1 mb-2">Medium Severity</h3>
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Issues:</strong> Toxicity, unsportsmanlike
+                  conduct, or repeat minor violations.
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <strong className="text-foreground">Consequences:</strong> Immediate suspension,
+                  tournament bans, extended restrictions.
+                </p>
+              </div>
+              <div className="cyber-card p-5 bg-destructive/5 border-destructive/20">
+                <span className="text-xs font-bold uppercase tracking-widest text-destructive">
+                  Level 3
+                </span>
+                <h3 className="font-semibold text-foreground mt-1 mb-2">High Severity</h3>
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Issues:</strong> Cheating, match fixing,
+                  Doxxing, or extreme toxicity.
+                </p>
+                <p className="text-sm text-destructive mt-1 font-medium">
+                  Permanent ban, account termination, legal action.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Do's and Don'ts */}
+          <section>
+            <div className="text-center mb-5">
+              <span className="text-xs font-semibold uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
+                Best Practices
+              </span>
+              <h2 className="text-2xl font-bold text-foreground mt-3">Do's and Don'ts</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="cyber-card p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <Check className="h-4 w-4 text-green-400" />
+                  </div>
+                  <span className="font-bold text-foreground">Do's</span>
+                </div>
+                <ul className="space-y-3">
+                  {[
+                    'Practice good sportsmanship win or lose.',
+                    'Help new players learn the ropes.',
+                    'Report issues constructively to organizers.',
+                    'Stay updated on rule changes for your games.',
+                    'Maintain consistent performance standards.',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="text-green-400 mt-0.5 flex-shrink-0">
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="cyber-card p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                    <X className="h-4 w-4 text-destructive" />
+                  </div>
+                  <span className="font-bold text-foreground">Don'ts</span>
+                </div>
+                <ul className="space-y-3">
+                  {[
+                    'Blame teammates or opponents for losses.',
+                    'Share personal information (Doxxing).',
+                    'Engage in arguments during live matches.',
+                    'Use external communication to circumvent rules.',
+                    'Abandon matches without valid reason.',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="text-destructive mt-0.5 flex-shrink-0">
+                        <X className="h-3.5 w-3.5" />
+                      </span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          {/* Footer CTA */}
+          <section className="cyber-card p-8 text-center border border-primary/20">
+            <h2 className="text-xl font-bold text-foreground mb-5">Questions or Concerns?</h2>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                to="/help"
+                className="gaming-button inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold text-white text-sm"
               >
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <h3 className="card-title">Respectful Conduct</h3>
-            <p className="card-text">
-              Treat all players, organizers, and staff with courtesy. Harassment or toxicity is not
-              tolerated.
-            </p>
-          </div>
-          <div className="guide-card">
-            <div className="card-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                <HelpCircle className="h-4 w-4" />
+                Visit Help Center
+              </Link>
+              <Link
+                to="/contact"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-secondary border border-border rounded-lg text-foreground text-sm font-medium hover:bg-secondary/80 transition-colors"
               >
-                <circle cx="12" cy="12" r="10" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
-            </div>
-            <h3 className="card-title">Fair Play</h3>
-            <p className="card-text">
-              Competitors must play to the best of their ability while following all game and
-              tournament rules.
-            </p>
-          </div>
-          <div className="guide-card">
-            <div className="card-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                <MessageCircle className="h-4 w-4" />
+                Contact Support
+              </Link>
+              <Link
+                to="/report-issue"
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-secondary border border-border rounded-lg text-foreground text-sm font-medium hover:bg-secondary/80 transition-colors"
               >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-              </svg>
+                <AlertCircle className="h-4 w-4" />
+                Report Violation
+              </Link>
             </div>
-            <h3 className="card-title">Community Safety</h3>
-            <p className="card-text">
-              Maintain a safe environment. Report any suspicious or harmful behavior immediately.
-            </p>
-          </div>
+          </section>
         </div>
-
-        {/* Tournament Rules */}
-        <div className="section-header">
-          <span className="section-label">Regulations</span>
-          <h2 className="section-main-title">Tournament Rules</h2>
-        </div>
-        <div className="rules-list">
-          <div className="rule-item">
-            <div className="rule-number">01</div>
-            <div className="rule-content">
-              <h4>No Cheating</h4>
-              <p>Use of any third-party software, exploits, or hacks is strictly prohibited.</p>
-            </div>
-          </div>
-          <div className="rule-item">
-            <div className="rule-number">02</div>
-            <div className="rule-content">
-              <h4>Accurate Info</h4>
-              <p>Players must provide correct IGNs and team details during registration.</p>
-            </div>
-          </div>
-          <div className="rule-item">
-            <div className="rule-number">03</div>
-            <div className="rule-content">
-              <h4>Punctuality</h4>
-              <p>Be ready at least 15 minutes before the scheduled match time.</p>
-            </div>
-          </div>
-          <div className="rule-item">
-            <div className="rule-number">04</div>
-            <div className="rule-content">
-              <h4>Result Reporting</h4>
-              <p>
-                Winners must upload clear screenshots as proof of victory within the specified time.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Violation Levels */}
-        <div className="section-header">
-          <span className="section-label">Enforcement</span>
-          <h2 className="section-main-title">Violation Levels & Consequences</h2>
-        </div>
-        <div className="violations-grid">
-          <div className="guide-card violation-card low">
-            <span className="severity-badge low">Level 1</span>
-            <h3 className="card-title">Low Severity</h3>
-            <p className="card-text">
-              <b>Issues:</b> Minor rule confusion or first-time minor behavior issues.
-              <br />
-              <b>Consequences:</b> Warning → Temporary restrictions → Short suspension.
-            </p>
-          </div>
-          <div className="guide-card violation-card medium">
-            <span className="severity-badge medium">Level 2</span>
-            <h3 className="card-title">Medium Severity</h3>
-            <p className="card-text">
-              <b>Issues:</b> Toxicity, unsportsmanlike conduct, or repeat minor violations.
-              <br />
-              <b>Consequences:</b> Immediate suspension → Tournament bans → Extended restrictions.
-            </p>
-          </div>
-          <div className="guide-card violation-card high">
-            <span className="severity-badge high">Level 3</span>
-            <h3 className="card-title">High Severity</h3>
-            <p className="card-text">
-              <b>Issues:</b> Cheating, match fixing, Doxxing, or extreme toxicity.
-              <br />
-              <b>Consequences:</b> Immediate permanent ban → Account termination → Legal action.
-            </p>
-          </div>
-        </div>
-
-        {/* Do's and Don'ts */}
-        <div className="section-header">
-          <span className="section-label">Best Practices</span>
-          <h2 className="section-main-title">Do's and Don'ts</h2>
-        </div>
-        <div className="duo-grid">
-          <div className="guide-card split-card success">
-            <div className="split-title-icon success">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <span>Do's</span>
-            </div>
-            <div className="check-list">
-              <div className="check-item">
-                <span className="icon-box">✓</span>
-                <p>Practice good sportsmanship win or lose.</p>
-              </div>
-              <div className="check-item">
-                <span className="icon-box">✓</span>
-                <p>Help new players learn the ropes.</p>
-              </div>
-              <div className="check-item">
-                <span className="icon-box">✓</span>
-                <p>Report issues constructively to organizers.</p>
-              </div>
-              <div className="check-item">
-                <span className="icon-box">✓</span>
-                <p>Stay updated on rule changes for your games.</p>
-              </div>
-              <div className="check-item">
-                <span className="icon-box">✓</span>
-                <p>Maintain consistent performance standards.</p>
-              </div>
-            </div>
-          </div>
-          <div className="guide-card split-card danger">
-            <div className="split-title-icon danger">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-              <span>Don'ts</span>
-            </div>
-            <div className="check-list">
-              <div className="check-item">
-                <span className="icon-box">✗</span>
-                <p>Blame teammates or opponents for losses.</p>
-              </div>
-              <div className="check-item">
-                <span className="icon-box">✗</span>
-                <p>Share personal information (Doxxing).</p>
-              </div>
-              <div className="check-item">
-                <span className="icon-box">✗</span>
-                <p>Engage in arguments during live matches.</p>
-              </div>
-              <div className="check-item">
-                <span className="icon-box">✗</span>
-                <p>Use external communication to circumvent rules.</p>
-              </div>
-              <div className="check-item">
-                <span className="icon-box">✗</span>
-                <p>Abandon matches without valid reason.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Section */}
-        <section className="guide-footer">
-          <h2 className="footer-title">Questions or Concerns?</h2>
-          <div className="footer-btns">
-            <Link to="/help" className="guide-btn primary">
-              Visit Help Center
-            </Link>
-            <Link to="/contact" className="guide-btn secondary">
-              Contact Support
-            </Link>
-            <Link to="/report-issue" className="guide-btn secondary">
-              Report Violation
-            </Link>
-          </div>
-        </section>
-      </div>
-
+      </main>
       <Footer />
-    </div>
+    </>
   );
 };
 

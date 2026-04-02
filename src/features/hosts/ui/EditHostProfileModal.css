@@ -1,0 +1,710 @@
+/* ── EditHostProfileModal.css ─────────────────────────────────────────────── */
+
+/* Overlay */
+.ehp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20001;
+  padding: 1rem;
+}
+
+/* Dialog */
+.ehp-dialog {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border) / 0.3);
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 30rem;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.ehp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.125rem 1.25rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.2);
+  flex-shrink: 0;
+}
+
+.ehp-header-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.ehp-close-btn {
+  background: none;
+  border: none;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ehp-close-btn:hover {
+  color: hsl(var(--foreground));
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+
+.ehp-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+  padding: 0.75rem 1.25rem 0;
+  flex-shrink: 0;
+}
+
+.ehp-tab {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border) / 0.2);
+  background: hsl(var(--secondary) / 0.2);
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ehp-tab:hover {
+  color: hsl(var(--foreground));
+}
+
+.ehp-tab-active {
+  background: hsl(var(--purple) / 0.15);
+  border-color: hsl(var(--purple) / 0.4);
+  color: hsl(var(--purple));
+}
+
+/* ── Scrollable Body ──────────────────────────────────────────────────────── */
+
+.ehp-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+/* ── Alert banners ────────────────────────────────────────────────────────── */
+
+.ehp-alert {
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.ehp-alert-error {
+  background: hsl(0 84% 60% / 0.1);
+  border: 1px solid hsl(0 84% 60% / 0.2);
+  color: hsl(0 84% 70%);
+}
+
+.ehp-alert-success {
+  background: hsl(142 76% 36% / 0.1);
+  border: 1px solid hsl(142 76% 36% / 0.2);
+  color: rgb(74 222 128);
+}
+
+/* ── Section gap ──────────────────────────────────────────────────────────── */
+
+.ehp-section-gap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* ── Avatar ───────────────────────────────────────────────────────────────── */
+
+.ehp-avatar-wrap {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid hsl(var(--purple) / 0.3);
+  flex-shrink: 0;
+  background: hsl(var(--purple) / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ehp-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.ehp-avatar-letter {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--purple));
+}
+
+.ehp-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.15s;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.ehp-avatar-wrap:hover .ehp-avatar-overlay,
+.ehp-avatar-overlay-always {
+  opacity: 1;
+}
+
+.ehp-avatar-clickable {
+  cursor: pointer;
+}
+
+.ehp-upload-label {
+  display: inline-block;
+  margin-top: 0.375rem;
+  padding: 0.2rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border) / 0.4);
+  background: hsl(var(--secondary) / 0.3);
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ehp-upload-label:hover {
+  background: hsl(var(--secondary) / 0.5);
+}
+
+/* ── Form field ───────────────────────────────────────────────────────────── */
+
+.ehp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ehp-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ehp-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.3);
+  background: hsl(var(--secondary) / 0.2);
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.ehp-input:focus {
+  border-color: hsl(var(--purple) / 0.5);
+}
+
+.ehp-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ehp-textarea {
+  resize: none;
+  min-height: 5rem;
+}
+
+.ehp-hint {
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.4;
+}
+
+/* ── Optional label ──────────────────────────────────────────────────────── */
+
+.ehp-optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.65;
+}
+
+/* ── Social links ─────────────────────────────────────────────────────────── */
+
+.ehp-social-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ehp-social-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ehp-social-icon {
+  color: hsl(var(--muted-foreground));
+  flex-shrink: 0;
+}
+
+/* ── Security block ───────────────────────────────────────────────────────── */
+
+.ehp-security-block {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.2);
+  background: hsl(var(--secondary) / 0.1);
+}
+
+.ehp-security-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.375rem;
+}
+
+/* ── Notification row ─────────────────────────────────────────────────────── */
+
+.ehp-notif-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.15);
+  background: hsl(var(--secondary) / 0.1);
+  gap: 0.75rem;
+}
+
+.ehp-notif-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.125rem;
+}
+
+/* ── Toggle ───────────────────────────────────────────────────────────────── */
+
+.ehp-toggle {
+  position: relative;
+  width: 2.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  border: none;
+  background: hsl(var(--secondary));
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.ehp-toggle-on {
+  background: hsl(var(--purple));
+}
+
+.ehp-toggle-thumb {
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+
+.ehp-toggle-on .ehp-toggle-thumb {
+  transform: translateX(1rem);
+}
+
+/* ── Actions ──────────────────────────────────────────────────────────────── */
+
+.ehp-actions {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.ehp-btn-cancel {
+  flex: 1;
+  padding: 0.5625rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.3);
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ehp-btn-cancel:hover:not(:disabled) {
+  background: hsl(var(--secondary) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+.ehp-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ehp-btn-save {
+  flex: 1;
+  padding: 0.5625rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: linear-gradient(to right, hsl(var(--purple)), hsl(var(--purple-dark)));
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.ehp-btn-save:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.ehp-btn-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Spinner ──────────────────────────────────────────────────────────────── */
+
+.ehp-spinner {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  animation: ehp-spin 0.7s linear infinite;
+}
+
+@keyframes ehp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Security block ───────────────────────────────────────────────────────── */
+
+.ehp-security-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.ehp-security-btn {
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border) / 0.3);
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.ehp-security-btn:hover {
+  background: hsl(var(--secondary) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+.ehp-security-btn--primary {
+  background: hsl(var(--purple) / 0.15);
+  border-color: hsl(var(--purple) / 0.4);
+  color: hsl(var(--purple));
+}
+
+.ehp-security-btn--primary:hover {
+  background: hsl(var(--purple) / 0.25);
+}
+
+.ehp-security-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── OTP action row ───────────────────────────────────────────────────────── */
+
+.ehp-otp-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.ehp-otp-timer {
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── Link button ──────────────────────────────────────────────────────────── */
+
+.ehp-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: hsl(var(--purple));
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ehp-link-btn:hover {
+  opacity: 0.8;
+}
+
+/* ── Payout ───────────────────────────────────────────────────────────────── */
+
+.ehp-radio-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ehp-radio-btn {
+  flex: 1;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border) / 0.3);
+  background: hsl(var(--secondary) / 0.2);
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ehp-radio-btn:hover {
+  color: hsl(var(--foreground));
+}
+
+.ehp-radio-active {
+  background: hsl(var(--purple) / 0.15);
+  border-color: hsl(var(--purple) / 0.5);
+  color: hsl(var(--purple));
+}
+
+.ehp-payout-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.2);
+  background: hsl(var(--secondary) / 0.1);
+}
+
+.ehp-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+}
+
+/* ── Info note ────────────────────────────────────────────────────────────── */
+
+.ehp-info-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.15);
+  background: hsl(var(--secondary) / 0.1);
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── Revenue tab — real transaction data ──────────────────────────────────── */
+
+.ehp-rev-loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.ehp-rev-spinner {
+  color: hsl(var(--purple));
+  animation: ehp-spin 1s linear infinite;
+}
+
+.ehp-rev-empty {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.ehp-rev-dropdown-wrap {
+  position: relative;
+}
+
+.ehp-rev-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ehp-rev-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 0.25rem 0;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.ehp-rev-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.4rem 0.625rem;
+  font-size: 0.75rem;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.ehp-rev-dropdown-item:hover {
+  background: hsl(var(--secondary) / 0.4);
+}
+
+.ehp-rev-dropdown-item.selected {
+  color: hsl(var(--purple));
+}
+
+.ehp-rev-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid hsl(var(--border) / 0.15);
+}
+
+.ehp-rev-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid hsl(var(--border) / 0.15);
+}
+
+.ehp-rev-row:last-child {
+  border-bottom: none;
+}
+
+.ehp-rev-row-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: hsl(var(--purple) / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ehp-rev-row-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.ehp-rev-row-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ehp-rev-row-amount {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: hsl(var(--purple));
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Revenue ──────────────────────────────────────────────────────────────── */
+
+.ehp-revenue-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.ehp-revenue-tile {
+  padding: 0.75rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.2);
+  background: hsl(var(--secondary) / 0.1);
+  text-align: center;
+}
+
+.ehp-revenue-label {
+  font-size: 0.625rem;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ehp-revenue-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}

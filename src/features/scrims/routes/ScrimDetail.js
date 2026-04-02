@@ -1,577 +1,988 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useContext } from 'react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+
 import { tournamentAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
 import RegistrationModal from '../../tournaments/ui/RegistrationModal';
-import Toast from '../../../components/Toast';
+import '../../tournaments/routes/TournamentDetail.css';
 
-// Premium SVG Icons
-const TrophyIcon = () => (
+/* ─── SVG Icons ─────────────────────────────────────────── */
+const IconVideo = () => (
   <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="text-accent-blue"
-  >
-    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-    <path d="M4 22h16" />
-    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-  </svg>
-);
-
-const GamepadIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect width="20" height="12" x="2" y="6" rx="2" />
-    <path d="M6 12h4" />
-    <path d="M8 10v4" />
-    <path d="M15 13h.01" />
-    <path d="M18 11h.01" />
-  </svg>
-);
-
-const CalendarIcon = () => (
-  <svg
-    width="18"
-    height="18"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    style={{ width: 18, height: 18, position: 'relative' }}
   >
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-    <line x1="16" y1="2" x2="16" y2="6" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="3" y1="10" x2="21" y2="10" />
+    <polygon points="23 7 16 12 23 17 23 7" />
+    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
   </svg>
 );
-
-const ShieldIcon = () => (
+const IconExternalLink = () => (
   <svg
-    width="18"
-    height="18"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    style={{ width: 14, height: 14, position: 'relative' }}
+  >
+    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
+const IconArrowLeft = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 18, height: 18 }}
+  >
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </svg>
+);
+const IconArrowRight = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 16, height: 16 }}
+  >
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);
+const IconTrophy = ({ style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style || { width: 16, height: 16 }}
+  >
+    <path d="M6 9H4.5a2.5 2.5 0 010-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 000-5H18" />
+    <path d="M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0012 0V2z" />
+  </svg>
+);
+const IconGamepad = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 15, height: 15 }}
+  >
+    <line x1="6" y1="12" x2="10" y2="12" />
+    <line x1="8" y1="10" x2="8" y2="14" />
+    <line x1="15" y1="13" x2="15.01" y2="13" />
+    <line x1="18" y1="11" x2="18.01" y2="11" />
+    <rect x="2" y="6" width="20" height="12" rx="2" />
+  </svg>
+);
+const IconShare = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 15, height: 15 }}
+  >
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+  </svg>
+);
+const IconTarget = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 14, height: 14 }}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+const IconClock = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 14, height: 14 }}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+const IconShield = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 14, height: 14 }}
   >
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
+const IconUsers = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 14, height: 14 }}
+  >
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 00-3-3.87" />
+    <path d="M16 3.13a4 4 0 010 7.75" />
+  </svg>
+);
+const IconStar = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ width: 11, height: 11 }}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+const IconBadgeCheck = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ width: 15, height: 15 }}>
+    <path
+      d="M12 1l3.09 6.26L22 8.27l-5 4.87 1.18 6.88L12 16.77l-6.18 3.25L7 12.14 2 8.27l6.91-1.01z"
+      fill="#60a5fa"
+    />
+    <path
+      d="M9 12l2 2 4-4"
+      fill="none"
+      stroke="#fff"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
+/* ─── Status helpers ─────────────────────────────────────── */
+const getStatusLabel = (status) => {
+  if (status === 'ongoing') return 'LIVE';
+  if (status === 'completed') return 'COMPLETED';
+  return 'REGISTRATION OPEN';
+};
+const getStatusClass = (status) => {
+  if (status === 'ongoing') return 'td-badge td-badge-live';
+  if (status === 'completed') return 'td-badge td-badge-completed';
+  return 'td-badge td-badge-open';
+};
+
+/* ════════════════════════════════════════════════════════
+   COMPONENT
+════════════════════════════════════════════════════════ */
 const ScrimDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [scrim, setScrim] = useState(null);
-  const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [copied, setCopied] = useState({ id: false, password: false });
+  const [activeTab, setActiveTab] = useState('schedule');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
-  const { isAuthenticated, isPlayer, isHost, user } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const { isPlayer, isHost, isAuthenticated } = useContext(AuthContext);
 
   useEffect(() => {
-    fetchScrimData();
-    // Poll for match updates if scrim is ongoing
-    const interval = setInterval(() => {
-      if (scrim?.status === 'ongoing') {
-        fetchMatchData();
-      }
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [id, scrim?.status]);
-
-  const fetchScrimData = async () => {
-    try {
-      setLoading(true);
-      const detailRes = await tournamentAPI.getTournament(id);
-      const data = detailRes.data;
-
-      // Redirect if this is actually a TOURNAMENT
-      const mode = (data.event_mode || '').toUpperCase();
-      if (mode === 'TOURNAMENT') {
-        navigate(`/tournaments/${id}`, { replace: true });
-        return;
-      }
-
-      setScrim(data);
-
-      // Now that we have basic scrim data, try fetching matches and leaderboard
-      // These won't block the initial render if they fail or 404
+    const load = async () => {
       try {
-        const matchesRes = await tournamentAPI.getRoundGroups(id, 1);
-        if (matchesRes.data.groups && matchesRes.data.groups.length > 0) {
-          setMatches(matchesRes.data.groups[0].matches || []);
+        setLoading(true);
+        const res = await tournamentAPI.getTournament(id);
+        const data = res.data;
+        // Redirect if this is actually a tournament
+        if ((data.event_mode || '').toUpperCase() === 'TOURNAMENT') {
+          navigate(`/tournaments/${id}`, { replace: true });
+          return;
         }
+        setScrim(data);
       } catch (err) {
-        // Matches not yet available
+        console.error('Error fetching scrim:', err);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching scrim details:', error);
-    } finally {
-      setLoading(false);
+    };
+    load();
+  }, [id, navigate]);
+
+  /* ─── Registration button ─────────────────────────────── */
+  const renderRegistrationButton = () => {
+    if (isHost()) return null;
+
+    if (isPlayer()) {
+      const regStatus = scrim.user_registration_status;
+      if (regStatus === 'confirmed') {
+        return <div className="td-reg-status td-reg-status-confirmed">✅ You are Registered</div>;
+      }
+      if (regStatus === 'pending') {
+        return <div className="td-reg-status td-reg-status-pending">⏳ Registration Pending</div>;
+      }
+      if (scrim.status === 'upcoming') {
+        const now = new Date();
+        const regEnd = scrim.registration_end ? new Date(scrim.registration_end) : null;
+        const isFull = scrim.current_participants >= scrim.max_participants;
+        const isOpen = !regEnd || now <= regEnd;
+        if (isOpen && !isFull) {
+          return (
+            <button className="td-join-btn" onClick={() => setShowRegisterModal(true)}>
+              Join Arena <IconArrowRight />
+            </button>
+          );
+        }
+      }
+      return <div className="td-reg-status td-reg-status-closed">Registration Closed</div>;
     }
+
+    return (
+      <button
+        className="td-join-btn"
+        onClick={() => navigate('/player/login', { state: { next: location.pathname } })}
+      >
+        Login to Register <IconArrowRight />
+      </button>
+    );
   };
 
-  const fetchMatchData = async () => {
+  /* ─── Prize distribution ─────────────────────────────── */
+  const prizePool = parseFloat((scrim?.prize_pool || '0').toString().replace(/,/g, '')) || 0;
+  const formatPrize = (amount) => `₹${Math.round(amount).toLocaleString('en-IN')}`;
+
+  const fmtDate = (dateStr) => {
+    if (!dateStr) return '—';
     try {
-      const response = await tournamentAPI.getRoundGroups(id, 1);
-      if (response.data.groups && response.data.groups.length > 0) {
-        setMatches(response.data.groups[0].matches || []);
-      }
-    } catch (err) {
-      // Failed to fetch match data
+      return new Date(dateStr).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    } catch {
+      return dateStr;
     }
   };
 
-  const copyToClipboard = (text, type) => {
-    navigator.clipboard.writeText(text);
-    setCopied({ ...copied, [type]: true });
-    setToast({ message: `${type === 'id' ? 'Room ID' : 'Password'} copied!`, type: 'success' });
-    setTimeout(() => setCopied({ ...copied, [type]: false }), 2000);
-  };
-
+  /* ─── Loading / not found ────────────────────────────── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#070708] flex items-center justify-center">
-        <div className="relative w-24 h-24">
-          <div className="absolute inset-0 border-4 border-accent-blue/10 rounded-full"></div>
-          <div className="absolute inset-0 border-4 border-accent-blue border-t-transparent rounded-full animate-spin"></div>
-        </div>
+      <div className="td-loading">
+        <div className="td-spinner" />
+        <p style={{ color: 'hsl(220 5% 55%)', fontSize: 14 }}>Loading scrim…</p>
       </div>
     );
   }
 
   if (!scrim) {
     return (
-      <div className="min-h-screen bg-[#070708] flex flex-col items-center justify-center gap-4">
-        <p className="text-gray-400 text-xl font-black uppercase tracking-widest">Arena Missing</p>
-        <Link
-          to="/scrims"
-          className="px-6 py-2 bg-white/5 text-white rounded-xl font-bold hover:bg-white/10 transition-all uppercase tracking-widest text-xs"
-        >
-          Back to Lobby
-        </Link>
+      <div className="td-loading">
+        <p style={{ color: 'hsl(220 5% 55%)', fontSize: 16 }}>Scrim not found.</p>
       </div>
     );
   }
 
-  const isRegistered = scrim.user_registration_status === 'confirmed';
+  /* ─── Derived values ─────────────────────────────────── */
+  const mediaBase =
+    process.env.REACT_APP_MEDIA_URL?.replace(/\/media\/?$/, '').replace(/\/$/, '') || '';
+  const resolveUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return mediaBase ? `${mediaBase}${url.startsWith('/') ? '' : '/'}${url}` : url;
+  };
+  const heroImage =
+    resolveUrl(scrim.hero_image) ||
+    resolveUrl(scrim.banner_image) ||
+    resolveUrl(scrim.image) ||
+    null;
+  const entryFeeNum = parseFloat(scrim.entry_fee) === 0 ? 'FREE' : `₹${scrim.entry_fee}`;
 
+  /* ─── Prize data ─────────────────────────────────────── */
+  let prizeData = [];
+  if (
+    scrim.prize_distribution &&
+    typeof scrim.prize_distribution === 'object' &&
+    Object.keys(scrim.prize_distribution).length > 0
+  ) {
+    prizeData = Object.entries(scrim.prize_distribution).map(([place, amount]) => ({
+      place,
+      amount: parseInt(amount) || 0,
+    }));
+  } else if (prizePool > 0) {
+    prizeData = [
+      { place: '1st', amount: prizePool * 0.5 },
+      { place: '2nd', amount: prizePool * 0.3 },
+      { place: '3rd', amount: prizePool * 0.2 },
+    ];
+  }
+  const placeColors = {
+    '1st': { row: 'td-prize-row-1', label: 'td-prize-label-1', amount: 'td-prize-amount-1' },
+    '2nd': { row: 'td-prize-row-2', label: 'td-prize-label-2', amount: 'td-prize-amount-2' },
+    '3rd': { row: 'td-prize-row-3', label: 'td-prize-label-3', amount: 'td-prize-amount-3' },
+  };
+  const defaultColors = {
+    row: 'td-prize-row-2',
+    label: 'td-prize-label-2',
+    amount: 'td-prize-amount-2',
+  };
+
+  /* ════════════════════════════════════════════════════════
+     RENDER
+  ════════════════════════════════════════════════════════ */
   return (
-    <div className="min-h-screen relative pb-20 -mt-[112px]">
-      {/* Hero Section */}
-      <div className="relative h-[40vh] min-h-[350px] w-full overflow-hidden">
-        <img
-          src={`${process.env.REACT_APP_MEDIA_URL || 'http://localhost:8000'}/media/tournaments/default_banners/Tournament_Details_Banner.jpg`}
-          alt={scrim.title}
-          className="w-full h-full object-cover opacity-60"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent"></div>
+    <div style={{ minHeight: '100vh' }}>
+      {/* ── Logo-only top bar ── */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/95 backdrop-blur-lg border-b border-border/30 flex items-center px-4">
+        <Link to="/" className="font-bold text-foreground text-base tracking-tight">
+          ScrimVerse
+        </Link>
+      </div>
 
-        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-            <div className="animate-fade-in">
-              <span
-                className={`inline-block px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest border backdrop-blur-md shadow-2xl mb-3 ${
-                  scrim.status === 'ongoing'
-                    ? 'text-success bg-success/10 border-success/30'
-                    : 'text-accent-blue bg-accent-blue/10 border-accent-blue/30'
-                }`}
-              >
-                {scrim.status === 'ongoing' ? 'LIVE NOW' : scrim.status.toUpperCase()}
-              </span>
-              <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter leading-none mb-3 drop-shadow-2xl">
-                {scrim.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-4 text-gray-300">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 backdrop-blur-md">
-                  <GamepadIcon />
-                  <span className="text-xs font-bold uppercase tracking-widest">
-                    {scrim.game_name} • {scrim.game_mode}
+      {/* ══════════════ HERO ══════════════ */}
+      <section className="td-hero-section" style={{ paddingTop: '56px' }}>
+        <div
+          className="td-hero-image-wrapper"
+          style={{
+            backgroundImage: heroImage
+              ? undefined
+              : 'linear-gradient(180deg, rgba(8,8,10,1) 0%, rgba(18,16,22,1) 100%)',
+          }}
+        >
+          {heroImage && <img src={heroImage} alt={scrim.title} className="td-hero-image" />}
+          <div className="td-hero-gradient-bottom" />
+          <div className="td-hero-gradient-sides" />
+          <button
+            className="td-back-btn"
+            onClick={() => {
+              if (!isAuthenticated() || !isPlayer()) {
+                navigate('/player-auth', { state: { next: location.pathname } });
+              } else {
+                navigate(-1);
+              }
+            }}
+            title="Go back"
+          >
+            <IconArrowLeft />
+          </button>
+        </div>
+
+        <div className="td-hero-content">
+          <div className="td-hero-inner">
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}
+            >
+              <span className={getStatusClass(scrim.status)}>{getStatusLabel(scrim.status)}</span>
+              <h1 className="td-title">{scrim.title}</h1>
+              <div className="td-info-row">
+                <span className="td-info-pill">
+                  <IconGamepad />
+                  <strong>{scrim.game_name}</strong>
+                  <span style={{ color: 'hsl(220 5% 55%)', margin: '0 2px' }}>•</span>
+                  <span style={{ color: 'hsl(220 5% 70%)' }}>{scrim.game_mode}</span>
+                </span>
+                {prizePool > 0 && (
+                  <span className="td-prize-pill">
+                    <IconTrophy style={{ width: 16, height: 16 }} />
+                    Prize Pool: ₹{scrim.prize_pool}
                   </span>
-                </div>
-                {scrim.prize_pool && parseFloat(scrim.prize_pool) > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-accent-gold/20 flex items-center justify-center text-accent-gold border border-accent-gold/30">
-                      <TrophyIcon />
-                    </div>
-                    <span className="font-bold text-gray-400 text-sm">
-                      Prize Pool:{' '}
-                      <span className="text-accent-gold font-black">₹{scrim.prize_pool}</span>
-                    </span>
-                  </div>
                 )}
               </div>
             </div>
 
-            <div className="flex gap-4">
-              {/* Stats Quick Cards */}
-              <div className="hidden lg:flex gap-2">
-                <div className="bg-white/5 border border-white/10 backdrop-blur-xl p-2.5 rounded-xl min-w-[100px] text-center">
-                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">
-                    Entry Fee
-                  </p>
-                  <p className="text-lg font-black text-white">
-                    {scrim.entry_fee === 0 ? 'FREE' : `₹${scrim.entry_fee}`}
-                  </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="td-stat-boxes">
+                <div className="td-stat-box">
+                  <div className="td-stat-label">Entry Fee</div>
+                  <div className="td-stat-value">{entryFeeNum}</div>
                 </div>
-                <div className="bg-white/5 border border-white/10 backdrop-blur-xl p-2.5 rounded-xl min-w-[100px] text-center">
-                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">
-                    Capacity
-                  </p>
-                  <p className="text-lg font-black text-accent-blue">
-                    {scrim.current_participants}/{scrim.max_participants}
-                  </p>
+                <div className="td-stat-box">
+                  <div className="td-stat-label">Capacity</div>
+                  <div className="td-stat-value">
+                    <span className="td-stat-value-accent">{scrim.current_participants}</span>
+                    <span className="td-stat-value-muted">/{scrim.max_participants}</span>
+                  </div>
+                </div>
+              </div>
+              {scrim.live_link && (
+                <a
+                  href={scrim.live_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="td-watch-live-btn"
+                >
+                  <div className="td-watch-live-pulse" />
+                  <IconVideo />
+                  <span className="td-watch-live-label">Watch Live</span>
+                  <IconExternalLink />
+                </a>
+              )}
+              {/* Actions: Register + Share + region tag — same position as TournamentDetail */}
+              <div className="td-actions-inner">
+                {renderRegistrationButton()}
+                <div className="td-action-tags">
+                  <button className="td-share-btn" onClick={() => setShowShareModal(true)}>
+                    <IconShare /> Share
+                  </button>
+                  <span className="td-tag-pill">
+                    <IconTarget /> {scrim.region || 'India'}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="cyber-card rounded-[1.2rem] p-6 shadow-xl">
-              <section className="mb-8">
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-1 h-5 bg-accent-blue rounded-full"></div>
-                  <h2 className="text-lg font-black text-white tracking-widest uppercase">
-                    Scrim Briefing
-                  </h2>
-                </div>
-                <p className="text-gray-400 text-sm leading-relaxed font-medium">
-                  {scrim.description || 'No description provided for this scrim.'}
-                </p>
-              </section>
-
-              <section>
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-1 h-5 bg-accent-purple rounded-full"></div>
-                  <h2 className="text-lg font-black text-white tracking-widest uppercase">
-                    Directives
-                  </h2>
-                </div>
-                <div className="text-gray-400 text-xs leading-relaxed font-medium bg-black/40 p-5 rounded-xl border border-white/5 whitespace-pre-wrap backdrop-blur-sm">
-                  {scrim.rules}
-                </div>
-              </section>
-            </div>
-
-            {/* Host Details - Compact Version */}
-            <div className="cyber-card rounded-[1.2rem] p-6 shadow-xl relative overflow-hidden group/host">
-              {/* Background Glow */}
-              <div className="absolute -top-12 -right-12 w-48 h-48 bg-accent-purple/5 rounded-full blur-[60px] group-hover/host:bg-accent-purple/10 transition-all duration-1000"></div>
-
-              <div className="relative z-10">
-                <div className="flex items-center gap-2.5 mb-6">
-                  <div className="w-1 h-5 bg-accent-blue rounded-full"></div>
-                  <h2 className="text-lg font-black text-white tracking-widest uppercase">
-                    Host Details
-                  </h2>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                  {/* Host Avatar & Basic Info */}
-                  <div className="flex flex-col items-center text-center space-y-3 min-w-[140px]">
-                    <div className="relative p-0.5">
-                      <div className="absolute inset-0 bg-gradient-to-br from-accent-blue via-accent-purple to-accent-blue rounded-full animate-spin-slow opacity-30"></div>
-                      <div className="relative w-16 h-16 rounded-full bg-background border-2 border-background overflow-hidden">
-                        {scrim.host?.user?.profile_picture ? (
-                          <img
-                            src={scrim.host.user.profile_picture}
-                            alt={scrim.host.user.username}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl font-black bg-white/5 text-gray-500">
-                            {scrim.host?.user?.username?.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      {scrim.host?.verified && (
-                        <div
-                          className="absolute -bottom-1 -right-1 w-6 h-6 bg-accent-blue rounded-full border-2 border-[#070708] flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.5)] z-20"
-                          title="Verified Host"
-                        >
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="white"
-                            strokeWidth="3.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black text-white leading-none mb-1.5">
-                        {scrim.host?.user?.username}
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* Host Stats Grid - Compacted */}
-                  <div className="flex-1 w-full grid grid-cols-2 gap-3">
-                    {[
-                      {
-                        label: 'Hosted',
-                        value: scrim.host?.total_tournaments_hosted || '12',
-                        icon: '🏆',
-                        color: 'text-accent-blue',
-                      },
-                      {
-                        label: 'Rating',
-                        value: `${scrim.host?.average_rating || scrim.host?.rating || '0.0'}`,
-                        icon: '★',
-                        color: 'text-accent-gold',
-                      },
-                      {
-                        label: 'Players',
-                        value: scrim.host?.total_participants?.toLocaleString() || '1,240',
-                        icon: '👥',
-                        color: 'text-accent-purple',
-                      },
-                      {
-                        label: 'Bounty',
-                        value: `₹${(scrim.host?.prize_pool_distributed || 50000).toLocaleString()}`,
-                        icon: '💰',
-                        color: 'text-accent-gold',
-                      },
-                    ].map((stat, i) => (
-                      <div
-                        key={i}
-                        className="bg-white/5 border border-white/10 rounded-xl p-3 hover:border-white/20 transition-all group/stat"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px]">{stat.icon}</span>
-                          <span
-                            className={`text-[7px] font-black uppercase tracking-widest opacity-30 group-hover/stat:opacity-80 transition-opacity`}
-                          >
-                            {stat.label}
-                          </span>
-                        </div>
-                        <div className={`text-sm font-black ${stat.color} tracking-tight`}>
-                          {stat.value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Verification/Trust Badge */}
-                <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_6px_#22c55e]"></div>
-                    <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">
-                      Host Credentials Verified
-                    </span>
-                  </div>
-                  <Link
-                    to={`/host/profile/${scrim.host?.id || scrim.host_id}`}
-                    className="text-[8px] font-black text-accent-blue uppercase tracking-[0.2em] hover:text-white transition-colors flex items-center gap-1"
-                  >
-                    View Intel File <span>→</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
+      {/* ══════════════ CONTENT SECTION ══════════════ */}
+      <div style={{ background: 'hsl(220 10% 6%)', paddingBottom: 48 }}>
+        {/* ══════════════ TABS ══════════════ */}
+        <div className="td-tabs-section">
+          <div className="td-tab-list" role="tablist">
+            <button
+              role="tab"
+              className={`td-tab-btn${activeTab === 'schedule' ? ' active' : ''}`}
+              onClick={() => setActiveTab('schedule')}
+            >
+              <IconClock /> Schedule &amp; Prizes
+            </button>
+            <button
+              role="tab"
+              className={`td-tab-btn${activeTab === 'briefing' ? ' active' : ''}`}
+              onClick={() => setActiveTab('briefing')}
+            >
+              <IconShield /> Briefing &amp; Directives
+            </button>
+            <button
+              role="tab"
+              className={`td-tab-btn${activeTab === 'host' ? ' active' : ''}`}
+              onClick={() => setActiveTab('host')}
+            >
+              <IconUsers /> Host Details
+            </button>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6 lg:sticky lg:top-32 self-start relative z-10">
-            {/* Action Card */}
-            {!isHost() && (
-              <div className="cyber-card rounded-[1.2rem] p-5 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-accent-blue/5 blur-2xl rounded-full"></div>
-                <div className="text-center mb-5">
-                  <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2rem] mb-2.5">
-                    Arena Access
-                  </p>
-                  <div className="flex justify-center mb-2.5">
-                    <div className="p-2.5 bg-accent-blue/10 border border-accent-blue/20 rounded-full text-accent-blue">
-                      <ShieldIcon />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-black text-white tracking-tighter uppercase mb-0.5">
-                    Registration
-                  </h3>
+          {/* ── Tab: Schedule & Prizes ── */}
+          {activeTab === 'schedule' && (
+            <div className="td-tab-panel" role="tabpanel">
+              <div className="td-two-col">
+                {/* Left: timeline */}
+                <div>
+                  <p className="td-section-heading">Timeline</p>
+                  <ul className="td-timeline">
+                    <li className="td-timeline-item">
+                      <div className="td-timeline-dot td-timeline-dot-green" />
+                      <div>
+                        <div className="td-timeline-label td-timeline-label-green">
+                          Registration Starts
+                        </div>
+                        <div className="td-timeline-value">{fmtDate(scrim.registration_start)}</div>
+                      </div>
+                    </li>
+                    <li className="td-timeline-item">
+                      <div className="td-timeline-dot td-timeline-dot-blue" />
+                      <div>
+                        <div className="td-timeline-label td-timeline-label-blue">
+                          Registration Closes
+                        </div>
+                        <div className="td-timeline-value">
+                          {fmtDate(scrim.registration_end || scrim.tournament_start)}
+                        </div>
+                      </div>
+                    </li>
+                    <li className="td-timeline-item">
+                      <div className="td-timeline-dot td-timeline-dot-red" />
+                      <div>
+                        <div className="td-timeline-label td-timeline-label-red">Match Starts</div>
+                        <div className="td-timeline-value">{fmtDate(scrim.tournament_start)}</div>
+                      </div>
+                    </li>
+                  </ul>
+
+                  {/* Match Structure */}
+                  {scrim.max_matches && (
+                    <>
+                      <hr className="td-divider" />
+                      <p className="td-section-heading">Match Structure</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {Array.from({ length: Number(scrim.max_matches) }, (_, i) => {
+                          const matchName =
+                            scrim.matches && scrim.matches[i]
+                              ? scrim.matches[i].name
+                              : `Match ${i + 1}`;
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '8px 14px',
+                                background: 'hsl(220 5% 12%)',
+                                borderRadius: 8,
+                                border: '1px solid hsl(220 5% 20%)',
+                              }}
+                            >
+                              <span style={{ fontSize: 13, color: 'hsl(220 5% 75%)' }}>
+                                {matchName}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: '2px 10px',
+                                  borderRadius: 20,
+                                  background: 'hsl(210 80% 55% / 0.15)',
+                                  color: 'hsl(210 80% 75%)',
+                                  border: '1px solid hsl(210 80% 55% / 0.3)',
+                                }}
+                              >
+                                SCHEDULED
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                <div className="space-y-4">
-                  {!isRegistered ? (
-                    <div className="space-y-4">
-                      {scrim.status === 'upcoming' ? (
-                        <button
-                          onClick={() =>
-                            isAuthenticated() && isPlayer()
-                              ? setShowRegisterModal(true)
-                              : navigate('/player/login')
-                          }
-                          className="w-full py-4 bg-accent-blue text-white rounded-xl font-black uppercase tracking-widest text-base shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:scale-[1.02] transition-all"
-                        >
-                          Join Arena
-                        </button>
-                      ) : (
-                        <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-center font-bold text-gray-600 uppercase tracking-widest text-xs">
-                          Registration Closed
-                        </div>
-                      )}
-                    </div>
+                {/* Right: prize distribution */}
+                <div>
+                  <p className="td-section-heading">Prize Distribution</p>
+                  {prizeData.length > 0 ? (
+                    <>
+                      {prizeData.map((prize) => {
+                        const colors = placeColors[prize.place] || defaultColors;
+                        return (
+                          <div key={prize.place} className={`td-prize-row ${colors.row}`}>
+                            <div className={`td-prize-label ${colors.label}`}>
+                              <IconTrophy style={{ width: 18, height: 18 }} />
+                              {prize.place} Place
+                            </div>
+                            <span className={`td-prize-amount ${colors.amount}`}>
+                              {formatPrize(prize.amount)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <p className="td-prize-total">
+                        Total Prize Pool:{' '}
+                        <strong style={{ color: '#f9c22a' }}>₹{scrim.prize_pool}</strong>
+                      </p>
+                    </>
                   ) : (
-                    <div className="p-6 bg-success/10 border border-success/20 rounded-3xl text-center">
-                      <p className="text-lg font-black text-success tracking-widest uppercase mb-1">
-                        Registered
-                      </p>
-                      <p className="text-[10px] font-bold text-success/60 uppercase tracking-widest">
-                        Ready for deployment
-                      </p>
-                    </div>
+                    <p style={{ color: 'hsl(220 5% 55%)', fontSize: 13 }}>
+                      No prize pool for this scrim.
+                    </p>
                   )}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Chronology Card */}
-            <div className="cyber-card rounded-[1.2rem] p-5 shadow-xl">
-              <div className="flex items-center gap-2 mb-5">
-                <div className="w-1 h-4 bg-accent-blue rounded-full"></div>
-                <h3 className="text-sm font-black text-white tracking-widest uppercase">
-                  Chronology
-                </h3>
-              </div>
+          {/* ── Tab: Briefing & Directives ── */}
+          {activeTab === 'briefing' && (
+            <div className="td-tab-panel" role="tabpanel">
+              <div className="td-three-col">
+                <div>
+                  <p className="td-section-heading">Scrim Briefing</p>
+                  <p className="td-description">
+                    {scrim.description || 'No description provided.'}
+                  </p>
 
-              <div className="space-y-5 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-px before:bg-white/5">
-                <div className="relative pl-7">
-                  <div className="absolute left-0 top-1 w-6 h-6 bg-black/60 border border-accent-blue rounded-full flex items-center justify-center backdrop-blur-md">
-                    <div className="w-1.5 h-1.5 bg-accent-blue rounded-full"></div>
-                  </div>
-                  <p className="text-[8px] font-black text-accent-blue uppercase tracking-widest mb-0.5">
-                    Registration Starts on
-                  </p>
-                  <p className="text-xs font-black text-white">
-                    {new Date(scrim.registration_start).toLocaleDateString([], {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+                  {scrim.rules && (
+                    <>
+                      <hr className="td-divider" />
+                      <p className="td-section-heading">Directives</p>
+                      {typeof scrim.rules === 'string' ? (
+                        <div className="td-rules-grid">
+                          {scrim.rules
+                            .split('\n')
+                            .filter((r) => r.trim())
+                            .map((rule, i) => (
+                              <div key={i} className="td-rule-item">
+                                <div className="td-rule-dot" />
+                                <span className="td-rule-text">{rule.trim()}</span>
+                              </div>
+                            ))}
+                        </div>
+                      ) : Array.isArray(scrim.rules) ? (
+                        <div className="td-rules-grid">
+                          {scrim.rules.map((rule, i) => (
+                            <div key={i} className="td-rule-item">
+                              <div className="td-rule-dot" />
+                              <span className="td-rule-text">{rule}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="td-description">{scrim.rules}</p>
+                      )}
+                    </>
+                  )}
                 </div>
-                <div className="relative pl-8">
-                  <div className="absolute left-0 top-1 w-6 h-6 bg-black/60 border border-accent-purple rounded-full flex items-center justify-center backdrop-blur-md">
-                    <div className="w-1.5 h-1.5 bg-accent-purple rounded-full"></div>
-                  </div>
-                  <p className="text-[8px] font-black text-accent-purple uppercase tracking-widest mb-0.5">
-                    Registration Closes on
-                  </p>
-                  <p className="text-xs font-black text-white">
-                    {new Date(scrim.tournament_start).toLocaleDateString([], {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-                <div className="relative pl-8">
-                  <div className="absolute left-0 top-1 w-6 h-6 bg-black/60 border border-accent-gold rounded-full flex items-center justify-center backdrop-blur-md">
-                    <div className="w-1.5 h-1.5 bg-accent-gold rounded-full"></div>
-                  </div>
-                  <p className="text-[8px] font-black text-accent-gold uppercase tracking-widest mb-0.5">
-                    Match Starts On
-                  </p>
-                  <p className="text-xs font-black text-white">
-                    {new Date(scrim.tournament_end).toLocaleDateString([], {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+
+                {/* Right: Placement Points */}
+                <div>
+                  {scrim.placement_points &&
+                  typeof scrim.placement_points === 'object' &&
+                  Object.keys(scrim.placement_points).length > 0 ? (
+                    <>
+                      <p
+                        className="td-section-heading"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                      >
+                        <span style={{ color: 'hsl(270 60% 65%)', fontSize: 16 }}>⊙</span>
+                        Placement Points
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {Object.entries(scrim.placement_points)
+                          .sort(([a], [b]) => Number(a) - Number(b))
+                          .map(([rank, pts]) => {
+                            const isTop3 = Number(rank) <= 3;
+                            const isKill = isNaN(Number(rank));
+                            return (
+                              <div
+                                key={rank}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '8px 14px',
+                                  background: 'hsl(220 5% 12%)',
+                                  borderRadius: 8,
+                                  border: '1px solid hsl(220 5% 20%)',
+                                }}
+                              >
+                                <span style={{ fontSize: 13, color: 'hsl(220 5% 75%)' }}>
+                                  {isKill
+                                    ? rank
+                                    : `${rank}${rank === '1' ? 'st' : rank === '2' ? 'nd' : rank === '3' ? 'rd' : 'th'} Place`}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    padding: '2px 10px',
+                                    borderRadius: 20,
+                                    background:
+                                      isTop3 || isKill ? 'hsl(270 60% 55% / 0.2)' : 'transparent',
+                                    color:
+                                      isTop3 || isKill ? 'hsl(270 60% 75%)' : 'hsl(220 5% 65%)',
+                                    border:
+                                      isTop3 || isKill
+                                        ? '1px solid hsl(270 60% 55% / 0.4)'
+                                        : 'none',
+                                  }}
+                                >
+                                  {isKill ? `+${pts} pt` : `${pts} pts`}
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Links & Assets */}
-            <div className="space-y-3">
-              {scrim.discord_id && (
-                <a
-                  href={`https://${scrim.discord_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 bg-[#5865F2]/10 border border-[#5865F2]/30 text-[#5865F2] rounded-xl font-black uppercase tracking-widest text-xs hover:bg-[#5865F2]/20 transition-all"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+          {/* ── Tab: Host Details ── */}
+          {activeTab === 'host' && (
+            <div className="td-tab-panel" role="tabpanel">
+              <Link
+                to={`/host/profile/${scrim.host?.id}`}
+                className="td-host-card"
+                style={{ display: 'flex' }}
+              >
+                <div className="td-host-avatar">
+                  {(scrim.host?.organization_name || scrim.host?.user?.username || 'H')
+                    .charAt(0)
+                    .toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className="td-host-name">
+                      {scrim.host?.organization_name || scrim.host?.user?.username || 'Scrim Host'}
+                    </span>
+                    {scrim.host?.verified && <IconBadgeCheck />}
+                  </div>
+                  <div className="td-host-verified">Verified by Scrimverse</div>
+                  <div className="td-host-stats">
+                    <span className="td-host-stat-tag purple">
+                      <IconTrophy style={{ width: 11, height: 11 }} />
+                      {scrim.host?.total_tournaments_hosted || '—'} hosted
+                    </span>
+                    <span className="td-host-stat-tag green">
+                      <IconStar />
+                      {scrim.host?.average_rating || scrim.host?.rating || '—'} rating
+                    </span>
+                  </div>
+                </div>
+                <div className="td-host-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{ width: 18, height: 18, color: 'hsl(220 5% 50%)' }}
+                  >
+                    <path d="M9 18l6-6-6-6" />
                   </svg>
-                  Discord Base
-                </a>
+                </div>
+              </Link>
+
+              <div className="td-host-stats-grid">
+                <div className="td-host-stats-box">
+                  <div className="td-host-stats-number blue">
+                    {scrim.host?.total_tournaments_hosted || '—'}
+                  </div>
+                  <div className="td-host-stats-label">Hosted</div>
+                </div>
+                <div className="td-host-stats-box">
+                  <div className="td-host-stats-number yellow">
+                    {scrim.host?.average_rating || '—'}
+                  </div>
+                  <div className="td-host-stats-label">Rating</div>
+                </div>
+              </div>
+
+              <div className="td-trusted-banner">
+                <div className="td-trusted-banner-title">
+                  <IconShield />
+                  Verified by Scrimverse • Trusted Host
+                </div>
+                <p className="td-trusted-banner-desc">
+                  This organizer has been verified and has successfully hosted multiple events.
+                </p>
+              </div>
+
+              {scrim.host?.bio && (
+                <>
+                  <hr className="td-divider" />
+                  <p className="td-section-heading">About</p>
+                  <p className="td-description">{scrim.host.bio}</p>
+                </>
               )}
-              {scrim.tournament_file && scrim.tournament_file.trim() !== '' && (
-                <a
-                  href={scrim.tournament_file}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-red-500/20 transition-all"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                  Rules Document
-                </a>
-              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                {scrim.tournament_file && (
+                  <a
+                    href={scrim.tournament_file}
+                    download
+                    style={{
+                      display: 'block',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      background: 'hsl(220 10% 14%)',
+                      border: '1px solid hsl(200 85% 60% / 0.3)',
+                      color: 'hsl(200 85% 60%)',
+                      fontWeight: 600,
+                      fontSize: 14,
+                      textAlign: 'center',
+                    }}
+                  >
+                    📄 Download Rules PDF
+                  </a>
+                )}
+                {scrim.discord_id && (
+                  <a
+                    href={`https://${scrim.discord_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'block',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      background: 'hsl(220 10% 14%)',
+                      border: '1px solid hsl(270 60% 55% / 0.3)',
+                      color: 'hsl(270 60% 65%)',
+                      fontWeight: 600,
+                      fontSize: 14,
+                      textAlign: 'center',
+                    }}
+                  >
+                    💬 Join Discord Server
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
+      {/* end content section */}
 
-      {showRegisterModal && (
+      {/* ══════════════ REGISTRATION MODAL ══════════════ */}
+      {showRegisterModal && scrim && (
         <RegistrationModal
           event={scrim}
           type="scrim"
           onClose={() => setShowRegisterModal(false)}
           onSuccess={() => {
             setShowRegisterModal(false);
-            fetchScrimData();
+            tournamentAPI
+              .getTournament(id)
+              .then((res) => setScrim(res.data))
+              .catch(() => {});
           }}
         />
       )}
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {/* ══════════════ SHARE MODAL ══════════════ */}
+      {showShareModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowShareModal(false)}
+        >
+          <div className="td-share-card w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="td-share-title">Share Scrim</h3>
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="text-gray-400 hover:text-white transition-colors p-1"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <p className="td-share-sub">
+              Invite friends to <span className="text-white font-semibold">{scrim.title}</span>
+            </p>
+
+            <div className="td-share-input">
+              <input type="text" readOnly value={window.location.href} />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }}
+                className="text-gray-400 hover:text-accent-blue transition-colors p-1.5 shrink-0"
+                title="Copy URL"
+              >
+                {copiedLink ? (
+                  <svg
+                    className="w-5 h-5 text-green-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`🎮 Join *${scrim.title}* on ScrimVerse!\n\n${window.location.href}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-dark-bg-hover hover:bg-green-500/10 border border-dark-bg-hover hover:border-green-500/30 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                  </svg>
+                </div>
+                <span className="text-xs text-gray-300 font-medium">WhatsApp</span>
+              </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-dark-bg-hover hover:bg-accent-purple/10 border border-dark-bg-hover hover:border-accent-purple/30 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center">
+                  {copiedLink ? (
+                    <svg
+                      className="w-5 h-5 text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-5 h-5 text-accent-purple"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-xs text-gray-300 font-medium">
+                  {copiedLink ? 'Copied!' : 'Copy Link'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

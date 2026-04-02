@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import './ContactPage.css';
+import { Phone, MessageCircle, Mail } from 'lucide-react';
 
 const ContactPage = () => {
   useEffect(() => {
@@ -22,223 +22,195 @@ const ContactPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Logic to send message would go here
-
     alert('Thank you for your message! Our team will get back to you soon.');
   };
 
+  const inputClass =
+    'block w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all';
+
   return (
-    <div className="contact-page-wrapper particle-bg">
-      <div className="cyber-grid"></div>
+    <>
+      <Navbar />
+      <main className="pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
+          {/* Hero */}
+          <header className="text-center">
+            <h1 className="text-4xl font-bold text-foreground tracking-tight mb-3">Contact Us</h1>
+            <p className="text-muted-foreground text-lg">
+              Get in touch for tournament listings, collaborations, or any queries
+            </p>
+          </header>
 
-      <div className="contact-container">
-        {/* Hero Section */}
-        <header className="contact-hero animate-fade-up">
-          <h1 className="contact-title">
-            Contact <span className="title-verse">Us</span>
-          </h1>
-          <p className="contact-subtitle">
-            Get in touch for tournament listings, collaborations, or any queries
-          </p>
-        </header>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left: Direct Contact */}
+            <div className="lg:col-span-2 space-y-4">
+              <h2 className="text-lg font-bold text-foreground">Get In Touch</h2>
 
-        <div className="contact-grid">
-          {/* Left Column: Direct Contact */}
-          <div className="contact-info-column animate-fade-left">
-            <h2 className="column-title">Get In Touch</h2>
-
-            <div className="contact-method-cards">
-              <div className="info-card hover-lift">
-                <div className="info-icon blue-glow">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
+              <div className="space-y-3">
+                <div className="cyber-card p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                    <Phone className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">8867495185</p>
+                    <p className="text-xs text-muted-foreground">
+                      Available for calls and WhatsApp
+                    </p>
+                  </div>
                 </div>
-                <div className="info-content">
-                  <span className="info-label">8867495185</span>
-                  <p className="info-desc">Available for calls and WhatsApp</p>
+
+                <div className="cyber-card p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">8867495185</p>
+                    <p className="text-xs text-muted-foreground">
+                      Quick responses for urgent queries
+                    </p>
+                  </div>
+                </div>
+
+                <div className="cyber-card p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">support@scrimverse.com</p>
+                    <p className="text-xs text-muted-foreground">
+                      For detailed inquiries and partnerships
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="info-card hover-lift">
-                <div className="info-icon green-glow">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L21 3z" />
-                  </svg>
-                </div>
-                <div className="info-content">
-                  <span className="info-label">8867495185</span>
-                  <p className="info-desc">Quick responses for urgent queries</p>
-                </div>
-              </div>
-
-              <div className="info-card hover-lift">
-                <div className="info-icon purple-glow">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
-                  </svg>
-                </div>
-                <div className="info-content">
-                  <span className="info-label">support@scrimverse.com</span>
-                  <p className="info-desc">For detailed inquiries and partnerships</p>
-                </div>
+              <div className="cyber-card p-5 border border-primary/20">
+                <h3 className="font-bold text-foreground mb-0.5">Dhiraj</h3>
+                <span className="text-xs text-primary font-medium">Founder & CEO</span>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Building the future of Indian esports
+                </p>
               </div>
             </div>
 
-            <div className="founder-block glass-card">
-              <div className="founder-info">
-                <h3 className="founder-name">Dhiraj</h3>
-                <span className="founder-title">Founder & CEO</span>
-                <p className="founder-tagline">Building the future of Indian esports</p>
+            {/* Right: Form */}
+            <div className="lg:col-span-3">
+              <div className="cyber-card p-6">
+                <h2 className="text-lg font-bold text-foreground mb-5">Send us a Message</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">Full Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        placeholder="Your name"
+                        required
+                        value={formData.name}
+                        onChange={handleChange}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">Phone Number</label>
+                      <input
+                        type="text"
+                        name="phone"
+                        placeholder="Your phone number"
+                        required
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Email Address</label>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="your.email@example.com"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Subject</label>
+                    <select
+                      name="subject"
+                      required
+                      value={formData.subject}
+                      onChange={handleChange}
+                      className={inputClass}
+                    >
+                      <option value="">Select a topic</option>
+                      <option value="tournament">Tournament Listing</option>
+                      <option value="partnership">Partnership / Collaboration</option>
+                      <option value="support">Technical Support</option>
+                      <option value="feedback">Feedback</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Message</label>
+                    <textarea
+                      name="message"
+                      rows="5"
+                      placeholder="Tell us about your tournament, collaboration idea, or any questions you have..."
+                      required
+                      value={formData.message}
+                      onChange={handleChange}
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="gaming-button w-full py-3 px-4 rounded-lg font-bold text-white transition-all duration-300"
+                  >
+                    SEND MESSAGE
+                  </button>
+                </form>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Support Form */}
-          <div className="contact-form-column animate-fade-right">
-            <div className="form-container-card cyber-card">
-              <h2 className="column-title">Send us a Message</h2>
-              <form onSubmit={handleSubmit} className="support-form">
-                <div className="form-row">
-                  <div className="form-group half">
-                    <label>Full Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      placeholder="Your name"
-                      required
-                      value={formData.name}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-group half">
-                    <label>Phone Number</label>
-                    <input
-                      type="text"
-                      name="phone"
-                      placeholder="Your phone number"
-                      required
-                      value={formData.phone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group full">
-                  <label>Email Address</label>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="your.email@example.com"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="form-group full">
-                  <label>Subject</label>
-                  <select name="subject" required value={formData.subject} onChange={handleChange}>
-                    <option value="">Select a topic</option>
-                    <option value="tournament">Tournament Listing</option>
-                    <option value="partnership">Partnership / Collaboration</option>
-                    <option value="support">Technical Support</option>
-                    <option value="feedback">Feedback</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div className="form-group full">
-                  <label>Message</label>
-                  <textarea
-                    name="message"
-                    rows="5"
-                    placeholder="Tell us about your tournament, collaboration idea, or any questions you have..."
-                    required
-                    value={formData.message}
-                    onChange={handleChange}
-                  ></textarea>
-                </div>
-
-                <button type="submit" className="cta-btn gaming-button find-battles-btn full-width">
-                  SEND MESSAGE
-                </button>
-              </form>
+          {/* Bottom CTA */}
+          <section className="cyber-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-foreground">
+                For Tournament Listings or Collaborations
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Feel free to reach out via call or WhatsApp for quick responses
+              </p>
             </div>
-          </div>
+            <div className="flex gap-3">
+              <a
+                href="tel:8867495185"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-secondary border border-border rounded-lg text-foreground text-sm font-medium hover:bg-secondary/80 transition-colors"
+              >
+                <Phone className="h-4 w-4" />
+                Call Now
+              </a>
+              <a
+                href="https://wa.me/8867495185"
+                className="gaming-button inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium"
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </a>
+            </div>
+          </section>
         </div>
-
-        {/* Bottom Speed Action */}
-        <section className="collaboration-cta glass-card animate-fade-up">
-          <div className="collab-content">
-            <h3>For Tournament Listings or Collaborations</h3>
-            <p>Feel free to reach out via call or WhatsApp for quick responses</p>
-          </div>
-          <div className="collab-actions">
-            <a href="tel:8867495185" className="collab-btn call-btn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-              </svg>
-              Call Now
-            </a>
-            <a href="https://wa.me/8867495185" className="collab-btn whatsapp-btn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L21 3z" />
-              </svg>
-              WhatsApp
-            </a>
-          </div>
-        </section>
-      </div>
-
+      </main>
       <Footer />
-    </div>
+    </>
   );
 };
 

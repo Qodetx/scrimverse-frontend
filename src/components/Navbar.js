@@ -1,436 +1,274 @@
-import React, { useContext, useState, useRef, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useContext, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Menu,
+  X,
+  Gamepad2,
+  LogOut,
+  Home,
+  Trophy,
+  Users,
+  BarChart3,
+  Key,
+  Swords,
+  TrendingUp,
+  ListOrdered,
+  Table2,
+  DollarSign,
+  Settings,
+} from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
-import EditPlayerProfileModal from '../features/players/ui/EditPlayerProfileModal';
-import EditHostProfileModal from '../features/hosts/ui/EditHostProfileModal';
 import './Navbar.css';
 
-const Navbar = () => {
-  const { isAuthenticated, isHost, logout, user, fetchUserData } = useContext(AuthContext);
+const NAV_ITEMS = [
+  { id: 'overview', label: 'Overview', icon: Home },
+  { id: 'credentials', label: 'ID & Passwords', icon: Key },
+  { id: 'slot-list', label: 'Slot List', icon: ListOrdered },
+  { id: 'points-table', label: 'Points Table', icon: Table2 },
+  { id: 'tournaments', label: 'Tournaments', icon: Trophy },
+  { id: 'scrims', label: 'Scrims', icon: Swords },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'team', label: 'Team', icon: Users },
+  { id: 'leaderboards', label: 'Leaderboards', icon: TrendingUp },
+  { id: 'transaction-history', label: 'Transactions', icon: DollarSign },
+];
+
+// ── Authenticated top bar (landing page / public pages when logged in) ────────
+const AuthNavbar = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  const userMenuRef = useRef(null);
+  const { logout, isHost, user } = useContext(AuthContext);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setIsUserMenuOpen(false);
-      }
-    };
-    if (isUserMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isUserMenuOpen]);
-
-  React.useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.classList.add('no-scroll');
-    } else {
-      document.body.classList.remove('no-scroll');
-    }
-    return () => document.body.classList.remove('no-scroll');
-  }, [isMobileMenuOpen]);
-
-  const getImageUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8000';
-    return `${baseUrl}${path}`;
-  };
+  const dashboardPath = isHost() ? '/host/dashboard' : '/player/dashboard';
 
   const handleLogout = () => {
     logout();
     navigate('/');
-    setIsUserMenuOpen(false);
-    setIsMobileMenuOpen(false);
-  };
-
-  const navLinks = [
-    { title: 'Home', path: '/' },
-    { title: 'Tournaments', path: '/tournaments' },
-    { title: 'Scrims', path: '/scrims' },
-    { title: 'Leaderboard', path: '/leaderboard' },
-    { title: 'Search', path: '/search' },
-  ];
-
-  const handleMyTeams = () => {
-    setIsUserMenuOpen(false);
-    setIsMobileMenuOpen(false);
-    navigate('/player/dashboard', { state: { scrollTo: 'team-section' } });
-  };
-
-  const handleEditProfile = () => {
-    setIsUserMenuOpen(false);
-    setIsMobileMenuOpen(false);
-    setShowEditProfileModal(true);
-  };
-
-  const isActive = (path) => location.pathname === path;
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
     <>
-      <nav className={`navbar-wrapper ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
-        <div className="nav-container">
-          <Link to="/" className="nav-logo" onClick={() => setIsMobileMenuOpen(false)}>
-            ScrimVerse
+      <nav className="fixed top-0 w-full z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-border/30 flex items-center px-4">
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all"
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Logo */}
+        <Link
+          to="/"
+          className="flex-1 md:flex-none text-center md:text-left font-bold text-foreground text-base tracking-tight md:mr-8 py-2 hover:text-purple-400 transition-colors"
+        >
+          ScrimVerse
+        </Link>
+
+        {/* Desktop right */}
+        <div className="hidden md:flex items-center gap-2 ml-auto">
+          <Link
+            to="/about"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2"
+          >
+            About Us
           </Link>
 
-          {/* Desktop Links */}
-          <div className="nav-links">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`nav-link ${isActive(link.path) ? 'active' : ''}`}
-              >
-                {link.title}
-              </Link>
-            ))}
-          </div>
-
-          <div className="nav-actions">
-            {/* Mobile User Avatar Trigger */}
-            {isAuthenticated() && (
-              <div
-                className="mobile-avatar-trigger mobile-only"
-                onClick={() => navigate(isHost() ? '/host/dashboard' : '/player/dashboard')}
-              >
-                <div className="nav-avatar w-8 h-8 overflow-hidden border border-white/10">
-                  {user?.user?.profile_picture ? (
-                    <img
-                      src={getImageUrl(user.user.profile_picture)}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    user?.user?.username?.charAt(0).toUpperCase()
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Mobile Menu Toggle */}
-            <button
-              className={`mobile-menu-toggle ${isMobileMenuOpen ? 'hidden' : ''}`}
-              onClick={toggleMobileMenu}
-              aria-label="Toggle menu"
-            >
-              <div className="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </button>
-
-            {!isAuthenticated() ? (
-              <div className="relative desktop-only">
-                <button className="btn-signin" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
-                  Sign In
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    style={{ marginLeft: '6px' }}
-                  >
-                    <path d="m19 9-7 7-7-7" />
-                  </svg>
-                </button>
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-4 w-48 glass-card p-2 z-50 shadow-2xl">
-                    <Link
-                      to="/player/login"
-                      className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      Player Login
-                    </Link>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="relative desktop-only" ref={userMenuRef}>
-                <div
-                  className="user-menu-trigger"
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                >
-                  <div className="nav-avatar overflow-hidden">
-                    {user?.user?.profile_picture ? (
-                      <img
-                        src={getImageUrl(user.user.profile_picture)}
-                        alt="Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      user?.user?.username?.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <span className="text-xs font-bold text-white hidden lg:block">
-                    {user?.user?.username}
-                  </span>
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    className="text-gray-500"
-                  >
-                    <path d="m19 9-7 7-7-7" />
-                  </svg>
-                </div>
-
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-4 w-56 glass-card p-2 z-50 shadow-2xl">
-                    <div className="p-3 border-b border-white/5 mb-2">
-                      <p className="text-white font-bold text-sm">{user?.user?.username}</p>
-                      <p className="text-gray-500 text-xs">{user?.user?.email}</p>
-                    </div>
-
-                    {/* Player-specific menu */}
-                    {!isHost() && (
-                      <>
-                        <Link
-                          to="/player/dashboard"
-                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          My Profile
-                        </Link>
-                        <button
-                          onClick={handleMyTeams}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                        >
-                          My Teams
-                        </button>
-                        <button
-                          onClick={handleEditProfile}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                        >
-                          Edit Profile
-                        </button>
-                        <Link
-                          to="/help"
-                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          Help
-                        </Link>
-                      </>
-                    )}
-
-                    {/* Host-specific menu */}
-                    {isHost() && (
-                      <>
-                        <Link
-                          to="/host/dashboard"
-                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          Profile
-                        </Link>
-                        <Link
-                          to="/host/create-tournament"
-                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          Create Tournament
-                        </Link>
-                        <Link
-                          to="/host/create-scrim"
-                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          Create Scrim
-                        </Link>
-                        <button
-                          onClick={handleEditProfile}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                        >
-                          Edit Profile
-                        </button>
-                        <Link
-                          to="/help"
-                          className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          Help
-                        </Link>
-                      </>
-                    )}
-
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-400/10 rounded-lg transition-all mt-1"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <Link
+            to={dashboardPath}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/40 border border-border/40 transition-all"
+          >
+            <Gamepad2 size={16} />
+            Dashboard
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/40 transition-all"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </button>
         </div>
 
-        {/* Mobile Navigation Overlay */}
-        <div className={`mobile-nav-overlay ${isMobileMenuOpen ? 'active' : ''}`}>
-          {/* Close Button */}
+        {/* Mobile right */}
+        <div className="md:hidden flex items-center gap-1">
           <button
-            className="mobile-nav-close"
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-label="Close menu"
+            onClick={() => navigate(dashboardPath)}
+            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all"
           >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <Gamepad2 size={18} />
           </button>
-
-          <div className="mobile-menu-content">
-            {/* Explore Group */}
-            <div className="mobile-menu-section">
-              <h4 className="menu-group-title">EXPLORE</h4>
-              <div className="menu-links-list">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`mobile-nav-link ${isActive(link.path) ? 'active' : ''}`}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {link.title}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="menu-section-divider"></div>
-
-            {/* Account Group */}
-            <div className="mobile-menu-section">
-              <h4 className="menu-group-title">ACCOUNT</h4>
-              <div className="menu-links-list">
-                {!isAuthenticated() ? (
-                  <>
-                    <Link
-                      to="/player/login"
-                      className="mobile-nav-link"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Player Login
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    {!isHost() ? (
-                      <>
-                        <Link
-                          to="/player/dashboard"
-                          className="mobile-nav-link"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          My Profile
-                        </Link>
-                        <button onClick={handleMyTeams} className="mobile-nav-link text-left">
-                          My Teams
-                        </button>
-                        <button onClick={handleEditProfile} className="mobile-nav-link text-left">
-                          Edit Profile
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Link
-                          to="/host/dashboard"
-                          className="mobile-nav-link"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          Profile
-                        </Link>
-                        <Link
-                          to="/host/create-tournament"
-                          className="mobile-nav-link"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          Create Tournament
-                        </Link>
-                        <Link
-                          to="/host/create-scrim"
-                          className="mobile-nav-link"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          Create Scrim
-                        </Link>
-                        <button onClick={handleEditProfile} className="mobile-nav-link text-left">
-                          Edit Profile
-                        </button>
-                      </>
-                    )}
-                    <Link
-                      to="/help"
-                      className="mobile-nav-link"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Help
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="mobile-nav-link text-red-500 text-left"
-                    >
-                      Logout
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </nav>
-      {!isHost() && isAuthenticated() && (
-        <EditPlayerProfileModal
-          isOpen={showEditProfileModal}
-          onClose={() => setShowEditProfileModal(false)}
-          player={user?.user}
-          onSuccess={async () => {
-            await fetchUserData();
-            setShowEditProfileModal(false);
-          }}
-        />
-      )}
-      {isHost() && isAuthenticated() && (
-        <EditHostProfileModal
-          isOpen={showEditProfileModal}
-          onClose={() => setShowEditProfileModal(false)}
-          host={user?.profile}
-          onSuccess={async () => {
-            await fetchUserData();
-            setShowEditProfileModal(false);
-          }}
-        />
+
+      {/* ── Mobile sidebar overlay ── */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <div className="relative w-60 bg-[hsl(0_0%_5%)] border-r border-border/50 flex flex-col h-full z-10">
+            <div className="flex items-center justify-between px-4 py-4">
+              <Link
+                to="/"
+                className="font-bold text-foreground text-base tracking-tight hover:text-purple-400 transition-colors"
+                onClick={() => setSidebarOpen(false)}
+              >
+                ScrimVerse
+              </Link>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto px-3 py-1 space-y-1">
+              {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all text-left border border-transparent"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    navigate(dashboardPath);
+                  }}
+                >
+                  <Icon size={16} className="text-muted-foreground" />
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            <div className="border-t border-border/30 px-3 pt-3 pb-3 flex items-center justify-around gap-1">
+              <button
+                onClick={() => {
+                  setSidebarOpen(false);
+                  navigate(dashboardPath);
+                }}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all"
+                title="Dashboard"
+              >
+                <Gamepad2 size={17} />
+              </button>
+              <button
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-all"
+                title="Settings"
+              >
+                <Settings size={17} />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                title="Sign Out"
+              >
+                <LogOut size={17} />
+              </button>
+            </div>
+
+            <div className="mx-3 mb-3 flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/40">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden">
+                {user?.profile?.profile_picture ? (
+                  <img
+                    src={user.profile.profile_picture}
+                    alt="avatar"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : (
+                  (user?.user?.username || user?.username || 'U').slice(0, 2).toUpperCase()
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user?.user?.username || user?.username || 'Player'}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {user?.user?.email || user?.email || ''}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
+};
+
+// ── Public top bar (unauthenticated) ─────────────────────────────────────────
+const PublicNavbar = () => {
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isActive = (path) => location.pathname === path;
+
+  return (
+    <nav className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-lg border-b border-border">
+      <div className="w-full px-4 sm:px-6 lg:px-12">
+        <div className="flex justify-between items-center h-16">
+          <Link to="/" className="flex items-center space-x-2 group">
+            <span className="text-xl font-bold text-foreground">ScrimVerse</span>
+          </Link>
+
+          <div className="hidden md:flex items-center space-x-6">
+            <Link
+              to="/about"
+              className={`text-sm font-medium transition-colors ${
+                isActive('/about') ? 'text-purple' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              About Us
+            </Link>
+            <Link to="/player-auth">
+              <button className="px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 transition-all inline-flex items-center">
+                Enter The Arena
+              </button>
+            </Link>
+          </div>
+
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+        </div>
+
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-border bg-background/50 backdrop-blur-sm">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              <Link
+                to="/about"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
+                  isActive('/about')
+                    ? 'bg-primary/10 text-purple'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                About Us
+              </Link>
+              <Link
+                to="/player-auth"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              >
+                Enter The Arena
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+};
+
+// ── Main export ───────────────────────────────────────────────────────────────
+const Navbar = () => {
+  const { isAuthenticated } = useContext(AuthContext);
+  return isAuthenticated() ? <AuthNavbar /> : <PublicNavbar />;
 };
 
 export default Navbar;

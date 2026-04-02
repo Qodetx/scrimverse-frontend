@@ -1,704 +1,500 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Link } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import { tournamentAPI } from '../utils/api';
-import TournamentCard from '../features/tournaments/ui/TournamentCard';
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Trophy,
+  ChevronRight,
+  ChevronLeft,
+  Users,
+  Zap,
+  ArrowRight,
+  Mail,
+  Sparkles,
+  Loader2,
+} from 'lucide-react';
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { useIsMobile } from '../hooks/use-mobile';
+import heroComposite from '../assets/hero-gaming-composite.png';
+import heroBgmiAction from '../assets/hero-bgmi-action.jpg';
+import heroBgmi from '../assets/hero-bgmi.webp';
+import heroValorant from '../assets/hero-valorant.jpg';
+import heroCodm from '../assets/hero-codm.png';
+import heroFreefire from '../assets/hero-freefire.jpeg';
+import heroPubg from '../assets/hero-pubg-mobile.png';
+import { tournamentAPI } from '../utils/api';
+import { AuthContext } from '../context/AuthContext';
 import './HomePage.css';
 
-// Import game posters from assets
-import posterBGMI from '../assets/poster-bgmi.png';
-import posterValorant from '../assets/poster-valorant.jpg';
-import posterCODM from '../assets/poster-codm.jpg';
-import posterScarfall from '../assets/poster-scarfall.png';
-import posterFreefire from '../assets/poster-freefire.jpg';
-
-// --- Choose Battlefield Component ---
-const ChooseBattlefield = () => {
-  const games = [
-    {
-      id: 'bgmi',
-      name: 'BGMI',
-      image: posterBGMI,
-      slug: 'bgmi',
-      available: true,
-    },
-    {
-      id: 'valorant',
-      name: 'Valorant',
-      image: posterValorant,
-      slug: 'valorant',
-      available: true,
-    },
-    {
-      id: 'codm',
-      name: 'COD Mobile',
-      image: posterCODM,
-      slug: 'codm',
-      available: true,
-    },
-    {
-      id: 'scarfall',
-      name: 'Scarfall',
-      image: posterScarfall,
-      slug: 'scarfall',
-      available: true,
-    },
-    {
-      id: 'freefire',
-      name: 'Free Fire',
-      image: posterFreefire,
-      slug: 'freefire',
-      available: true,
-    },
-  ];
-
-  return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 relative z-10">
-      <div className="max-w-6xl mx-auto relative">
-        {/* Section Header */}
-        <div className="text-center mb-12 reveal-on-scroll">
-          <h2 className="text-4xl md:text-6xl font-black mb-4 tracking-tight">
-            <span className="text-white">CHOOSE YOUR </span>
-            <span className="text-[#8b5cf6]">BATTLEFIELD</span>
-          </h2>
-          <p className="text-gray-400 text-lg">From mobile legend to PC masters</p>
-        </div>
-
-        {/* Game Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 md:gap-6">
-          {games.map((game, index) =>
-            game.available ? (
-              <Link
-                key={game.id}
-                to={`/tournaments?game=${game.slug}`}
-                className={`group relative flex flex-col items-center p-4 rounded-xl bg-[#111] border border-white/10 transition-all duration-300 reveal-on-scroll hover-perspective hover-neon-border`}
-                style={{ transitionDelay: `${index * 100}ms` }}
-              >
-                {/* Game Image */}
-                <div className="w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden mb-4 bg-gray-800">
-                  <img
-                    src={game.image}
-                    alt={game.name}
-                    className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-110"
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/128x128/1e1e1e/FFF?text=Game';
-                    }}
-                  />
-                </div>
-
-                {/* Game Name */}
-                <span className="text-white font-bold text-sm md:text-base group-hover:text-[#8b5cf6] transition-colors duration-300">
-                  {game.name}
-                </span>
-              </Link>
-            ) : (
-              <div
-                key={game.id}
-                className={`group relative flex flex-col items-center p-4 rounded-xl bg-[#111] border border-white/5 cursor-not-allowed grayscale opacity-60 reveal-on-scroll`}
-                style={{ transitionDelay: `${index * 100}ms` }}
-              >
-                {/* Game Image with overlay */}
-                <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden mb-4 bg-gray-800">
-                  <img
-                    src={game.image}
-                    alt={game.name}
-                    className="w-full h-full object-cover object-top opacity-60"
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/128x128/1e1e1e/FFF?text=Soon';
-                    }}
-                  />
-                </div>
-
-                {/* Game Name */}
-                <span className="text-gray-500 font-bold text-sm md:text-base">{game.name}</span>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-    </section>
-  );
+const GAME_FALLBACK_IMAGES = {
+  BGMI: heroBgmi,
+  bgmi: heroBgmi,
+  Valorant: heroValorant,
+  valorant: heroValorant,
+  'COD Mobile': heroCodm,
+  'cod mobile': heroCodm,
+  'Free Fire': heroFreefire,
+  'free fire': heroFreefire,
+  'PUBG Mobile': heroPubg,
+  'pubg mobile': heroPubg,
 };
 
-const HomePage = () => {
-  const { user } = useContext(AuthContext);
-  const [stats, setStats] = useState(null);
-  const [featuredTournaments, setFeaturedTournaments] = useState([]);
-  const [featuredScrims, setFeaturedScrims] = useState([]);
-  /* Removed unused regularTournaments */
-  const [isLoaded, setIsLoaded] = useState(false);
+const getFallbackImage = (gameName) => {
+  if (!gameName) return heroBgmiAction;
+  const key = Object.keys(GAME_FALLBACK_IMAGES).find(
+    (k) => k.toLowerCase() === gameName.toLowerCase()
+  );
+  return key ? GAME_FALLBACK_IMAGES[key] : heroBgmiAction;
+};
 
-  const isMobile = useIsMobile();
-  const shouldHideKPIs = isMobile && user;
+const STATIC_SLIDES = [
+  {
+    id: null,
+    name: 'BGMI Championship',
+    game_name: 'BGMI',
+    image: heroBgmiAction,
+    description:
+      "India's biggest BGMI tournament with top teams competing for the ultimate championship title.",
+    current_participants: 186,
+    max_participants: 300,
+    prize_pool: '₹10,000',
+    tags: ['Battle Royale', 'Squad'],
+  },
+  {
+    id: null,
+    name: 'Valorant Masters',
+    game_name: 'Valorant',
+    image: heroValorant,
+    description: 'Elite 5v5 Valorant tournament featuring the best tactical shooter teams.',
+    current_participants: 24,
+    max_participants: 32,
+    prize_pool: '₹25,000',
+    tags: ['5v5', 'Tactical'],
+  },
+  {
+    id: null,
+    name: 'COD Mobile Masters',
+    game_name: 'COD Mobile',
+    image: heroCodm,
+    description: 'Intense Call of Duty Mobile multiplayer tournament with massive prize pools.',
+    current_participants: 18,
+    max_participants: 24,
+    prize_pool: '₹15,000',
+    tags: ['5v5', 'Multiplayer', 'Featured'],
+  },
+];
+
+const HomePage = () => {
+  const { isAuthenticated, isHost, isPlayer } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [slides, setSlides] = useState(STATIC_SLIDES);
+  const [loadingTournaments, setLoadingTournaments] = useState(true);
+
+  const nextSlide = () => setCurrentSlide((p) => (p + 1) % slides.length);
+  const prevSlide = () => setCurrentSlide((p) => (p - 1 + slides.length) % slides.length);
+
+  // Auto-advance every 4 seconds (pauses on hover)
+  useEffect(() => {
+    if (loadingTournaments) return;
+    const timer = setInterval(() => {
+      if (!isPaused.current) setCurrentSlide((p) => (p + 1) % slides.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [loadingTournaments, slides.length]);
+
+  const isPaused = useRef(false);
+  const touchStartX = useRef(0);
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e) => {
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) diff > 0 ? nextSlide() : prevSlide();
+  };
 
   useEffect(() => {
-    fetchStats();
-    fetchFeaturedTournaments();
-    fetchFeaturedScrims();
-    window.scrollTo(0, 0);
-    // Trigger entrance animation
-    const timer = setTimeout(() => setIsLoaded(true), 100);
-    return () => clearTimeout(timer);
+    tournamentAPI
+      .getTournaments({ status: 'upcoming' })
+      .then((res) => {
+        const data = res.data?.results || res.data || [];
+        const upcoming = Array.isArray(data) ? data.slice(0, 6) : [];
+        if (upcoming.length > 0) {
+          setSlides(
+            upcoming.map((t) => ({
+              id: t.id,
+              name: t.title || t.name,
+              game_name: t.game_name || t.game,
+              image: (() => {
+                const mediaBase = (
+                  process.env.REACT_APP_MEDIA_URL ||
+                  process.env.REACT_APP_API_URL?.replace('/api', '') ||
+                  'http://localhost:8000'
+                ).replace(/\/media\/?$/, '');
+                const raw = t.banner_image || t.poster_image;
+                if (raw) return raw.startsWith('http') ? raw : `${mediaBase}${raw}`;
+                return getFallbackImage(t.game_name || t.game);
+              })(),
+              description: t.description || `${t.game_name || t.game} tournament.`,
+              current_participants: t.current_participants || 0,
+              max_participants: t.max_participants || 0,
+              prize_pool: t.prize_pool ? `₹${Number(t.prize_pool).toLocaleString('en-IN')}` : null,
+              tags: [t.game_name || t.game, t.game_mode].filter(Boolean),
+            }))
+          );
+          setCurrentSlide(0);
+        }
+      })
+      .catch(() => {
+        // Keep static slides on error
+      })
+      .finally(() => setLoadingTournaments(false));
   }, []);
 
-  // Separate effect for Scroll Observer to handle dynamic content
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    // Small delay to ensure DOM is updated
-    const timeoutId = setTimeout(() => {
-      const elements = document.querySelectorAll('.reveal-on-scroll');
-      elements.forEach((el) => observer.observe(el));
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      observer.disconnect();
-    };
-  }, [featuredTournaments, featuredScrims]);
-
-  const fetchStats = async () => {
-    try {
-      const response = await tournamentAPI.getPlatformStats();
-      setStats(response.data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+  const handleExploreClick = () => {
+    if (isAuthenticated()) {
+      if (isHost()) navigate('/host/dashboard');
+      else navigate('/player/dashboard');
+    } else {
+      navigate('/player-auth');
     }
   };
 
-  const formatPrizeMoney = (amountStr) => {
-    const amount = parseFloat(amountStr) || 0;
-    // Show lakhs (L) for >= 1,00,000, thousands (K) for >= 1,000, otherwise show full amount
-    if (amount >= 100000) {
-      const lakhs = Math.floor(amount / 100000);
-      return `${lakhs}L+`;
-    }
-    if (amount >= 1000) {
-      const thousands = Math.floor(amount / 1000);
-      return `${thousands}K+`;
-    }
-    return amount.toLocaleString();
-  };
-
-  const fetchFeaturedTournaments = async () => {
-    try {
-      const response = await tournamentAPI.getTournaments({
-        category: 'official', // Backend filters for featured/premium plans
-        event_mode: 'TOURNAMENT',
-      });
-      const data = response.data.results || response.data;
-      // Filter out completed tournaments
-      const filtered = data.filter(
-        (t) => t.status !== 'completed' && t.event_mode === 'TOURNAMENT'
-      );
-
-      // Sort by plan: Premium first, then Featured
-      const sorted = filtered.sort((a, b) => {
-        const planOrder = { premium: 0, featured: 1, basic: 2 };
-        const aOrder = planOrder[(a.plan_type || 'basic').toLowerCase()] ?? 2;
-        const bOrder = planOrder[(b.plan_type || 'basic').toLowerCase()] ?? 2;
-
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-      });
-
-      setFeaturedTournaments(sorted.slice(0, 6));
-    } catch (error) {
-      console.error('Error fetching official tournaments:', error);
+  const handleViewTournament = (slide) => {
+    if (slide.id) {
+      navigate(`/tournaments/${slide.id}`);
+    } else {
+      navigate('/tournaments');
     }
   };
 
-  const fetchFeaturedScrims = async () => {
-    try {
-      const response = await tournamentAPI.getTournaments({
-        category: 'official', // Backend filters for featured/premium plans
-        event_mode: 'SCRIM',
-      });
-      const data = response.data.results || response.data;
-      // Filter out completed scrims
-      const filtered = data.filter((t) => t.status !== 'completed' && t.event_mode === 'SCRIM');
-
-      // Sort by plan: Premium first, then Featured
-      const sorted = filtered.sort((a, b) => {
-        const planOrder = { premium: 0, featured: 1, basic: 2 };
-        const aOrder = planOrder[(a.plan_type || 'basic').toLowerCase()] ?? 2;
-        const bOrder = planOrder[(b.plan_type || 'basic').toLowerCase()] ?? 2;
-
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-      });
-
-      setFeaturedScrims(sorted.slice(0, 6));
-    } catch (error) {
-      console.error('Error fetching featured scrims:', error);
-    }
-  };
+  const slide = slides[currentSlide] || STATIC_SLIDES[0];
 
   return (
-    <div className={`home-container particle-bg ${isLoaded ? 'home-loaded' : ''}`}>
-      <div className="cyber-grid"></div>
+    <div className="min-h-screen bg-background">
+      <Navbar />
 
-      {/* Floating Star Animation */}
-      <div className="star-field">
-        {[...Array(50)].map((_, i) => {
-          const left = Math.random() * 100;
-          const duration = Math.random() * 20 + 10;
-          const delay = Math.random() * 20;
-          const opacity = Math.random() * 0.5 + 0.3;
+      {/* TOP MARQUEE */}
+      <div
+        className="relative overflow-hidden z-10"
+        style={{ background: 'linear-gradient(180deg, hsl(265 40% 8%) 0%, hsl(265 60% 12%) 100%)' }}
+      >
+        <div className="w-[120%] -ml-[10%] rotate-2 border-y border-purple/20 py-3 overflow-hidden bg-purple/[0.06]">
+          <div className="flex animate-marquee whitespace-nowrap gap-12">
+            {[...Array(14)].map((_, i) => (
+              <span
+                key={i}
+                className="text-sm font-bold uppercase tracking-[0.25em] text-purple/50 shrink-0"
+              >
+                SCRIMVERSE ESPORTS ⚡
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
 
-          return (
+      {/* HERO SECTION */}
+      <section
+        className="relative min-h-screen flex items-center overflow-hidden"
+        style={{
+          background:
+            'linear-gradient(135deg, hsl(0 0% 5%) 0%, hsl(265 60% 12%) 40%, hsl(280 70% 18%) 60%, hsl(265 50% 8%) 100%)',
+        }}
+      >
+        <div className="absolute top-20 right-10 w-[400px] h-[400px] bg-purple/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[300px] bg-purple-dark/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 right-1/4 w-[200px] h-[200px] bg-purple-light/10 rounded-full blur-[80px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 md:px-12 w-full">
+          {/* Mobile */}
+          <div className="block lg:hidden space-y-4 text-center py-4">
+            <h1 className="text-5xl sm:text-6xl font-black uppercase tracking-tighter leading-[0.9]">
+              <span className="block text-foreground">WHERE GAMERS</span>
+              <span className="block bg-gradient-to-r from-purple-light via-purple to-purple-dark bg-clip-text text-transparent">
+                COMPETE & CONQUER
+              </span>
+            </h1>
+            <p className="text-sm sm:text-base text-foreground/60 max-w-md mx-auto leading-relaxed">
+              The ultimate platform for competitive gaming tournaments and scrimmages. Join
+              thousands of players competing for glory and prizes.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-purple" />
+                <span className="text-xs font-bold text-foreground/80">SCRIMVERSE</span>
+              </div>
+              <button
+                onClick={handleExploreClick}
+                className="px-6 py-5 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all group inline-flex items-center"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Explore ScrimVerse
+                <ChevronRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+            <div className="relative mx-auto w-full max-w-sm pt-1 pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-light/20 via-purple/10 to-transparent rounded-2xl blur-3xl" />
+              <img
+                src={heroComposite}
+                alt="Gaming Characters Composite"
+                className="relative z-10 w-full h-auto object-contain drop-shadow-2xl"
+              />
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden lg:grid items-center gap-10 grid-cols-[1.1fr_0.9fr]">
+            <div className="max-w-2xl space-y-6 md:space-y-8">
+              <h1 className="text-5xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.9]">
+                <span className="block text-foreground">WHERE GAMERS</span>
+                <span className="block bg-gradient-to-r from-purple-light via-purple to-purple-dark bg-clip-text text-transparent">
+                  COMPETE & CONQUER
+                </span>
+              </h1>
+              <p className="text-base md:text-lg text-foreground/60 max-w-xl leading-relaxed">
+                The ultimate platform for competitive gaming tournaments and scrimmages. Join
+                thousands of players competing for glory and prizes.
+              </p>
+              <div className="flex flex-wrap items-center gap-4 pt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-foreground/80">SCRIMVERSE</span>
+                </div>
+                <button
+                  onClick={handleExploreClick}
+                  className="px-6 py-3 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all group inline-flex items-center"
+                >
+                  Explore ScrimVerse
+                  <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </div>
+
+            <div className="relative mx-auto w-full max-w-[560px] pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-light/20 via-purple/10 to-transparent rounded-full blur-3xl" />
+              <img
+                src={heroComposite}
+                alt="Gaming Characters Composite"
+                className="relative z-10 w-full h-auto object-contain drop-shadow-2xl"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TILTED SCROLLING MARQUEE */}
+      <div
+        className="relative py-8 md:py-10 overflow-hidden"
+        style={{ background: 'linear-gradient(180deg, hsl(265 40% 8%) 0%, hsl(265 35% 6%) 100%)' }}
+      >
+        <div className="w-[120%] -ml-[10%] -rotate-3 border-y border-purple/20 py-3 overflow-hidden bg-purple/[0.04]">
+          <div className="flex animate-marquee whitespace-nowrap gap-12">
+            {[...Array(10)].map((_, i) => (
+              <span
+                key={i}
+                className="text-sm font-bold uppercase tracking-[0.25em] text-purple/40 shrink-0 border-b border-transparent hover:border-purple/30 transition-colors"
+              >
+                SCRIMVERSE ESPORTS
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* UPCOMING TOURNAMENTS */}
+      <section
+        className="px-4 md:px-8 py-12 md:py-20"
+        style={{ background: 'linear-gradient(180deg, hsl(265 35% 6%) 0%, hsl(0 0% 7%) 100%)' }}
+      >
+        <div className="max-w-5xl mx-auto text-center mb-8 md:mb-12">
+          <div className="mb-4 sm:mb-6">
+            <div className="inline-flex items-baseline gap-[2px] sm:gap-1">
+              {'JOIN THE BATTLE'.split('').map((char, i) => (
+                <span
+                  key={i}
+                  className="text-purple text-lg sm:text-2xl md:text-3xl font-black uppercase"
+                  style={{
+                    display: 'inline-block',
+                    animation: `floatChar 2.5s ease-in-out infinite`,
+                    animationDelay: `${i * 0.12}s`,
+                    textShadow: '0 0 20px hsl(265 80% 65% / 0.4)',
+                  }}
+                >
+                  {char === ' ' ? '\u00A0' : char}
+                </span>
+              ))}
+            </div>
+          </div>
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-foreground tracking-tight">
+            Upcoming
+            <br />
+            Tournaments
+          </h2>
+          <p className="text-foreground/50 text-sm mt-3 max-w-md mx-auto">
+            Slots are filling up fast. Secure your spot before it's too late.
+          </p>
+        </div>
+
+        {/* Featured slide */}
+        <div className="relative rounded-xl overflow-hidden group max-w-5xl mx-auto">
+          {loadingTournaments ? (
+            <div className="aspect-[4/5] sm:aspect-[16/9] md:aspect-[21/8] flex items-center justify-center bg-card/50 rounded-xl">
+              <Loader2 className="h-8 w-8 text-purple animate-spin" />
+            </div>
+          ) : (
             <div
-              key={i}
-              className="star-particle"
-              style={{
-                left: `${left}%`,
-                animationDuration: `${duration}s`,
-                animationDelay: `-${delay}s`,
-                '--star-opacity': opacity,
+              className="relative aspect-[4/5] sm:aspect-[16/9] md:aspect-[21/8]"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onMouseEnter={() => {
+                isPaused.current = true;
               }}
-            />
-          );
-        })}
-      </div>
-
-      <div className="floating-particles"></div>
-
-      {/* Ambient Glow Effects */}
-      <div className="hero-ambient">
-        <div className="ambient-orb ambient-orb-1"></div>
-        <div className="ambient-orb ambient-orb-2"></div>
-        <div className="ambient-orb ambient-orb-3"></div>
-      </div>
-
-      {/* Hero Section - Premium Redesign */}
-      <section className="hero-wrapper hero-animated">
-        <h1 className="hero-title mb-6">
-          <span className="text-[#e2d8f9]">SCRIM</span>
-          <span className="text-[#8b5cf6]">VERSE</span>
-        </h1>
-
-        <p className="hero-description text-xl max-w-2xl mx-auto mb-10 text-gray-400">
-          The ultimate platform for{' '}
-          <span className="text-[#8b5cf6] font-bold">competitive gaming</span> tournaments and
-          scrimmages. Join thousands of players competing for glory and prizes.
-        </p>
-
-        <div className="hero-ctas flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-          <Link
-            to={user ? '/tournaments' : '/player/login'}
-            className="px-8 py-3 bg-white text-black rounded-lg font-bold flex items-center gap-2 hover:bg-gray-100 transition-colors"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              onMouseLeave={() => {
+                isPaused.current = false;
+              }}
             >
-              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-              <path d="M4 22h16" />
-              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-            </svg>
-            Host Tournament
-            <span>&rarr;</span>
-          </Link>
-          <Link
-            to={user ? '/tournaments' : '/player/login'}
-            className="px-8 py-3 bg-transparent border border-[#8b5cf6] text-[#8b5cf6] rounded-lg font-bold flex items-center gap-2 hover:bg-[#8b5cf6]/10 transition-colors"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            Join as Player
-          </Link>
+              <img
+                src={slide.image}
+                alt={slide.name}
+                className="w-full h-full object-cover transition-all duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+
+              {slide.tags && slide.tags.length > 0 && (
+                <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
+                  {slide.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="bg-foreground/20 backdrop-blur-sm text-foreground border border-foreground/20 text-[10px] font-semibold px-3 py-1 rounded"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 md:mb-2">
+                  {slide.name}
+                </h2>
+                <p className="text-[11px] sm:text-sm text-foreground/70 max-w-lg mb-3 md:mb-4 line-clamp-2">
+                  {slide.description}
+                </p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 text-xs text-foreground/60">
+                    {slide.max_participants > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {slide.current_participants}/{slide.max_participants}
+                      </span>
+                    )}
+                    {slide.prize_pool && (
+                      <span className="flex items-center gap-1 text-foreground font-semibold">
+                        <Trophy className="h-3 w-3" />
+                        {slide.prize_pool}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleViewTournament(slide)}
+                    className="text-xs bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 font-semibold px-3 py-1.5 rounded"
+                  >
+                    View Tournament
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={prevSlide}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/40 backdrop-blur-sm hover:bg-background/60 transition-all sm:opacity-0 sm:group-hover:opacity-100"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={nextSlide}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/40 backdrop-blur-sm hover:bg-background/60 transition-all sm:opacity-0 sm:group-hover:opacity-100"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+
+              <div className="absolute bottom-2 right-4 flex gap-1.5">
+                {slides.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentSlide(i)}
+                    className={`w-2 h-2 rounded-full transition-all ${i === currentSlide ? 'bg-purple w-5' : 'bg-foreground/30'}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Stats Section - Premium Redesign - Dark Cards */}
-        {!shouldHideKPIs && (
-          <div className="stats-container flex flex-wrap justify-center gap-6">
-            <div
-              className="stat-card stat-animated bg-[#111] border border-white/10 rounded-xl p-6 min-w-[200px]"
-              style={{ animationDelay: '0.1s' }}
-            >
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <div className="text-[#8b5cf6]">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </div>
-                <div className="text-3xl font-black text-white">
-                  {stats ? stats.total_players.toLocaleString() : '50'}
-                  <span className="text-[#8b5cf6]">+</span>
-                </div>
-              </div>
-              <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-                Active Players
-              </div>
-            </div>
-
-            <div
-              className="stat-card stat-animated bg-[#111] border border-white/10 rounded-xl p-6 min-w-[200px]"
-              style={{ animationDelay: '0.2s' }}
-            >
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <div className="text-[#8b5cf6]">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                    <path d="M4 22h16" />
-                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-                  </svg>
-                </div>
-                <div className="text-3xl font-black text-white">
-                  {stats ? stats.total_tournaments.toLocaleString() : '20'}
-                  <span className="text-[#8b5cf6]">+</span>
-                </div>
-              </div>
-              <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-                Tournaments Hosted
-              </div>
-            </div>
-
-            <div
-              className="stat-card stat-animated bg-[#111] border border-white/10 rounded-xl p-6 min-w-[200px]"
-              style={{ animationDelay: '0.3s' }}
-            >
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <div className="text-[#8b5cf6]">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7Z" />
-                  </svg>
-                </div>
-                <div className="text-3xl font-black text-white">
-                  {stats ? `₹${formatPrizeMoney(stats.total_prize_money)}` : '₹10,000'}
-                </div>
-              </div>
-              <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-                Prize Pool
-              </div>
-            </div>
-          </div>
-        )}
+        {/* CTA */}
+        <div className="text-center mt-8">
+          <Link to="/tournaments">
+            <button className="bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 font-bold px-6 py-3 rounded-full text-sm group inline-flex items-center">
+              Secure Your Slot
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </Link>
+        </div>
       </section>
 
-      <ChooseBattlefield />
-
-      {/* Featured Tournaments Section */}
-      <section className="section-wrapper relative z-10 featured-tournaments-section">
-        <div className="text-center mb-16 reveal-on-scroll">
-          <div className="section-badge hot-badge-premium">
-            <span className="fire-icon">🔥</span>
-            Hot Tournaments
-          </div>
-          <h2 className="featured-main-title">
-            Featured <span className="title-verse">Tournaments</span>
-          </h2>
-          <p className="featured-subtitle">
-            Join the most epic competitions. <span className="text-accent">Join the elite.</span>
-          </p>
-        </div>
-
-        {featuredTournaments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredTournaments.map((tournament, index) => (
-              <div
-                key={tournament.id}
-                className="featured-card-wrapper reveal-on-scroll"
-                style={{ transitionDelay: `${index * 100}ms` }}
+      {/* BOTTOM MARQUEE */}
+      <div
+        className="relative py-8 md:py-10 overflow-hidden"
+        style={{ background: 'linear-gradient(180deg, hsl(0 0% 7%) 0%, hsl(265 35% 6%) 100%)' }}
+      >
+        <div className="w-[120%] -ml-[10%] rotate-2 border-y border-purple/20 py-3 overflow-hidden bg-purple/[0.06]">
+          <div
+            className="flex animate-marquee whitespace-nowrap gap-12"
+            style={{ animationDirection: 'reverse' }}
+          >
+            {[...Array(14)].map((_, i) => (
+              <span
+                key={i}
+                className="text-sm font-bold uppercase tracking-[0.25em] text-purple/50 shrink-0"
               >
-                <TournamentCard tournament={tournament} />
-              </div>
+                SCRIMVERSE ESPORTS ⚡
+              </span>
             ))}
           </div>
-        ) : (
-          <div className="gaming-card p-12 text-center rounded-2xl">
-            <div className="text-4xl mb-4">🏆</div>
-            <p className="text-muted-foreground">
-              Stay tuned! Epic premium matches are in the works.
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* Featured Scrims Section */}
-      <section className="section-wrapper relative z-10 featured-tournaments-section">
-        <div className="text-center mb-16 reveal-on-scroll">
-          <h2 className="featured-main-title">
-            Featured <span className="title-verse">Scrims</span>
-          </h2>
-          <p className="featured-subtitle">
-            Sharpen your skills in practice battles.{' '}
-            <span className="text-accent">Train like a pro.</span>
-          </p>
         </div>
+      </div>
 
-        {featuredScrims.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredScrims.map((scrim, index) => (
-              <div
-                key={scrim.id}
-                className="featured-card-wrapper reveal-on-scroll"
-                style={{ transitionDelay: `${index * 100}ms` }}
-              >
-                <TournamentCard tournament={scrim} />
+      {/* NEWSLETTER */}
+      <section
+        className="py-16 md:py-24"
+        style={{
+          background:
+            'linear-gradient(180deg, hsl(265 35% 6%) 0%, hsl(265 40% 10%) 50%, hsl(0 0% 5%) 100%)',
+        }}
+      >
+        <div className="max-w-xl mx-auto px-4">
+          <div className="relative rounded-2xl border border-purple/20 bg-gradient-to-br from-purple/[0.08] to-transparent p-8 sm:p-10 text-center overflow-hidden">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-purple/20 rounded-full blur-[80px] pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="w-12 h-12 rounded-xl bg-purple/15 border border-purple/20 flex items-center justify-center mx-auto mb-4">
+                <Mail className="h-6 w-6 text-purple" />
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="gaming-card p-12 text-center rounded-2xl">
-            <div className="text-4xl mb-4">⚔️</div>
-            <p className="text-muted-foreground">
-              Stay tuned! Premium practice sessions are coming soon.
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* Why Choose ScrimVerse Section */}
-      <section className="section-wrapper relative z-10 py-20">
-        <div className="text-center mb-16 reveal-on-scroll">
-          <h2 className="text-4xl md:text-5xl font-black mb-4">
-            <span className="text-white">Why Choose </span>
-            <span className="text-[#e2d8f9]">Scrim</span>
-            <span className="text-white">Verse?</span>
-          </h2>
-          <p className="text-gray-400 text-lg">
-            Everything you need for competitive gaming, all in one platform
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Feature 1 */}
-          <div
-            className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:-translate-y-2 transition-transform duration-300 relative group reveal-on-scroll hover-perspective hover-neon-border"
-            style={{ transitionDelay: '100ms' }}
-          >
-            <div className="w-14 h-14 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-[#2a2a4e] transition-colors">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8b5cf6"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+                Subscribe to Our Newsletter
+              </h2>
+              <p className="text-sm text-foreground/50 mb-6 max-w-sm mx-auto">
+                Stay updated with the latest tournaments, scrims, and esports news delivered to your
+                inbox.
+              </p>
+              <div className="flex items-center gap-2 max-w-sm mx-auto">
+                <input
+                  type="email"
+                  placeholder="Enter email address"
+                  className="flex-1 bg-background/50 border border-border/30 rounded-full px-4 py-2.5 text-sm text-foreground placeholder:text-foreground/40 outline-none focus:border-purple/50 transition-colors"
+                />
+                <button className="bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white font-bold px-5 py-2.5 rounded-full border-0 text-sm">
+                  Subscribe
+                </button>
+              </div>
+              <p className="text-[10px] text-foreground/30 mt-3">No spam, unsubscribe anytime.</p>
             </div>
-            <h3 className="text-white font-bold text-xl mb-4 text-center">Verified Tournaments</h3>
-            <p className="text-gray-400 text-sm text-center leading-relaxed mb-6">
-              All tournaments are verified for legitimacy and fair play. Your entry fees and prizes
-              are secure.
-            </p>
-            <div className="text-center">
-              <Link
-                to="/features/verified"
-                className="text-[#8b5cf6] text-sm font-bold hover:text-[#a78bfa] transition-colors inline-flex items-center gap-1"
-              >
-                Learn More <span>&rarr;</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Feature 2 */}
-          <div
-            className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:-translate-y-2 transition-transform duration-300 relative group reveal-on-scroll hover-perspective hover-neon-border"
-            style={{ transitionDelay: '200ms' }}
-          >
-            <div className="w-14 h-14 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-[#2a2a4e] transition-colors">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8b5cf6"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-            </div>
-            <h3 className="text-white font-bold text-xl mb-4 text-center">Instant Registration</h3>
-            <p className="text-gray-400 text-sm text-center leading-relaxed mb-6">
-              Quick and seamless tournament registration with real-time updates and notifications.
-            </p>
-            <div className="text-center">
-              <Link
-                to="/features/registration"
-                className="text-[#8b5cf6] text-sm font-bold hover:text-[#a78bfa] transition-colors inline-flex items-center gap-1"
-              >
-                Learn More <span>&rarr;</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Feature 3 */}
-          <div
-            className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:-translate-y-2 transition-transform duration-300 relative group reveal-on-scroll hover-perspective hover-neon-border"
-            style={{ transitionDelay: '300ms' }}
-          >
-            <div className="w-14 h-14 bg-[#1a1a2e] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-[#2a2a4e] transition-colors">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8b5cf6"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                <path d="M4 22h16" />
-                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-              </svg>
-            </div>
-            <h3 className="text-white font-bold text-xl mb-4 text-center">Host Benefits</h3>
-            <p className="text-gray-400 text-sm text-center leading-relaxed mb-6">
-              Powerful tools for tournament organizers. Manage brackets, prizes, and participants
-              effortlessly.
-            </p>
-            <div className="text-center">
-              <Link
-                to="/features/hosting"
-                className="text-[#8b5cf6] text-sm font-bold hover:text-[#a78bfa] transition-colors inline-flex items-center gap-1"
-              >
-                Learn More <span>&rarr;</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Join the Revolution Section */}
-      <section className="section-wrapper relative z-10 join-revolution-section">
-        <div className="revolution-card cyber-card">
-          <div className="revolution-glow"></div>
-          <div className="revolution-icon-box">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="2" y="6" width="20" height="12" rx="2" />
-              <path d="M6 12h.01" />
-              <path d="M10 12h.01" />
-              <path d="M15 12h.01" />
-              <path d="M18 12h.01" />
-            </svg>
-          </div>
-          <h2 className="revolution-title">Join the Revolution</h2>
-          <p className="revolution-description">
-            Ready to be part of something bigger? Join thousands of gamers who are already building
-            the future of competitive gaming
-          </p>
-          <div className="revolution-ctas">
-            <Link to="/tournaments" className="cta-btn gaming-button find-battles-btn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-              </svg>
-              FIND BATTLES
-            </Link>
-            <Link to="/help" className="cta-btn secondary help-centre-btn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              HELP CENTRE
-            </Link>
           </div>
         </div>
       </section>

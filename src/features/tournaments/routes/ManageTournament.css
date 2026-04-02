@@ -1,31 +1,226 @@
-/* ManageTournament.css */
+/* ManageTournament.css — Matches HostDashboard cyber-card pattern */
 
 .manage-tournament-container {
   position: relative;
   z-index: 1;
 }
 
-/* Header Tab Bar */
-.header-tab-bar {
-  background: linear-gradient(135deg, rgba(10, 10, 12, 0.95) 0%, rgba(15, 15, 18, 0.9) 100%);
-  backdrop-filter: blur(20px);
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+/* ── Header ──────────────────────────────────────────────────────── */
+.mt-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
-.header-tab {
+.mt-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.mt-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.mt-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid hsl(var(--border) / 0.5);
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mt-back-btn:hover {
+  background: hsl(var(--secondary) / 0.5);
+  color: hsl(var(--foreground));
+}
+
+.mt-title-group {
+  min-width: 0;
+}
+
+.mt-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--accent)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 640px) {
+  .mt-title {
+    font-size: 1.5rem;
+  }
+}
+
+.mt-subtitle {
+  font-size: 0.8125rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.125rem;
+}
+
+.mt-round-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: hsl(var(--accent) / 0.15);
+  color: hsl(var(--accent));
+  border: 1px solid hsl(var(--accent) / 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Action buttons bar */
+.mt-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mt-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid hsl(var(--foreground) / 0.6);
+  color: hsl(var(--foreground));
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.mt-action-btn:hover {
+  background: hsl(var(--secondary) / 0.5);
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--foreground) / 0.8);
+}
+
+.mt-action-btn.active {
+  background: hsl(var(--accent) / 0.15);
+  color: hsl(var(--accent));
+  border-color: hsl(var(--accent) / 0.5);
+}
+
+.mt-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Purple — Points Table */
+.mt-action-btn-purple {
+  background: hsl(var(--accent) / 0.15);
+  color: hsl(var(--accent));
+  border-color: hsl(var(--accent) / 0.5);
+}
+.mt-action-btn-purple:hover {
+  background: hsl(var(--accent) / 0.25);
+  color: hsl(var(--accent));
+  border-color: hsl(var(--accent) / 0.7);
+}
+
+/* Green — Bulk Schedule */
+.mt-action-btn-green {
+  background: hsl(142 76% 36% / 0.12);
+  color: hsl(142 76% 50%);
+  border-color: hsl(142 76% 36% / 0.5);
+}
+.mt-action-btn-green:hover {
+  background: hsl(142 76% 36% / 0.22);
+  color: hsl(142 76% 55%);
+  border-color: hsl(142 76% 36% / 0.7);
+}
+
+/* Red — Live Stream */
+.mt-action-btn-red {
+  background: hsl(0 84% 60% / 0.12);
+  color: hsl(0 84% 65%);
+  border-color: hsl(0 84% 60% / 0.5);
+}
+.mt-action-btn-red:hover {
+  background: hsl(0 84% 60% / 0.22);
+  color: hsl(0 84% 70%);
+  border-color: hsl(0 84% 60% / 0.7);
+}
+
+/* ── Cyber card (consistent with HostDashboard) ──────────────────── */
+.mt-cyber-card {
+  background: hsl(var(--card) / 0.7);
+  border: 1px solid hsl(var(--border) / 0.3);
+  border-radius: 0.75rem;
+  transition: border-color 0.2s;
+}
+
+.mt-cyber-card:hover {
+  border-color: hsl(var(--accent) / 0.3);
+}
+
+/* ── Tournament Specs card ───────────────────────────────────────── */
+.mt-specs-card {
+  background: hsl(var(--card) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.2);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
   position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
-.header-tab:hover {
-  transform: translateY(-1px);
+.mt-stat-tile {
+  background: hsl(var(--card) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.2);
+  border-radius: 0.75rem;
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s;
 }
 
-/* Round Stepper */
+.mt-stat-tile:hover {
+  border-color: hsl(var(--accent) / 0.25);
+}
+
+.mt-countdown-card {
+  background: hsl(var(--card) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.2);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* ── Round Stepper ───────────────────────────────────────────────── */
 .round-stepper {
-  padding: 1.5rem 0;
+  padding: 0.5rem 0;
 }
 
 .stepper-circle {
@@ -33,7 +228,7 @@
 }
 
 .stepper-circle:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .stepper-line {
@@ -47,213 +242,95 @@
   }
 
   .stepper-circle {
-    width: 2.5rem !important;
-    height: 2.5rem !important;
-    font-size: 0.875rem !important;
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    font-size: 0.8rem !important;
   }
 }
 
-.premium-header {
-  background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(10, 10, 15, 0.9) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
-}
-
-.premium-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 300px;
-  height: 100%;
-  background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.15), transparent 70%);
-  pointer-events: none;
-}
-
-.status-badge-glow {
-  position: relative;
-}
-
-.status-badge-glow::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  background: inherit;
-  filter: blur(8px);
-  opacity: 0.4;
-  z-index: -1;
-}
-
-.info-grid-card {
-  background: linear-gradient(135deg, rgba(20, 20, 25, 0.8) 0%, rgba(15, 15, 20, 0.9) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.info-grid-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(168, 85, 247, 0.3);
-  background: linear-gradient(135deg, rgba(25, 25, 30, 0.9) 0%, rgba(20, 20, 25, 0.95) 100%);
-  box-shadow: 0 10px 30px rgba(168, 85, 247, 0.15);
-}
-
-.round-tab-premium {
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(135deg, rgba(20, 20, 25, 0.6) 0%, rgba(15, 15, 20, 0.7) 100%);
-}
-
-.round-tab-premium.active {
-  background: linear-gradient(135deg, rgba(30, 30, 35, 0.95) 0%, rgba(15, 15, 20, 1) 100%);
-  border-color: rgba(168, 85, 247, 0.6);
-  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.5);
-  transform: translateY(-2px);
-}
-
-.active-glow-indicator {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40%;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, #a855f7, transparent);
-  border-radius: 9999px;
-  box-shadow: 0 -2px 10px rgba(168, 85, 247, 0.4);
-}
-
+/* ── Group card ──────────────────────────────────────────────────── */
 .group-card-premium {
-  background: linear-gradient(135deg, rgba(20, 20, 25, 0.7) 0%, rgba(15, 15, 20, 0.8) 100%);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: hsl(var(--card) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.2);
+  border-radius: 0.75rem;
+  transition: all 0.3s;
+  cursor: pointer;
 }
 
 .group-card-premium:hover {
   transform: scale(1.02);
-  border-color: rgba(168, 85, 247, 0.4);
-  background: linear-gradient(135deg, rgba(25, 25, 30, 0.85) 0%, rgba(20, 20, 25, 0.9) 100%);
-  box-shadow: 0 0 30px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.shimmer-bg {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.03) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer-swipe 3s infinite linear;
+/* ── Info grid card ──────────────────────────────────────────────── */
+.info-grid-card {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 0.75rem;
+  transition: all 0.2s;
 }
 
-@keyframes shimmer-swipe {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
+.info-grid-card:hover {
+  border-color: hsl(var(--accent) / 0.3);
 }
 
-.premium-button-glow {
-  position: relative;
-  overflow: hidden;
-}
-
-.premium-button-glow::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: conic-gradient(from 0deg, transparent, rgba(168, 85, 247, 0.3), transparent 30%);
-  animation: rotate 4s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.timeline-dot {
-  position: relative;
-}
-
-.timeline-dot::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 20px;
-  height: 20px;
-  background: rgba(168, 85, 247, 0.2);
-  border-radius: 50%;
-  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes ping {
-  75%,
-  100% {
-    transform: translate(-50%, -50%) scale(2);
-    opacity: 0;
-  }
-}
-
-/* Avatar Rings */
-.avatar-ring-container {
-  position: relative;
-  padding: 4px;
-}
-
-.avatar-ring {
-  position: absolute;
-  inset: 0;
+/* ── Status badges ───────────────────────────────────────────────── */
+.mt-status-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
   border-radius: 9999px;
-  border: 2px dashed rgba(255, 255, 255, 0.1);
-  animation: rotate-ring 10s linear infinite;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: hsl(0 84% 60% / 0.15);
+  color: hsl(0 84% 60%);
 }
 
-@keyframes rotate-ring {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+.mt-status-upcoming {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: hsl(var(--accent) / 0.15);
+  color: hsl(var(--accent));
 }
 
-/* Tab Premium Active State - Duplicate removed, using above definition */
+.mt-status-completed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: hsl(142 76% 36% / 0.15);
+  color: hsl(142 76% 36%);
+}
 
-/* Scrollbar Refinement */
+/* ── Scrollbar ───────────────────────────────────────────────────── */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: hsl(var(--secondary) / 0.3);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: hsl(var(--muted-foreground) / 0.2);
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: hsl(var(--muted-foreground) / 0.4);
 }

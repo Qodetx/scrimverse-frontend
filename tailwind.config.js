@@ -36,6 +36,11 @@ module.exports = {
           cyan: '#06b6d4',
           gold: '#fbbf24',
         },
+        purple: {
+          DEFAULT: 'hsl(var(--purple))',
+          light: 'hsl(var(--purple-light))',
+          dark: 'hsl(var(--purple-dark))',
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -69,9 +74,14 @@ module.exports = {
           '33%': { transform: 'translateY(-20px) translateX(10px)' },
           '66%': { transform: 'translateY(10px) translateX(-10px)' },
         },
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-100%)' },
+        },
       },
       animation: {
         float: 'float 10s ease-in-out infinite',
+        marquee: 'marquee 25s linear infinite',
       },
     },
   },

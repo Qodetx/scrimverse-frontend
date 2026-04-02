@@ -15,9 +15,40 @@ const ConfirmModal = ({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="gradient-text">{title}</h2>
-          <button type="button" className="close-btn" onClick={onClose}>
+        {/* Header — matches mcm-header style */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1.25rem 1.5rem',
+            borderBottom: '1px solid hsl(var(--border) / 0.2)',
+          }}
+        >
+          <h2
+            className="gradient-text"
+            style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700 }}
+          >
+            {title}
+          </h2>
+          <button
+            type="button"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'hsl(var(--muted-foreground))',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              width: '2rem',
+              height: '2rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '0.375rem',
+              transition: 'all 0.2s',
+            }}
+            onClick={onClose}
+          >
             ✕
           </button>
         </div>

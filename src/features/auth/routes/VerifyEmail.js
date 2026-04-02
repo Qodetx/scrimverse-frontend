@@ -53,14 +53,25 @@ const VerifyEmail = () => {
           // Use AuthContext's login function to update both localStorage AND state
           login(data.user, tokenData);
 
-          // Redirect to dashboard after 2 seconds
+          // Redirect after 2 seconds — prefer server-stored next (works cross-browser),
+          // fall back to localStorage next (same-browser login flow), then default dashboard
           setTimeout(() => {
-            if (data.user?.user_type === 'player') {
-              navigate('/player/dashboard');
+            const serverNext = data.next;
+            const localNext = localStorage.getItem('post_verify_redirect');
+            // Use replace:true so verify page is removed from history stack.
+            // This way navigate(-1) from the destination skips the verify URL entirely.
+            if (serverNext) {
+              localStorage.removeItem('post_verify_redirect');
+              navigate(serverNext, { replace: true });
+            } else if (localNext) {
+              localStorage.removeItem('post_verify_redirect');
+              navigate(localNext, { replace: true });
+            } else if (data.user?.user_type === 'player') {
+              navigate('/player/dashboard', { replace: true });
             } else if (data.user?.user_type === 'host') {
-              navigate('/host/dashboard');
+              navigate('/host/dashboard', { replace: true });
             } else {
-              navigate('/');
+              navigate('/', { replace: true });
             }
           }, 2000);
         }

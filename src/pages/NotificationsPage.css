@@ -1,0 +1,359 @@
+/* NotificationsPage.css */
+
+.np-page {
+  padding: 0 0 3rem;
+}
+
+/* ── Header ── */
+.np-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.np-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.np-header-icon {
+  color: hsl(var(--accent));
+}
+
+.np-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.np-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.3rem;
+  background: hsl(var(--accent));
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.np-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.np-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.np-action-btn:hover:not(:disabled) {
+  color: hsl(var(--foreground));
+  background: hsl(var(--secondary) / 0.4);
+}
+
+.np-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.np-action-btn-active {
+  background: hsl(var(--accent) / 0.15);
+  border-color: hsl(var(--accent) / 0.4);
+  color: hsl(var(--accent));
+}
+
+.np-action-btn-icon {
+  padding: 0.4rem 0.5rem;
+}
+
+/* ── Bulk bar ── */
+.np-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: hsl(var(--card) / 0.8);
+  border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: 0.625rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.np-bulk-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.375rem;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.np-bulk-select-all:hover {
+  background: hsl(var(--secondary) / 0.4);
+}
+
+.np-bulk-count {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin-left: auto;
+}
+
+.np-bulk-btns {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.np-bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.np-bulk-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.np-bulk-btn-read {
+  background: hsl(var(--accent) / 0.15);
+  border-color: hsl(var(--accent) / 0.35);
+  color: hsl(var(--accent));
+}
+
+.np-bulk-btn-read:hover:not(:disabled) {
+  background: hsl(var(--accent) / 0.25);
+}
+
+.np-bulk-btn-delete {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgb(248, 113, 113);
+}
+
+.np-bulk-btn-delete:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.22);
+}
+
+/* ── Loading / Empty ── */
+.np-loading {
+  display: flex;
+  justify-content: center;
+  padding: 4rem 0;
+}
+
+.np-spinner {
+  animation: npSpin 0.8s linear infinite;
+  color: hsl(var(--muted-foreground));
+}
+
+@keyframes npSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.np-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.np-empty-icon {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.25;
+  margin-bottom: 0.5rem;
+}
+
+.np-empty-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.np-empty-sub {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* ── List ── */
+.np-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+/* ── Item ── */
+.np-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: hsl(var(--card) / 0.6);
+  border: 1px solid hsl(var(--border) / 0.25);
+  border-radius: 0.625rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.np-item:hover {
+  background: hsl(var(--card) / 0.9);
+  border-color: hsl(var(--border) / 0.45);
+}
+
+.np-item-unread {
+  background: hsl(var(--card) / 0.85);
+  border-color: hsl(var(--accent) / 0.2);
+}
+
+.np-item-unread:hover {
+  border-color: hsl(var(--accent) / 0.35);
+}
+
+.np-item-selected {
+  background: hsl(var(--accent) / 0.08);
+  border-color: hsl(var(--accent) / 0.3);
+}
+
+.np-item-checkbox {
+  flex-shrink: 0;
+  padding-top: 0.1rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.np-item-icon-wrap {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.np-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.np-item-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  line-height: 1.3;
+  margin-bottom: 0.2rem;
+}
+
+.np-item-msg {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.4;
+  margin-bottom: 0.3rem;
+}
+
+.np-item-time {
+  font-size: 0.7rem;
+  color: hsl(var(--muted-foreground) / 0.7);
+}
+
+/* ── Per-item action buttons ── */
+.np-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.np-item:hover .np-item-actions {
+  opacity: 1;
+}
+
+.np-item-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid hsl(var(--border) / 0.35);
+  border-radius: 0.375rem;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.np-item-btn:hover {
+  background: hsl(var(--secondary) / 0.5);
+  color: hsl(var(--foreground));
+}
+
+.np-item-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgb(248, 113, 113);
+}
+
+/* ── Unread dot ── */
+.np-unread-dot {
+  position: absolute;
+  top: 0.875rem;
+  right: 0.875rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  background: hsl(var(--accent));
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Bottom anchor for infinite scroll ── */
+.np-bottom-anchor {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+  min-height: 2rem;
+}

@@ -1,0 +1,212 @@
+/* PlayerOverviewView.css */
+
+.overview-hero-carousel {
+  position: relative;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.overview-hero-aspect {
+  aspect-ratio: 16 / 9;
+}
+
+@media (min-width: 768px) {
+  .overview-hero-aspect {
+    aspect-ratio: 21 / 8;
+  }
+}
+
+.overview-hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.5s ease;
+}
+
+.overview-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    hsl(var(--background)) 0%,
+    hsl(var(--background) / 0.5) 40%,
+    transparent 100%
+  );
+}
+
+.overview-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.375rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+
+.overview-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.overview-hero-carousel:hover .overview-nav-btn {
+  opacity: 1;
+}
+
+@media (max-width: 767px) {
+  .overview-nav-btn {
+    opacity: 1;
+  }
+}
+
+.overview-nav-btn-left {
+  left: 0.75rem;
+}
+
+.overview-nav-btn-right {
+  right: 0.75rem;
+}
+
+/* Hero bottom content */
+.overview-hero-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .overview-hero-content {
+    padding: 1.5rem;
+  }
+}
+
+/* Dot indicators */
+.overview-dot {
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.overview-dot.active {
+  width: 1.25rem;
+  background: white;
+}
+
+.overview-dot:not(.active) {
+  width: 0.5rem;
+}
+
+/* Filter dropdown */
+.overview-filter-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 10rem;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 200;
+}
+
+/* Status filter opens to the right (left-aligned) so it doesn't clip off screen */
+.overview-filter-dropdown-left {
+  right: auto;
+  left: 0;
+}
+
+.overview-filter-option {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.overview-filter-option:hover {
+  background: hsl(var(--secondary) / 0.5);
+  color: hsl(var(--foreground));
+}
+
+.overview-filter-option.selected {
+  background: hsl(var(--purple) / 0.15);
+  color: hsl(var(--purple));
+}
+
+/* Hero skeleton */
+.overview-hero-skeleton {
+  width: 100%;
+  border-radius: 0.75rem;
+  background: hsl(var(--secondary) / 0.4);
+  animation: overview-pulse 1.5s ease-in-out infinite;
+}
+
+.overview-card-skeleton {
+  border-radius: 0.75rem;
+  background: hsl(var(--secondary) / 0.4);
+  height: 220px;
+  animation: overview-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes overview-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Hero game tag badges */
+.overview-game-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.35);
+  color: white;
+}
+
+/* View button */
+.overview-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1.125rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(to right, hsl(var(--purple)), hsl(var(--purple-dark)));
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.overview-view-btn:hover {
+  background: linear-gradient(to right, hsl(var(--purple-light)), hsl(var(--purple)));
+}

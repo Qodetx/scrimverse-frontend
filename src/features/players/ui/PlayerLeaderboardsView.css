@@ -1,0 +1,461 @@
+/* ── Leaderboards View — lb- prefix ─────────────────────────────────────── */
+
+.lb-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.lb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.lb-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.lb-title-icon {
+  color: hsl(var(--foreground) / 0.7);
+}
+
+/* ── Game filter dropdown ─────────────────────────────────────────────────── */
+.lb-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: 1px solid hsl(var(--border) / 0.5);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lb-filter-btn:hover {
+  border-color: hsl(var(--purple) / 0.4);
+  background: hsl(var(--purple) / 0.04);
+}
+
+.lb-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  min-width: 160px;
+  background: hsl(0 0% 8%);
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: 10px;
+  padding: 4px;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.lb-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.lb-dropdown-item:hover {
+  background: hsl(var(--secondary) / 0.3);
+}
+.lb-dropdown-item.selected {
+  color: hsl(var(--purple));
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.lb-tabs-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: hsl(var(--secondary) / 0.3);
+  border-radius: 10px;
+  padding: 4px;
+  width: 100%;
+}
+
+.lb-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lb-tab-btn:hover {
+  color: hsl(var(--foreground));
+}
+.lb-tab-btn.active {
+  background: #ffffff;
+  color: #0a0a0f;
+  font-weight: 700;
+}
+
+/* ── Podium ──────────────────────────────────────────────────────────────── */
+.lb-podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-top: 20px;
+}
+@media (min-width: 640px) {
+  .lb-podium {
+    gap: 16px;
+  }
+}
+
+.lb-podium-col {
+  flex: 1;
+  max-width: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s;
+  position: relative;
+  overflow: visible;
+}
+.lb-podium-col:hover {
+  transform: scale(1.03);
+}
+
+/* Heights */
+.lb-podium-1st {
+  height: 200px;
+}
+.lb-podium-2nd {
+  height: 170px;
+}
+.lb-podium-3rd {
+  height: 155px;
+}
+
+/* Colors */
+.lb-podium-gold {
+  background: linear-gradient(to top, hsl(45 100% 60% / 0.1), transparent);
+  border-color: hsl(45 100% 60% / 0.2);
+}
+.lb-podium-silver {
+  background: linear-gradient(to top, hsl(0 0% 60% / 0.1), transparent);
+  border-color: hsl(0 0% 60% / 0.2);
+}
+.lb-podium-bronze {
+  background: linear-gradient(to top, hsl(30 80% 50% / 0.1), transparent);
+  border-color: hsl(30 80% 50% / 0.2);
+}
+.lb-podium-mine {
+  border-color: hsl(45 100% 60% / 0.6) !important;
+  background: linear-gradient(to top, hsl(45 100% 60% / 0.15), transparent) !important;
+}
+
+.lb-podium-rank {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+}
+.lb-rank-gold {
+  background: hsl(45 100% 60% / 0.2);
+  color: hsl(45 100% 60%);
+}
+.lb-rank-silver {
+  background: hsl(0 0% 60% / 0.2);
+  color: hsl(0 0% 75%);
+}
+.lb-rank-bronze {
+  background: hsl(30 80% 50% / 0.2);
+  color: hsl(30 80% 60%);
+}
+
+/* Groups avatar + name + pts at the bottom of each podium card */
+.lb-podium-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.lb-podium-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  flex-shrink: 0;
+  align-self: center;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  border: 2px solid transparent;
+  background: hsl(var(--secondary) / 0.4);
+  color: hsl(var(--foreground));
+  box-sizing: border-box;
+}
+@media (min-width: 640px) {
+  .lb-podium-avatar {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 16px;
+  }
+}
+.lb-avatar-gold {
+  border-color: hsl(45 100% 60%);
+}
+.lb-avatar-silver {
+  border-color: hsl(0 0% 60%);
+}
+.lb-avatar-bronze {
+  border-color: hsl(30 80% 50%);
+}
+
+.lb-podium-name {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: hsl(var(--foreground));
+  margin: 0 0 2px;
+}
+@media (min-width: 640px) {
+  .lb-podium-name {
+    font-size: 11px;
+  }
+}
+
+.lb-podium-pts {
+  font-size: 12px;
+  font-weight: 900;
+}
+@media (min-width: 640px) {
+  .lb-podium-pts {
+    font-size: 14px;
+  }
+}
+.lb-pts-gold {
+  color: hsl(45 100% 60%);
+}
+.lb-pts-silver {
+  color: hsl(0 0% 75%);
+}
+.lb-pts-bronze {
+  color: hsl(30 80% 60%);
+}
+
+.lb-podium-wins {
+  font-size: 9px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── List ────────────────────────────────────────────────────────────────── */
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border) / 0.2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lb-row:hover {
+  background: hsl(var(--secondary) / 0.1);
+  border-color: hsl(var(--foreground) / 0.1);
+}
+.lb-row-mine {
+  border-color: hsl(var(--purple) / 0.4) !important;
+  background: hsl(var(--purple) / 0.05) !important;
+}
+.lb-row-mine:hover {
+  background: hsl(var(--purple) / 0.08) !important;
+}
+
+.lb-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lb-row-rank {
+  font-size: 13px;
+  font-weight: 700;
+  width: 32px;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  flex-shrink: 0;
+}
+
+.lb-row-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: hsl(var(--secondary) / 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+  flex-shrink: 0;
+}
+
+.lb-row-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.lb-row-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-row-sub {
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+}
+
+.lb-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.lb-row-pts-wrap {
+  text-align: right;
+}
+
+.lb-row-pts {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(var(--purple));
+}
+
+.lb-row-pts-label {
+  display: block;
+  font-size: 9px;
+  color: hsl(var(--muted-foreground));
+}
+
+.lb-row-eye {
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── Gold star ───────────────────────────────────────────────────────────── */
+.lb-mine-star {
+  color: hsl(45 100% 60%);
+}
+.lb-mine-star-inline {
+  color: hsl(45 100% 60%);
+  flex-shrink: 0;
+}
+
+/* ── Legend ──────────────────────────────────────────────────────────────── */
+.lb-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  padding: 8px 0;
+  justify-content: center;
+}
+
+/* ── Loading / Empty ─────────────────────────────────────────────────────── */
+.lb-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+}
+
+.lb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 200px;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── Purple icon helper ──────────────────────────────────────────────────── */
+.lb-icon-purple {
+  color: hsl(var(--purple));
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

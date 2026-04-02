@@ -1,29 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import './MatchConfigModal.css';
 
+/**
+ * MatchConfigModal — matches Lovable LobbyTournamentManagement "Start Match" dialog exactly
+ *
+ * mode="start"  — "Cancel" + "Start Match" buttons
+ * mode="edit"   — "Cancel" + "Save Credentials" buttons (match already ongoing)
+ */
 const MatchConfigModal = ({
   isOpen,
   onClose,
   onSubmit,
+  onSaveOnly,
   matchNumber,
   groupName,
   initialMatchId = '',
   initialMatchPassword = '',
   is5v5Game = false,
+  requiresPassword = true, // false for Valorant (backend field)
   teamA = null,
   teamB = null,
+  mode = 'start',
 }) => {
   const [matchId, setMatchId] = useState('');
   const [matchPassword, setMatchPassword] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit({
-      match_number: matchNumber,
-      match_id: matchId,
-      match_password: matchPassword,
-    });
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -32,72 +32,91 @@ const MatchConfigModal = ({
     }
   }, [isOpen, initialMatchId, initialMatchPassword]);
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!matchId.trim()) return;
+    if (mode === 'edit') {
+      if (onSaveOnly) onSaveOnly({ match_id: matchId, match_password: matchPassword });
+    } else {
+      onSubmit({ match_number: matchNumber, match_id: matchId, match_password: matchPassword });
+    }
+  };
+
   if (!isOpen) return null;
 
+  const descText = requiresPassword
+    ? 'Enter Room ID and Password. All players will see these credentials.'
+    : 'Enter Room ID. All players will see these credentials.';
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content match-config-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          {is5v5Game && teamA && teamB ? (
-            <div className="match-header-5v5">
-              <div className="team-matchup-header">
-                <span className="team-name-header">{teamA?.team_name || 'Team A'}</span>
-                <span className="vs-text">VS</span>
-                <span className="team-name-header">{teamB?.team_name || 'Team B'}</span>
-              </div>
-              <h2 className="gradient-text">
-                Match {matchNumber} - {groupName}
-              </h2>
+    <div className="mcm-overlay" onClick={onClose}>
+      <div className="mcm-dialog" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="mcm-header">
+          <div className="mcm-header-left">
+            <div className="mcm-title-row">
+              <svg className="mcm-play-icon" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span className="mcm-title">
+                {mode === 'edit' ? 'Edit Credentials' : 'Start Match'}
+              </span>
             </div>
-          ) : (
-            <h2 className="gradient-text">
-              Start Match {matchNumber} - {groupName}
-            </h2>
-          )}
-          <button type="button" className="close-btn" onClick={onClose}>
-            ✕
+          </div>
+          <button className="mcm-close" type="button" onClick={onClose}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            <div className="info-box">
-              <p className="info-text">
-                <strong>Note:</strong> These credentials will be visible to all players in this
-                group
-              </p>
-            </div>
-
-            <div className="form-group">
-              <label>Match ID (Room ID)</label>
+        {/* Body */}
+        <div className="mcm-body">
+          <form onSubmit={handleSubmit}>
+            <div className="mcm-field">
+              <label className="mcm-label">Room ID</label>
               <input
                 type="text"
+                className="mcm-input"
                 value={matchId}
                 onChange={(e) => setMatchId(e.target.value)}
-                placeholder="e.g., ROOM-ABC-123"
+                placeholder="Enter Room ID"
+                autoFocus
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label>Match Password</label>
-              <input
-                type="text"
-                value={matchPassword}
-                onChange={(e) => setMatchPassword(e.target.value)}
-                placeholder="e.g., pass123"
-                required
-              />
-            </div>
+            {requiresPassword && (
+              <div className="mcm-field mcm-field-mt">
+                <label className="mcm-label">Password</label>
+                <input
+                  type="text"
+                  className="mcm-input"
+                  value={matchPassword}
+                  onChange={(e) => setMatchPassword(e.target.value)}
+                  placeholder="Enter Password"
+                />
+              </div>
+            )}
 
-            <button type="submit" className="btn-start-match">
-              <svg className="play-icon" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              Start Match
-            </button>
-          </div>
-        </form>
+            <div className="mcm-footer">
+              <button type="button" className="mcm-btn-cancel" onClick={onClose}>
+                Cancel
+              </button>
+              <button type="submit" className="mcm-btn-start" disabled={!matchId.trim()}>
+                <svg className="mcm-btn-icon" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                {mode === 'edit' ? 'Save Credentials' : 'Start Match'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

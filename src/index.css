@@ -10,40 +10,45 @@
 @layer base {
   :root {
     /* Pure black background */
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 93%;
 
-    /* Deepslate card backgrounds */
-    --card: 220 10% 10%;
-    --card-foreground: 0 0% 95%;
+    /* Dark card backgrounds */
+    --card: 0 0% 11%;
+    --card-foreground: 0 0% 93%;
 
     /* Popover - dark grey */
-    --popover: 220 10% 8%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 93%;
 
     /* Clean white primary */
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 5%;
+    --primary: 0 0% 95%;
+    --primary-foreground: 0 0% 7%;
 
-    /* Deepslate secondary */
-    --secondary: 220 10% 14%;
+    /* Dark secondary */
+    --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 90%;
 
     /* Grey muted tones */
-    --muted: 220 8% 18%;
-    --muted-foreground: 220 5% 55%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 55%;
 
     /* Purple accent */
     --accent: 270 60% 55%;
     --accent-foreground: 0 0% 100%;
+
+    /* Dedicated purple palette for landing page */
+    --purple: 265 80% 65%;
+    --purple-light: 265 85% 75%;
+    --purple-dark: 265 75% 50%;
 
     /* Red for action/destructive */
     --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
     /* Borders - dark grey */
-    --border: 220 8% 20%;
-    --input: 220 10% 12%;
+    --border: 0 0% 20%;
+    --input: 0 0% 13%;
     --ring: 0 0% 98%;
 
     --radius: 0.5rem;
@@ -59,13 +64,13 @@
     --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     /* Sidebar colors */
-    --sidebar-background: 0 0% 3%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 0 0% 98%;
-    --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 220 10% 14%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 93%;
+    --sidebar-primary: 0 0% 95%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 0 0% 14%;
     --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 220 8% 20%;
+    --sidebar-border: 0 0% 20%;
     --sidebar-ring: 0 0% 98%;
   }
 }
@@ -73,6 +78,10 @@
 @layer base {
   * {
     @apply border-border;
+  }
+
+  html {
+    background: hsl(0 0% 7%);
   }
 
   body {
@@ -84,7 +93,7 @@
       linear-gradient(90deg, hsl(0 0% 100% / 0.02) 1px, transparent 1px),
       radial-gradient(ellipse at top left, hsl(270 60% 55% / 0.08) 0%, transparent 40%),
       radial-gradient(ellipse at bottom right, hsl(270 60% 55% / 0.05) 0%, transparent 40%),
-      radial-gradient(ellipse at top, hsl(0 0% 15% / 0.3) 0%, transparent 50%), hsl(0 0% 4%);
+      radial-gradient(ellipse at top, hsl(0 0% 15% / 0.3) 0%, transparent 50%), hsl(0 0% 7%);
     background-size:
       60px 60px,
       60px 60px,
@@ -95,6 +104,14 @@
     background-attachment: fixed;
   }
 
+  /* Strip body gradient on pages with custom headers (profile, team, dashboard) */
+  html.no-body-gradient,
+  html.no-body-gradient body {
+    background: hsl(0 0% 7%) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   /* ===== CUSTOM SCROLLBAR - ALWAYS VISIBLE ON MOBILE ===== */
   /* Webkit browsers (Chrome, Safari, Edge) */
   ::-webkit-scrollbar {
@@ -103,14 +120,14 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(220 10% 8%);
+    background: hsl(0 0% 9%);
     border-left: 1px solid hsl(220 8% 20%);
   }
 
   ::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, hsl(270 60% 55% / 0.6), hsl(270 60% 45% / 0.6));
     border-radius: 10px;
-    border: 2px solid hsl(220 10% 8%);
+    border: 2px solid hsl(0 0% 9%);
     box-shadow: 0 0 10px hsl(270 60% 55% / 0.3);
   }
 
@@ -126,7 +143,7 @@
   /* Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(270 60% 55% / 0.6) hsl(220 10% 8%);
+    scrollbar-color: hsl(270 60% 55% / 0.6) hsl(0 0% 9%);
   }
 
   /* Force scrollbar to always be visible on mobile */
@@ -189,7 +206,7 @@
 @layer components {
   /* Gaming card */
   .gaming-card {
-    background: linear-gradient(135deg, hsl(220 10% 10%) 0%, hsl(220 10% 8%) 100%);
+    background: linear-gradient(135deg, hsl(220 10% 10%) 0%, hsl(0 0% 9%) 100%);
     border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-card);
     transition: var(--transition-smooth);
@@ -685,51 +702,24 @@
     }
   }
 
-  /* ===== ENHANCED CARD WITH CORNER ACCENTS ===== */
+  /* ===== CYBER CARD — dark gradient card used in dashboard ===== */
   .cyber-card {
-    position: relative;
-    background: linear-gradient(135deg, hsl(220 10% 10%) 0%, hsl(220 10% 8%) 100%);
-    border: 1px solid hsl(270 60% 55% / 0.2);
+    background: linear-gradient(135deg, hsl(0 0% 11%) 0%, hsl(0 0% 9%) 100%);
+    border: 1px solid hsl(0 0% 16% / 0.5);
     transition: all 0.3s ease;
-    border-radius: 0 !important;
-  }
-
-  .cyber-card::before,
-  .cyber-card::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 2px solid hsl(270 60% 55% / 0.5);
-    transition: all 0.3s ease;
-  }
-
-  .cyber-card::before {
-    top: -1px;
-    left: -1px;
-    border-right: none;
-    border-bottom: none;
-  }
-
-  .cyber-card::after {
-    bottom: -1px;
-    right: -1px;
-    border-left: none;
-    border-top: none;
   }
 
   .cyber-card:hover {
-    border-color: hsl(270 60% 55% / 0.5);
-    box-shadow:
-      0 0 30px hsl(270 60% 55% / 0.2),
-      inset 0 0 30px hsl(270 60% 55% / 0.05);
+    border-color: hsl(0 0% 30% / 0.5);
+    box-shadow: 0 0 20px hsl(0 0% 100% / 0.04);
   }
 
-  .cyber-card:hover::before,
-  .cyber-card:hover::after {
-    width: 30px;
-    height: 30px;
-    border-color: hsl(270 60% 55% / 0.8);
+  /* ===== DASHBOARD GRID BACKGROUND ===== */
+  .grid-bg {
+    background-image:
+      linear-gradient(hsl(0 0% 14% / 0.4) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(0 0% 14% / 0.4) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
 
   /* ===== ANIMATED GLOW BORDER ===== */

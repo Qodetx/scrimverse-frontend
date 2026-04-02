@@ -38,6 +38,6 @@ yarn-error.log*
 
 # Local development files (not pushed)
 .claude
-CLAUDE.md
-TEAMMATE_TASKS.md
+*.md
+!README.md
 

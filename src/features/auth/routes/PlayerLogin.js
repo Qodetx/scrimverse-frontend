@@ -1,8 +1,10 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Users, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
-import { GoogleLogin } from '@react-oauth/google';
+import Navbar from '../../../components/Navbar';
+import Footer from '../../../components/Footer';
 
 const PlayerLogin = () => {
   const [formData, setFormData] = useState({
@@ -41,7 +43,53 @@ const PlayerLogin = () => {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleClick = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      // Initialize Google Sign-In
+      const { google } = window;
+      if (!google) {
+        setError('Google Sign-In not available. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      google.accounts.id.initialize({
+        client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+      });
+
+      google.accounts.id.renderButton(document.getElementById('google-button'), {
+        type: 'standard',
+        size: 'large',
+        text: 'continue_with',
+        logo_alignment: 'left',
+      });
+
+      // Trigger the sign-in flow
+      google.accounts.id.prompt(async (notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          // Fallback: use One Tap or redirect to Google login
+          try {
+            const response = await new Promise((resolve, reject) => {
+              google.accounts.id.renderButton(document.getElementById('google-button-fallback'), {
+                type: 'standard',
+                size: 'large',
+                text: 'continue_with',
+              });
+            });
+          } catch (err) {
+            setError('Google login not available. Please use email and password.');
+          }
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleResponse = async (credentialResponse) => {
     setError('');
     setLoading(true);
 
@@ -49,13 +97,12 @@ const PlayerLogin = () => {
       const response = await authAPI.googleAuth({
         token: credentialResponse.credential,
         user_type: 'player',
-        is_signup: false, // This is a login attempt
+        is_signup: false,
       });
 
       login(response.data.user, response.data.tokens);
       navigate(nextPath);
     } catch (err) {
-      // Check if account doesn't exist
       if (err.response?.status === 404 && err.response?.data?.error === 'account_not_found') {
         setError('No account found with this Google account. Redirecting to signup...');
         setTimeout(() => {
@@ -73,169 +120,158 @@ const PlayerLogin = () => {
     }
   };
 
-  const handleGoogleError = () => {
-    setError('Google login failed. Please try again.');
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-600/10 rounded-full blur-[120px]"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px]"></div>
+    <>
+      <Navbar />
+      <main className="pt-24 pb-16 px-4">
+        <div className="max-w-md mx-auto">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
 
-      <div className="max-w-md w-full z-10">
-        <div className="bg-[#111114] border border-white/5 rounded-[2rem] p-10 shadow-2xl">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-[#1c1c21] flex items-center justify-center mb-6">
-              <svg
-                className="w-8 h-8 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-3xl font-bold text-white tracking-tight">Player Sign In</h2>
-            <p className="text-gray-400 mt-2 text-center font-medium">
-              Welcome back! Sign in to access your tournaments
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="w-full">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                theme="filled_black"
-                size="large"
-                text="continue_with"
-                shape="rectangular"
-                width="100%"
-              />
-            </div>
-
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-white/5"></div>
-              <span className="flex-shrink mx-4 text-gray-500 text-xs uppercase tracking-widest font-bold">
-                or continue with email
-              </span>
-              <div className="flex-grow border-t border-white/5"></div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm font-medium animate-shake">
-                  {error}
+          <div className="w-full">
+            <div className="cyber-card border border-primary/30 p-8">
+              {/* Header with icon */}
+              <div className="flex flex-col items-center mb-8">
+                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-6">
+                  <Users className="h-8 w-8 text-primary" />
                 </div>
-              )}
+                <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                  Player Sign In
+                </h1>
+                <p className="text-muted-foreground mt-2 text-center text-sm">
+                  Welcome back! Sign in to access your tournaments
+                </p>
+              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400 ml-1">Email</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg
-                      className="h-5 w-5 text-gray-500 group-focus-within:text-primary-500 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+              <div className="space-y-6">
+                {/* Google Sign In Button */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={handleGoogleClick}
+                    className="w-full py-3 px-4 border border-border rounded-lg font-medium text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-center gap-3"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                       <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853"
+                      />
+                      <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        fill="#FBBC05"
+                      />
+                      <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335"
                       />
                     </svg>
-                  </div>
-                  <input
-                    name="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Enter your email"
-                    className="block w-full pl-12 pr-4 py-3.5 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                  />
+                    Continue with Google
+                  </button>
+                  <div id="google-button" style={{ display: 'none' }}></div>
+                  <div id="google-button-fallback" style={{ display: 'none' }}></div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-400 ml-1">Password</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg
-                      className="h-5 w-5 text-gray-500 group-focus-within:text-primary-500 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                      />
-                    </svg>
-                  </div>
-                  <input
-                    name="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    className="block w-full pl-12 pr-4 py-3.5 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                  />
+                {/* Divider */}
+                <div className="relative flex items-center py-2">
+                  <div className="flex-grow border-t border-border"></div>
+                  <span className="flex-shrink mx-4 text-muted-foreground text-xs uppercase tracking-widest font-bold">
+                    or continue with email
+                  </span>
+                  <div className="flex-grow border-t border-border"></div>
                 </div>
-              </div>
 
-              <div className="flex justify-end">
-                <Link
-                  to="/forgot-password?type=player"
-                  className="text-sm font-bold text-gray-400 hover:text-white transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 px-4 bg-white hover:bg-gray-100 text-[#0a0a0c] font-black rounded-xl transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-[#0a0a0c]/30 border-t-[#0a0a0c] rounded-full animate-spin"></div>
-                    Signing in...
+                {/* Error message */}
+                {error && (
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm font-medium">
+                    {error}
                   </div>
-                ) : (
-                  'Sign In'
                 )}
-              </button>
-            </form>
 
-            <div className="text-center pt-4">
-              <p className="text-gray-500 font-medium">
-                Don't have an account?{' '}
-                <Link
-                  to="/player/register"
-                  state={{ next: nextPath }}
-                  className="text-white hover:text-primary-400 font-black transition-colors ml-1"
-                >
-                  Sign up
-                </Link>
-              </p>
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Email field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <input
+                        name="email"
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="you@example.com"
+                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <input
+                        name="password"
+                        type="password"
+                        required
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="••••••••"
+                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Forgot password */}
+                  <div className="flex justify-end">
+                    <Link
+                      to="/forgot-password?type=player"
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+
+                  {/* Submit button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="gaming-button w-full py-3 px-4 rounded-lg font-bold text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Signing in...' : 'Sign In'}
+                  </button>
+                </form>
+
+                {/* Sign up link */}
+                <div className="text-center pt-2">
+                  <p className="text-sm text-muted-foreground">
+                    Don't have an account?{' '}
+                    <Link
+                      to="/player/register"
+                      state={{ next: nextPath }}
+                      className="font-bold text-primary hover:text-primary/80 transition-colors"
+                    >
+                      Sign up
+                    </Link>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </main>
+      <Footer />
+    </>
   );
 };
 

@@ -1,0 +1,20 @@
+/* ── Create buttons ──────────────────────────────────────────────────────────── */
+.host-ov-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+
+.host-ov-create-btn:hover {
+  background: #b91c1c;
+}

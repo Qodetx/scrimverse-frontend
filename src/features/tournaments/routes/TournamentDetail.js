@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { tournamentAPI, authAPI, paymentsAPI, teamAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
 import RegistrationModal from '../ui/RegistrationModal';
@@ -287,6 +287,8 @@ const IconBadgeCheck = () => (
 const TournamentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromManage = location.state?.fromManage;
 
   /* ─── State ─────────────────────────────────────────────── */
   const [tournament, setTournament] = useState(null);
@@ -299,6 +301,7 @@ const TournamentDetail = () => {
   const [selectedScheduleRound, setSelectedScheduleRound] = useState(null);
   const [selectedScheduleGroup, setSelectedScheduleGroup] = useState(null);
   const [activeTab, setActiveTab] = useState('schedule');
+  const [tournamentResults, setTournamentResults] = useState([]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showTeamRegistration, setShowTeamRegistration] = useState(false);
@@ -336,7 +339,17 @@ const TournamentDetail = () => {
   const fetchTournament = async () => {
     try {
       const response = await tournamentAPI.getTournament(id);
-      setTournament(response.data);
+      const data = response.data;
+      setTournament(data);
+      // Fetch results leaderboard for completed tournaments
+      if (data.status === 'completed') {
+        try {
+          const statsRes = await tournamentAPI.getTournamentStats(id);
+          setTournamentResults(statsRes.data?.leaderboard || []);
+        } catch (e) {
+          // non-blocking — results card just won't show
+        }
+      }
     } catch (error) {
       console.error('Error fetching tournament:', error);
     } finally {
@@ -489,7 +502,8 @@ const TournamentDetail = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!isAuthenticated() || !isPlayer()) {
-      navigate('/player/login');
+      localStorage.setItem('post_verify_redirect', location.pathname);
+      navigate('/player/login', { state: { next: location.pathname } });
       return;
     }
     if (!registrationData.team_name.trim()) {
@@ -663,14 +677,26 @@ const TournamentDetail = () => {
       }
 
       const buffer = 5 * 60 * 1000;
-      const isRegistrationOpen =
-        now >= regStart.getTime() - buffer && now <= regEnd.getTime() + buffer;
+      const isRegistrationOpen = now >= regStart.getTime() && now <= regEnd.getTime() + buffer;
       const isFull = tournament.current_participants >= tournament.max_participants;
-      const canRegister = isRegistrationOpen && !isFull && tournament.status === 'upcoming';
+      const canRegister =
+        isRegistrationOpen &&
+        !isFull &&
+        (tournament.status === 'upcoming' || tournament.status === 'registration_open');
 
       if (canRegister) {
         return (
-          <button className="td-join-btn" onClick={() => setShowRegisterModal(true)}>
+          <button
+            className="td-join-btn"
+            onClick={() => {
+              if (!isAuthenticated() || !isPlayer()) {
+                localStorage.setItem('post_verify_redirect', location.pathname);
+                navigate('/player-auth', { state: { next: location.pathname } });
+              } else {
+                setShowRegisterModal(true);
+              }
+            }}
+          >
             Join Tournament <IconArrowRight />
           </button>
         );
@@ -693,7 +719,13 @@ const TournamentDetail = () => {
     }
 
     return (
-      <button className="td-join-btn" onClick={() => navigate('/player/login')}>
+      <button
+        className="td-join-btn"
+        onClick={() => {
+          localStorage.setItem('post_verify_redirect', location.pathname);
+          navigate('/player/login', { state: { next: location.pathname } });
+        }}
+      >
         Login to Register <IconArrowRight />
       </button>
     );
@@ -724,7 +756,7 @@ const TournamentDetail = () => {
   /* ─── Derived values ─────────────────────────────────────── */
   // Build hero image URL from backend-provided fields (production-ready).
   const mediaBase = process.env.REACT_APP_MEDIA_URL
-    ? process.env.REACT_APP_MEDIA_URL.replace(/\/$/, '')
+    ? process.env.REACT_APP_MEDIA_URL.replace(/\/media\/?$/, '').replace(/\/$/, '')
     : '';
   const resolveUrl = (url) => {
     if (!url) return null;
@@ -756,10 +788,40 @@ const TournamentDetail = () => {
   ───────────────────────────────────────────────────────── */
   return (
     <div style={{ minHeight: '100vh' }}>
+      {/* Back to Manage button — shown when navigated from ManageTournament */}
+      {fromManage && (
+        <div style={{ padding: '1rem 1.5rem 0' }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.8125rem',
+              fontWeight: 500,
+              border: '1px solid hsl(var(--border) / 0.7)',
+              color: 'hsl(var(--foreground))',
+              background: 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            ← Back to Manage
+          </button>
+        </div>
+      )}
+      {/* ── Logo-only top bar ── */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/95 backdrop-blur-lg border-b border-border/30 flex items-center px-4">
+        <Link to="/" className="font-bold text-foreground text-base tracking-tight">
+          ScrimVerse
+        </Link>
+      </div>
+
       {/* ══════════════════════════════════════
           HERO SECTION
       ══════════════════════════════════════ */}
-      <section className="td-hero-section">
+      <section className="td-hero-section" style={{ paddingTop: '56px' }}>
         <div
           className="td-hero-image-wrapper"
           style={{
@@ -775,7 +837,18 @@ const TournamentDetail = () => {
           <div className="td-hero-gradient-sides" />
 
           {/* Back button */}
-          <button className="td-back-btn" onClick={() => navigate(-1)} title="Go back">
+          <button
+            className="td-back-btn"
+            onClick={() => {
+              if (!isAuthenticated() || !isPlayer()) {
+                // No session (e.g. opened verify link in different browser) — go to auth
+                navigate('/player-auth', { state: { next: location.pathname } });
+              } else {
+                navigate(-1);
+              }
+            }}
+            title="Go back"
+          >
             <IconArrowLeft />
           </button>
         </div>
@@ -783,9 +856,14 @@ const TournamentDetail = () => {
         {/* Hero content overlay */}
         <div className="td-hero-content">
           <div className="td-hero-inner">
-            {/* Left: title + meta */}
+            {/* Left: title + meta + actions */}
             <div
-              style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                alignItems: 'flex-start',
+              }}
             >
               {/* Status badge */}
               <span className={getStatusClass(tournament.status)}>
@@ -807,6 +885,24 @@ const TournamentDetail = () => {
                   <IconTrophy style={{ width: 16, height: 16 }} />
                   Prize Pool: ₹{tournament.prize_pool}
                 </span>
+              </div>
+
+              {/* Actions: Join/Register + Share + tags */}
+              <div className="td-actions-inner">
+                {renderRegistrationButton()}
+                <div className="td-action-tags">
+                  <button className="td-share-btn" onClick={() => setShowShareModal(true)}>
+                    <IconShare /> Share
+                  </button>
+                  {tournament.map_name && (
+                    <span className="td-tag-pill">
+                      <IconMapPin /> {tournament.map_name}
+                    </span>
+                  )}
+                  <span className="td-tag-pill">
+                    <IconTarget /> {tournament.region || 'India'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -846,508 +942,631 @@ const TournamentDetail = () => {
       </section>
 
       {/* ══════════════════════════════════════
-          QUICK ACTIONS BAR
+          CONTENT SECTION (dark bg)
       ══════════════════════════════════════ */}
-      <div className="td-actions-bar">
-        <div className="td-actions-inner">
-          {/* Registration / Join button */}
-          {renderRegistrationButton()}
-
-          {/* Tag pills */}
-          <div className="td-action-tags">
-            {/* Share */}
-            <button className="td-share-btn" onClick={() => setShowShareModal(true)}>
-              <IconShare /> Share
-            </button>
-
-            {/* Map */}
-            {tournament.map_name && (
-              <span className="td-tag-pill">
-                <IconMapPin /> {tournament.map_name}
-              </span>
-            )}
-
-            {/* Region */}
-            <span className="td-tag-pill">
-              <IconTarget /> {tournament.region || 'India'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════
+      <div style={{ background: 'hsl(220 10% 6%)', paddingTop: 28, paddingBottom: 48 }}>
+        {/* ══════════════════════════════════════
           TAB SECTION
       ══════════════════════════════════════ */}
-      <div className="td-tabs-section">
-        {/* Tab navigation */}
-        <div className="td-tab-list" role="tablist">
-          <button
-            role="tab"
-            className={`td-tab-btn${activeTab === 'schedule' ? ' active' : ''}`}
-            onClick={() => setActiveTab('schedule')}
-          >
-            <IconClock /> Schedule &amp; Prizes
-          </button>
-          <button
-            role="tab"
-            className={`td-tab-btn${activeTab === 'briefing' ? ' active' : ''}`}
-            onClick={() => setActiveTab('briefing')}
-          >
-            <IconShield /> Briefing &amp; Rules
-          </button>
-          <button
-            role="tab"
-            className={`td-tab-btn${activeTab === 'host' ? ' active' : ''}`}
-            onClick={() => setActiveTab('host')}
-          >
-            <IconUsers /> Host Details
-          </button>
-        </div>
+        <div className="td-tabs-section">
+          {/* Tab navigation */}
+          <div className="td-tab-list" role="tablist">
+            <button
+              role="tab"
+              className={`td-tab-btn${activeTab === 'schedule' ? ' active' : ''}`}
+              onClick={() => setActiveTab('schedule')}
+            >
+              <IconClock /> Schedule &amp; Prizes
+            </button>
+            <button
+              role="tab"
+              className={`td-tab-btn${activeTab === 'briefing' ? ' active' : ''}`}
+              onClick={() => setActiveTab('briefing')}
+            >
+              <IconShield /> Briefing &amp; Rules
+            </button>
+            <button
+              role="tab"
+              className={`td-tab-btn${activeTab === 'host' ? ' active' : ''}`}
+              onClick={() => setActiveTab('host')}
+            >
+              <IconUsers /> Host Details
+            </button>
+          </div>
 
-        {/* ── Tab: Schedule & Prizes ── */}
-        {activeTab === 'schedule' && (
-          <div className="td-tab-panel" role="tabpanel">
-            <div className="td-two-col">
-              {/* Left column: timeline + rounds + map pool */}
-              <div>
-                {/* Timeline */}
-                <p className="td-section-heading">Timeline</p>
-                <ul className="td-timeline">
-                  <li className="td-timeline-item">
-                    <div className="td-timeline-dot td-timeline-dot-green" />
-                    <div>
-                      <div className="td-timeline-label td-timeline-label-green">
-                        Registration Starts
-                      </div>
-                      <div className="td-timeline-value">
-                        {fmtDate(tournament.registration_start)}
-                      </div>
-                    </div>
-                  </li>
-                  <li className="td-timeline-item">
-                    <div className="td-timeline-dot td-timeline-dot-blue" />
-                    <div>
-                      <div className="td-timeline-label td-timeline-label-blue">
-                        Registration Closes
-                      </div>
-                      <div className="td-timeline-value">
-                        {fmtDate(tournament.registration_end)}
-                      </div>
-                    </div>
-                  </li>
-                  <li className="td-timeline-item">
-                    <div className="td-timeline-dot td-timeline-dot-red" />
-                    <div>
-                      <div className="td-timeline-label td-timeline-label-red">Match Starts</div>
-                      <div className="td-timeline-value">
-                        {fmtDate(tournament.tournament_start)}
-                      </div>
-                    </div>
-                  </li>
-                </ul>
-
-                {/* Rounds */}
-                {tournament.rounds && tournament.rounds.length > 0 && (
-                  <>
-                    <hr className="td-divider" />
-                    <p className="td-section-heading">Rounds</p>
-                    {tournament.rounds.map((round) => {
-                      const matchCount = round.max_matches || tournament.max_matches;
-                      const rd = tournament.round_dates?.[String(round.round)] || {};
-                      const formatShortDate = (d) => {
-                        if (!d) return '';
-                        const dt = new Date(d + 'T00:00:00');
-                        return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                      };
-                      const startStr = formatShortDate(rd.start_date);
-                      const endStr = formatShortDate(rd.end_date);
-                      let dateLabel = '';
-                      if (startStr && endStr && startStr !== endStr) {
-                        dateLabel = `${startStr}–${endStr}`;
-                      } else if (startStr) {
-                        dateLabel = startStr;
-                      }
-                      const modeLabel = rd.mode ? rd.mode.toUpperCase() : '';
-                      const modeColor = rd.mode === 'online' ? '#10b981' : '#f97316'; // green for online, orange for offline
-                      return (
-                        <div key={round.round} className="td-round-item">
-                          <span className="td-round-badge">
-                            {round.round_name || `Round ${round.round}`}
-                          </span>
-                          <span className="td-round-meta">
-                            {dateLabel && <span className="td-round-date">{dateLabel}</span>}
-                            {modeLabel && (
-                              <span
-                                style={{
-                                  background: `${modeColor}18`,
-                                  border: `1.5px solid ${modeColor}`,
-                                  color: modeColor,
-                                  padding: '2px 10px',
-                                  borderRadius: '20px',
-                                  fontSize: '10px',
-                                  fontWeight: '800',
-                                  letterSpacing: '1px',
-                                  textTransform: 'uppercase',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {modeLabel}
-                              </span>
-                            )}
-                            {matchCount && (
-                              <span className="td-round-matches">{`${matchCount} match${matchCount > 1 ? 'es' : ''}`}</span>
-                            )}
-                          </span>
+          {/* ── Tab: Schedule & Prizes ── */}
+          {activeTab === 'schedule' && (
+            <div className="td-tab-panel" role="tabpanel">
+              <div className="td-two-col">
+                {/* Left column: timeline + rounds + map pool */}
+                <div>
+                  {/* Timeline */}
+                  <p className="td-section-heading">Timeline</p>
+                  <ul className="td-timeline">
+                    <li className="td-timeline-item">
+                      <div className="td-timeline-dot td-timeline-dot-green" />
+                      <div>
+                        <div className="td-timeline-label td-timeline-label-green">
+                          Registration Starts
                         </div>
-                      );
-                    })}
-                  </>
-                )}
-
-                {/* Map Pool */}
-                <hr className="td-divider" />
-                <p className="td-section-heading">Map Pool</p>
-                {(() => {
-                  const mapInfo = getGameMapInfo(tournament.game_name);
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 8,
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          borderBottom: '1px solid hsl(220 5% 25%)',
-                          paddingBottom: 12,
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
-                            {tournament.game_name}
-                          </span>
-                          {mapInfo.boInfo && (
-                            <span
-                              style={{
-                                fontSize: 12,
-                                color: 'hsl(220 5% 60%)',
-                                padding: '2px 6px',
-                                backgroundColor: 'hsl(220 5% 20%)',
-                                borderRadius: '4px',
-                              }}
-                            >
-                              {mapInfo.boInfo}
-                            </span>
-                          )}
+                        <div className="td-timeline-value">
+                          {fmtDate(tournament.registration_start)}
                         </div>
-                        {mapInfo.matchCount > 0 && (
-                          <span
-                            style={{
-                              fontSize: 12,
-                              color: 'hsl(220 5% 60%)',
-                              fontWeight: '500',
-                            }}
-                          >
-                            {mapInfo.matchCount} matches
-                          </span>
-                        )}
                       </div>
-                      {mapInfo.maps.length > 0 ? (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {mapInfo.maps.map((map) => (
-                            <span key={map} className="td-map-badge">
-                              <IconMapPin /> {map}
-                            </span>
-                          ))}
+                    </li>
+                    <li className="td-timeline-item">
+                      <div className="td-timeline-dot td-timeline-dot-blue" />
+                      <div>
+                        <div className="td-timeline-label td-timeline-label-blue">
+                          Registration Closes
                         </div>
-                      ) : (
-                        <div style={{ color: 'hsl(220 5% 55%)', fontSize: 13 }}>
-                          Map pool not specified for {tournament.game_name}
+                        <div className="td-timeline-value">
+                          {fmtDate(tournament.registration_end)}
                         </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
+                      </div>
+                    </li>
+                    <li className="td-timeline-item">
+                      <div className="td-timeline-dot td-timeline-dot-red" />
+                      <div>
+                        <div className="td-timeline-label td-timeline-label-red">Match Starts</div>
+                        <div className="td-timeline-value">
+                          {fmtDate(tournament.tournament_start)}
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
 
-              {/* Right column: prize distribution */}
-              <div>
-                <p className="td-section-heading">Prize Distribution</p>
-
-                {(() => {
-                  // Use actual prize_distribution if available, otherwise calculate from pool
-                  let prizeData = [];
-
-                  if (
-                    tournament.prize_distribution &&
-                    typeof tournament.prize_distribution === 'object' &&
-                    Object.keys(tournament.prize_distribution).length > 0
-                  ) {
-                    // Use actual prize distribution from DB
-                    prizeData = Object.entries(tournament.prize_distribution).map(
-                      ([place, amount]) => ({
-                        place,
-                        amount: parseInt(amount) || 0,
-                      })
-                    );
-                  } else {
-                    // Fallback: calculate from pool (50/30/20 split)
-                    prizeData = [
-                      { place: '1st', amount: prizePool * 0.5 },
-                      { place: '2nd', amount: prizePool * 0.3 },
-                      { place: '3rd', amount: prizePool * 0.2 },
-                    ];
-                  }
-
-                  const placeColors = {
-                    '1st': {
-                      row: 'td-prize-row-1',
-                      label: 'td-prize-label-1',
-                      amount: 'td-prize-amount-1',
-                    },
-                    '2nd': {
-                      row: 'td-prize-row-2',
-                      label: 'td-prize-label-2',
-                      amount: 'td-prize-amount-2',
-                    },
-                    '3rd': {
-                      row: 'td-prize-row-3',
-                      label: 'td-prize-label-3',
-                      amount: 'td-prize-amount-3',
-                    },
-                  };
-                  const defaultColors = {
-                    row: 'td-prize-row-2',
-                    label: 'td-prize-label-2',
-                    amount: 'td-prize-amount-2',
-                  };
-
-                  return (
+                  {/* Rounds */}
+                  {tournament.rounds && tournament.rounds.length > 0 && (
                     <>
-                      {prizeData.map((prize) => {
-                        const colors = placeColors[prize.place] || defaultColors;
+                      <hr className="td-divider" />
+                      <p className="td-section-heading">Rounds</p>
+                      {tournament.rounds.map((round) => {
+                        const matchCount = round.max_matches || tournament.max_matches;
+                        const rd = tournament.round_dates?.[String(round.round)] || {};
+                        const formatShortDate = (d) => {
+                          if (!d) return '';
+                          const dt = new Date(d + 'T00:00:00');
+                          return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        };
+                        const startStr = formatShortDate(rd.start_date);
+                        const endStr = formatShortDate(rd.end_date);
+                        let dateLabel = '';
+                        if (startStr && endStr && startStr !== endStr) {
+                          dateLabel = `${startStr}–${endStr}`;
+                        } else if (startStr) {
+                          dateLabel = startStr;
+                        }
+                        const modeLabel = rd.mode ? rd.mode.toUpperCase() : '';
+                        const modeColor = rd.mode === 'online' ? '#10b981' : '#f97316'; // green for online, orange for offline
                         return (
-                          <div key={prize.place} className={`td-prize-row ${colors.row}`}>
-                            <div className={`td-prize-label ${colors.label}`}>
-                              <IconTrophy style={{ width: 18, height: 18 }} />
-                              {prize.place} Place
-                            </div>
-                            <span className={`td-prize-amount ${colors.amount}`}>
-                              {formatPrize(prize.amount)}
+                          <div key={round.round} className="td-round-item">
+                            <span className="td-round-badge">
+                              {round.round_name || `Round ${round.round}`}
+                            </span>
+                            <span className="td-round-meta">
+                              {dateLabel && <span className="td-round-date">{dateLabel}</span>}
+                              {modeLabel && (
+                                <span
+                                  style={{
+                                    background: `${modeColor}18`,
+                                    border: `1.5px solid ${modeColor}`,
+                                    color: modeColor,
+                                    padding: '2px 10px',
+                                    borderRadius: '20px',
+                                    fontSize: '10px',
+                                    fontWeight: '800',
+                                    letterSpacing: '1px',
+                                    textTransform: 'uppercase',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {modeLabel}
+                                </span>
+                              )}
+                              {matchCount && (
+                                <span className="td-round-matches">{`${matchCount} match${matchCount > 1 ? 'es' : ''}`}</span>
+                              )}
                             </span>
                           </div>
                         );
                       })}
                     </>
-                  );
-                })()}
+                  )}
 
-                <p className="td-prize-total">
-                  Total Prize Pool:{' '}
-                  <strong style={{ color: '#f9c22a' }}>₹{tournament.prize_pool}</strong>
-                </p>
+                  {/* Map Pool */}
+                  <hr className="td-divider" />
+                  <p className="td-section-heading">Map Pool</p>
+                  {(() => {
+                    // Use real match_maps from backend if available, else fall back to game defaults
+                    const matchMapsRaw = tournament.match_maps;
+                    const maxMatches = tournament.max_matches || 4;
+                    const hasRealMaps =
+                      matchMapsRaw &&
+                      typeof matchMapsRaw === 'object' &&
+                      Object.keys(matchMapsRaw).length > 0;
+
+                    let mapsToShow = [];
+                    if (hasRealMaps) {
+                      // matchMaps is {1: 'Erangel', 2: 'Miramar', ...} — get unique map names
+                      mapsToShow = [...new Set(Object.values(matchMapsRaw))];
+                    } else {
+                      mapsToShow = getGameMaps(tournament.game_name);
+                    }
+
+                    const mapInfo = getGameMapInfo(tournament.game_name);
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: 8,
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            borderBottom: '1px solid hsl(220 5% 25%)',
+                            paddingBottom: 12,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 14, fontWeight: '600', color: 'white' }}>
+                              {tournament.game_name}
+                            </span>
+                            {!hasRealMaps && mapInfo.boInfo && (
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  color: 'hsl(220 5% 60%)',
+                                  padding: '2px 6px',
+                                  backgroundColor: 'hsl(220 5% 20%)',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                {mapInfo.boInfo}
+                              </span>
+                            )}
+                          </div>
+                          <span
+                            style={{ fontSize: 12, color: 'hsl(220 5% 60%)', fontWeight: '500' }}
+                          >
+                            {maxMatches} match{maxMatches !== 1 ? 'es' : ''}
+                          </span>
+                        </div>
+                        {mapsToShow.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {hasRealMaps ? (
+                              // Show per-match map assignments
+                              Object.entries(matchMapsRaw)
+                                .sort(([a], [b]) => Number(a) - Number(b))
+                                .map(([matchNum, mapName]) => (
+                                  <div
+                                    key={matchNum}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '6px 10px',
+                                      background: 'hsl(220 5% 14%)',
+                                      borderRadius: 8,
+                                      border: '1px solid hsl(220 5% 22%)',
+                                    }}
+                                  >
+                                    <span style={{ fontSize: 12, color: 'hsl(220 5% 55%)' }}>
+                                      Match {matchNum}
+                                    </span>
+                                    <span className="td-map-badge">
+                                      <IconMapPin /> {mapName}
+                                    </span>
+                                  </div>
+                                ))
+                            ) : (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {mapsToShow.map((map) => (
+                                  <span key={map} className="td-map-badge">
+                                    <IconMapPin /> {map}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ color: 'hsl(220 5% 55%)', fontSize: 13 }}>
+                            Map pool not specified for {tournament.game_name}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Right column: prize distribution */}
+                <div>
+                  <p className="td-section-heading">Prize Distribution</p>
+
+                  {(() => {
+                    // Build prize tiers
+                    let prizeData = [];
+                    if (
+                      tournament.prize_distribution &&
+                      typeof tournament.prize_distribution === 'object' &&
+                      Object.keys(tournament.prize_distribution).length > 0
+                    ) {
+                      prizeData = Object.entries(tournament.prize_distribution).map(
+                        ([place, amount]) => ({ place, amount: parseInt(amount) || 0 })
+                      );
+                    } else {
+                      prizeData = [
+                        { place: '1st', amount: prizePool * 0.5 },
+                        { place: '2nd', amount: prizePool * 0.3 },
+                        { place: '3rd', amount: prizePool * 0.2 },
+                      ];
+                    }
+
+                    // Build rank → team name map (only for completed tournaments)
+                    const rankMap = {};
+                    if (tournament.status === 'completed') {
+                      tournamentResults.forEach((entry) => {
+                        rankMap[entry.rank] = entry.team_name;
+                      });
+                      // Fallback for 5v5 with no round scores
+                      if (Object.keys(rankMap).length === 0 && tournament.winner_name) {
+                        rankMap[1] = tournament.winner_name;
+                      }
+                    }
+
+                    const isCompleted = tournament.status === 'completed';
+                    const medals = ['🥇', '🥈', '🥉'];
+                    const placeColors = {
+                      '1st': {
+                        row: 'td-prize-row-1',
+                        label: 'td-prize-label-1',
+                        amount: 'td-prize-amount-1',
+                      },
+                      '2nd': {
+                        row: 'td-prize-row-2',
+                        label: 'td-prize-label-2',
+                        amount: 'td-prize-amount-2',
+                      },
+                      '3rd': {
+                        row: 'td-prize-row-3',
+                        label: 'td-prize-label-3',
+                        amount: 'td-prize-amount-3',
+                      },
+                    };
+                    const defaultColors = {
+                      row: 'td-prize-row-2',
+                      label: 'td-prize-label-2',
+                      amount: 'td-prize-amount-2',
+                    };
+
+                    return (
+                      <>
+                        {prizeData.map((prize, idx) => {
+                          const colors = placeColors[prize.place] || defaultColors;
+                          const teamName = rankMap[idx + 1];
+                          const medal = medals[idx];
+                          const tagColors = ['#f9c22a', '#9ca3af', '#f97316'];
+                          const tagColor = tagColors[idx] || '#9ca3af';
+                          return (
+                            <div key={prize.place} className={`td-prize-row ${colors.row}`}>
+                              <div className={`td-prize-label ${colors.label}`}>
+                                {isCompleted && medal ? (
+                                  <span style={{ fontSize: 16 }}>{medal}</span>
+                                ) : (
+                                  <IconTrophy style={{ width: 18, height: 18 }} />
+                                )}
+                                <span>{prize.place} Place</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                {isCompleted && teamName && (
+                                  <span
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      color: tagColor,
+                                      background: `${tagColor}22`,
+                                      border: `1px solid ${tagColor}60`,
+                                      borderRadius: 20,
+                                      padding: '2px 10px',
+                                      letterSpacing: '0.02em',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {teamName}
+                                  </span>
+                                )}
+                                <span className={`td-prize-amount ${colors.amount}`}>
+                                  {formatPrize(prize.amount)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+
+                  <p className="td-prize-total">
+                    Total Prize Pool:{' '}
+                    <strong style={{ color: '#f9c22a' }}>₹{tournament.prize_pool}</strong>
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Tab: Briefing & Rules ── */}
-        {activeTab === 'briefing' && (
-          <div className="td-tab-panel" role="tabpanel">
-            <div className="td-three-col">
-              {/* Left: description + rules */}
-              <div>
-                <p className="td-section-heading">About This Tournament</p>
-                <p className="td-description">
-                  {tournament.description || 'No description provided.'}
-                </p>
+          {/* ── Tab: Briefing & Rules ── */}
+          {activeTab === 'briefing' && (
+            <div className="td-tab-panel" role="tabpanel">
+              <div className="td-briefing-col">
+                {/* Left: description + rules */}
+                <div>
+                  <p className="td-section-heading">About This Tournament</p>
+                  <p className="td-description">
+                    {tournament.description || 'No description provided.'}
+                  </p>
 
-                {tournament.rules && (
-                  <>
-                    <hr className="td-divider" />
-                    <p className="td-section-heading">Rules &amp; Guidelines</p>
-                    {/* If rules is a string with newlines, split into items; otherwise show as text */}
-                    {typeof tournament.rules === 'string' ? (
-                      <div className="td-rules-grid">
-                        {tournament.rules
-                          .split('\n')
-                          .filter((r) => r.trim())
-                          .map((rule, i) => (
+                  {tournament.rules && (
+                    <>
+                      <hr className="td-divider" />
+                      <p className="td-section-heading">Rules &amp; Guidelines</p>
+                      {typeof tournament.rules === 'string' ? (
+                        <div className="td-rules-grid">
+                          {tournament.rules
+                            .split('\n')
+                            .filter((r) => r.trim())
+                            .map((rule, i) => (
+                              <div key={i} className="td-rule-item">
+                                <div className="td-rule-dot" />
+                                <span className="td-rule-text">{rule.trim()}</span>
+                              </div>
+                            ))}
+                        </div>
+                      ) : Array.isArray(tournament.rules) ? (
+                        <div className="td-rules-grid">
+                          {tournament.rules.map((rule, i) => (
                             <div key={i} className="td-rule-item">
                               <div className="td-rule-dot" />
-                              <span className="td-rule-text">{rule.trim()}</span>
+                              <span className="td-rule-text">{rule}</span>
                             </div>
                           ))}
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+
+                {/* Right: Placement Points */}
+                <div>
+                  {tournament.placement_points &&
+                  typeof tournament.placement_points === 'object' &&
+                  Object.keys(tournament.placement_points).length > 0 ? (
+                    <>
+                      <p
+                        className="td-section-heading"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                      >
+                        <span style={{ color: 'hsl(270 60% 65%)', fontSize: 16 }}>⊙</span>
+                        Placement Points
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {Object.entries(tournament.placement_points)
+                          .sort(([a], [b]) => Number(a) - Number(b))
+                          .map(([rank, pts]) => {
+                            const isTop3 = Number(rank) <= 3;
+                            const isKill = isNaN(Number(rank));
+                            return (
+                              <div
+                                key={rank}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '8px 14px',
+                                  background: 'hsl(220 5% 12%)',
+                                  borderRadius: 8,
+                                  border: '1px solid hsl(220 5% 20%)',
+                                }}
+                              >
+                                <span style={{ fontSize: 13, color: 'hsl(220 5% 75%)' }}>
+                                  {isKill
+                                    ? rank
+                                    : `${rank}${rank === '1' ? 'st' : rank === '2' ? 'nd' : rank === '3' ? 'rd' : 'th'} Place`}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    padding: '2px 10px',
+                                    borderRadius: 20,
+                                    background:
+                                      isTop3 || isKill ? 'hsl(270 60% 55% / 0.2)' : 'transparent',
+                                    color:
+                                      isTop3 || isKill ? 'hsl(270 60% 75%)' : 'hsl(220 5% 65%)',
+                                    border:
+                                      isTop3 || isKill
+                                        ? '1px solid hsl(270 60% 55% / 0.4)'
+                                        : 'none',
+                                  }}
+                                >
+                                  {isKill ? `+${pts} pt` : `${pts} pts`}
+                                </span>
+                              </div>
+                            );
+                          })}
                       </div>
-                    ) : Array.isArray(tournament.rules) ? (
-                      <div className="td-rules-grid">
-                        {tournament.rules.map((rule, i) => (
-                          <div key={i} className="td-rule-item">
-                            <div className="td-rule-dot" />
-                            <span className="td-rule-text">{rule}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Tab: Host Details ── */}
+          {activeTab === 'host' && (
+            <div className="td-tab-panel" role="tabpanel">
+              {/* Host card */}
+              <Link
+                to={`/host/profile/${tournament.host?.id}`}
+                className="td-host-card"
+                style={{ display: 'flex' }}
+              >
+                <div className="td-host-avatar">
+                  {(tournament.host?.user?.username || 'H').charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className="td-host-name">
+                      {tournament.host?.user?.username || 'Tournament Host'}
+                    </span>
+                    {tournament.host?.verified && <IconBadgeCheck />}
+                  </div>
+                  {tournament.host?.verified && (
+                    <div className="td-host-verified">Verified by Scrimverse</div>
+                  )}
+                  <div className="td-host-stats">
+                    <span className="td-host-stat-tag purple">
+                      <IconTrophy style={{ width: 11, height: 11 }} />
+                      {tournament.host?.total_tournaments_hosted ?? 0} tournaments
+                    </span>
+                    {tournament.host?.average_rating > 0 && (
+                      <span className="td-host-stat-tag green">
+                        <IconStar />
+                        {Number(tournament.host.average_rating).toFixed(1)} rating
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="td-host-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{ width: 18, height: 18, color: 'hsl(220 5% 50%)' }}
+                  >
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
+              </Link>
+
+              {/* Host stats grid */}
+              <div className="td-host-stats-grid">
+                <div className="td-host-stats-box">
+                  <div className="td-host-stats-number blue">
+                    {tournament.host?.total_tournaments_hosted ?? 0}
+                  </div>
+                  <div className="td-host-stats-label">Tournaments</div>
+                </div>
+                <div className="td-host-stats-box">
+                  <div className="td-host-stats-number yellow">
+                    {tournament.host?.average_rating > 0
+                      ? Number(tournament.host.average_rating).toFixed(1)
+                      : '—'}
+                  </div>
+                  <div className="td-host-stats-label">Rating</div>
+                </div>
+              </div>
+
+              {/* Trusted banner */}
+              <div className="td-trusted-banner">
+                <div className="td-trusted-banner-title">
+                  <IconShield />
+                  Verified by Scrimverse • Trusted Host
+                </div>
+                <p className="td-trusted-banner-desc">
+                  This organizer has been verified and has successfully hosted multiple events.
+                </p>
+              </div>
+
+              {/* Bio */}
+              {tournament.host?.bio && (
+                <>
+                  <hr className="td-divider" />
+                  <p className="td-section-heading">About</p>
+                  <p className="td-description">{tournament.host.bio}</p>
+                </>
+              )}
+
+              {/* Contact */}
+              {tournament.host?.contact_email && (
+                <>
+                  <hr className="td-divider" />
+                  <p className="td-section-heading">Contact</p>
+                  <a
+                    href={`mailto:${tournament.host.contact_email}`}
+                    style={{ color: 'hsl(200 85% 60%)', fontSize: 14, fontWeight: 600 }}
+                  >
+                    {tournament.host.contact_email}
+                  </a>
+                </>
+              )}
+
+              {/* Extra links */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                {tournament.tournament_file && (
+                  <a
+                    href={tournament.tournament_file}
+                    download
+                    style={{
+                      display: 'block',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      background: 'hsl(220 10% 14%)',
+                      border: '1px solid hsl(200 85% 60% / 0.3)',
+                      color: 'hsl(200 85% 60%)',
+                      fontWeight: 600,
+                      fontSize: 14,
+                      textAlign: 'center',
+                    }}
+                  >
+                    📄 Download Rules PDF
+                  </a>
+                )}
+                {(tournament.status === 'completed' || tournament.round_scores?.length > 0) && (
+                  <Link
+                    to={`/tournaments/${id}/stats`}
+                    style={{
+                      display: 'block',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      background: 'hsl(270 60% 55%)',
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: 14,
+                      textAlign: 'center',
+                    }}
+                  >
+                    📊 View Tournament Stats
+                  </Link>
+                )}
+                {tournament.discord_id && (
+                  <a
+                    href={`https://${tournament.discord_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'block',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      background: 'hsl(220 10% 14%)',
+                      border: '1px solid hsl(270 60% 55% / 0.3)',
+                      color: 'hsl(270 60% 65%)',
+                      fontWeight: 600,
+                      fontSize: 14,
+                      textAlign: 'center',
+                    }}
+                  >
+                    💬 Join Discord Server
+                  </a>
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ── Tab: Host Details ── */}
-        {activeTab === 'host' && (
-          <div className="td-tab-panel" role="tabpanel">
-            {/* Host card */}
-            <Link
-              to={`/host/profile/${tournament.host?.id}`}
-              className="td-host-card"
-              style={{ display: 'flex' }}
-            >
-              <div className="td-host-avatar">
-                {(tournament.host?.organization_name || 'H').charAt(0).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="td-host-name">
-                    {tournament.host?.organization_name || 'Tournament Host'}
-                  </span>
-                  <IconBadgeCheck />
-                </div>
-                <div className="td-host-verified">Verified by Scrimverse</div>
-                <div className="td-host-stats">
-                  <span className="td-host-stat-tag purple">
-                    <IconTrophy style={{ width: 11, height: 11 }} />
-                    50+ tournaments
-                  </span>
-                  <span className="td-host-stat-tag green">
-                    <IconStar />
-                    4.8 rating
-                  </span>
-                </div>
-              </div>
-              <div className="td-host-arrow">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  style={{ width: 18, height: 18, color: 'hsl(220 5% 50%)' }}
-                >
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </div>
-            </Link>
-
-            {/* Host stats grid */}
-            <div className="td-host-stats-grid">
-              <div className="td-host-stats-box">
-                <div className="td-host-stats-number blue">50+</div>
-                <div className="td-host-stats-label">Tournaments</div>
-              </div>
-              <div className="td-host-stats-box">
-                <div className="td-host-stats-number yellow">4.8</div>
-                <div className="td-host-stats-label">Rating</div>
-              </div>
-            </div>
-
-            {/* Trusted banner */}
-            <div className="td-trusted-banner">
-              <div className="td-trusted-banner-title">
-                <IconShield />
-                Verified by Scrimverse • Trusted Host
-              </div>
-              <p className="td-trusted-banner-desc">
-                This organizer has been verified and has successfully hosted multiple events.
-              </p>
-            </div>
-
-            {/* Bio */}
-            {tournament.host?.bio && (
-              <>
-                <hr className="td-divider" />
-                <p className="td-section-heading">About</p>
-                <p className="td-description">{tournament.host.bio}</p>
-              </>
-            )}
-
-            {/* Contact */}
-            {tournament.host?.contact_email && (
-              <>
-                <hr className="td-divider" />
-                <p className="td-section-heading">Contact</p>
-                <a
-                  href={`mailto:${tournament.host.contact_email}`}
-                  style={{ color: 'hsl(200 85% 60%)', fontSize: 14, fontWeight: 600 }}
-                >
-                  {tournament.host.contact_email}
-                </a>
-              </>
-            )}
-
-            {/* Extra links */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
-              {tournament.tournament_file && (
-                <a
-                  href={tournament.tournament_file}
-                  download
-                  style={{
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: 10,
-                    background: 'hsl(220 10% 14%)',
-                    border: '1px solid hsl(200 85% 60% / 0.3)',
-                    color: 'hsl(200 85% 60%)',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    textAlign: 'center',
-                  }}
-                >
-                  📄 Download Rules PDF
-                </a>
-              )}
-              {(tournament.status === 'completed' || tournament.round_scores?.length > 0) && (
-                <Link
-                  to={`/tournaments/${id}/stats`}
-                  style={{
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: 10,
-                    background: 'hsl(270 60% 55%)',
-                    color: '#fff',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    textAlign: 'center',
-                  }}
-                >
-                  📊 View Tournament Stats
-                </Link>
-              )}
-              {tournament.discord_id && (
-                <a
-                  href={`https://${tournament.discord_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: 10,
-                    background: 'hsl(220 10% 14%)',
-                    border: '1px solid hsl(270 60% 55% / 0.3)',
-                    color: 'hsl(270 60% 65%)',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    textAlign: 'center',
-                  }}
-                >
-                  💬 Join Discord Server
-                </a>
-              )}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
+        {/* end td-tabs-section */}
       </div>
-      {/* end td-tabs-section */}
+      {/* end content section */}
 
       {/* ══════════════════════════════════════
           MATCH SCHEDULE — hidden from tournament detail page
@@ -1575,108 +1794,15 @@ const TournamentDetail = () => {
           REGISTRATION MODAL
       ══════════════════════════════════════ */}
       {showRegisterModal && tournament && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-start justify-center z-50 p-4 overflow-auto">
-          <div className="relative bg-[#0b0b0d] rounded-xl p-6 w-full max-w-md mx-4 border border-[#222] shadow-xl mt-12">
-            <button
-              onClick={() => setShowRegisterModal(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-white"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-white">Join Tournament</h2>
-              <p className="text-gray-400 text-sm">Register for &quot;{tournament.title}&quot;</p>
-            </div>
-            {/* "Use Team Still" button hidden for now */}
-            {/* 
-            {userHasTeam && (
-              <div className="mb-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRegisterModal(false);
-                    setShowTeamRegistration(true);
-                  }}
-                  className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-semibold py-2 rounded-md transition-colors"
-                >
-                  ✨ Use Team Still ✨
-                </button>
-              </div>
-            )}
-            */}
-            <form onSubmit={handleRegister}>
-              <div className="mb-3">
-                <label className="block text-gray-400 text-sm mb-1">Your Username</label>
-                <input
-                  type="text"
-                  disabled
-                  value={user?.user?.username || ''}
-                  className="w-full px-3 py-2 bg-[#0b0b0d] border border-[#222] rounded-md text-gray-300"
-                />
-                <div className="text-gray-500 text-xs mt-1">
-                  You&apos;ll be registered as the team leader
-                </div>
-              </div>
-              <div className="mb-3">
-                <label className="block text-gray-300 mb-2">
-                  Team Name <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={registrationData.team_name}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, team_name: e.target.value })
-                  }
-                  placeholder="Enter your team name"
-                  className="w-full px-3 py-2 bg-[#0b0b0d] border border-[#222] rounded-md text-white"
-                />
-              </div>
-              <div className="mb-3">
-                <label className="block text-gray-300 mb-2">
-                  Teammate Email IDs <span className="text-red-400">*</span>
-                </label>
-                <div className="space-y-2">
-                  {registrationData.teammate_emails.map((email, index) => (
-                    <input
-                      key={index}
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => handleTeammateEmailChange(index, e.target.value)}
-                      placeholder={`Teammate ${index + 2} email`}
-                      className="w-full px-3 py-2 bg-[#0b0b0d] border border-[#222] rounded-md text-white"
-                    />
-                  ))}
-                </div>
-                <div className="text-yellow-300 text-xs bg-[#2b2b0b] border border-[#3b3b1b] rounded-md p-3 mt-3">
-                  <strong>All teammate email fields are required.</strong> Players must provide all
-                  teammate emails to complete registration for this tournament.
-                </div>
-              </div>
-              <div className="flex items-center justify-between bg-transparent py-3 mt-3 border-t border-[#222]">
-                <div className="text-gray-300">Entry Fee</div>
-                <div className="text-white font-semibold">₹{tournament.entry_fee}</div>
-              </div>
-              <div className="flex gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowRegisterModal(false)}
-                  className="flex-1 bg-transparent text-gray-300 py-2 rounded-md border border-[#333]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-accent-blue text-white py-2 rounded-md font-semibold"
-                >
-                  Register
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <RegistrationModal
+          event={tournament}
+          type="tournament"
+          onClose={() => setShowRegisterModal(false)}
+          onSuccess={() => {
+            setShowRegisterModal(false);
+            fetchTournament();
+          }}
+        />
       )}
 
       {/* Team Registration Modal */}

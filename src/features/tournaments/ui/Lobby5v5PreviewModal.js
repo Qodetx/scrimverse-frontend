@@ -9,196 +9,166 @@ const Lobby5v5PreviewModal = ({
   bestOf = 1,
   totalTeams = 0,
   loading = false,
+  roundNumber = 1,
 }) => {
   if (!isOpen) return null;
 
-  const hasByeTeam = totalTeams % 2 !== 0;
-  const byeTeam = lobbies.find((lobby) => lobby.teams.length === 1);
+  const numLobbies = lobbies.filter((l) => l.teams.length >= 1).length;
+
+  const getTeamName = (team) => team?.team_name || team?.name || `Team ${team?.id || '?'}`;
+
+  const mapNames = [
+    'Bind',
+    'Haven',
+    'Split',
+    'Ascent',
+    'Icebox',
+    'Breeze',
+    'Fracture',
+    'Pearl',
+    'Lotus',
+    'Sunset',
+    'Abyss',
+  ];
 
   return (
-    <div className="lobby-preview-overlay" onClick={onClose}>
-      <div className="lobby-preview-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="lobby-preview-header">
-          <div className="header-left">
+    <div className="lpv-wrapper">
+      {/* Back to Config link */}
+      <div className="lpv-back-row">
+        <button type="button" className="lpv-btn-back-top" onClick={onClose} disabled={loading}>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="lpv-back-icon"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back to Config
+        </button>
+      </div>
+
+      {/* Card */}
+      <div className="lpv-card">
+        <div className="lpv-card-header">
+          <h2 className="lpv-title-row">
             <svg
-              className="header-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              className="lpv-header-icon"
             >
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 6v6l4 2"></path>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            <h2 className="lobby-preview-title">5v5 Lobbies Ready</h2>
-          </div>
-          <button type="button" className="close-btn" onClick={onClose}>
-            ✕
-          </button>
+            Confirm Lobby Setup — Round {roundNumber}
+          </h2>
         </div>
 
-        {/* Body */}
-        <div className="lobby-preview-body">
-          {/* Summary Banner */}
-          <div className="summary-banner">
-            <div className="summary-item">
-              <span className="summary-label">Total Teams:</span>
-              <span className="summary-value">{totalTeams}</span>
+        <div className="lpv-card-body">
+          {/* 4 stats */}
+          <div className="lpv-stats">
+            <div className="lpv-stat">
+              <span className="lpv-stat-num">{totalTeams}</span>
+              <span className="lpv-stat-label">Teams</span>
             </div>
-            <div className="summary-item">
-              <span className="summary-label">Lobbies:</span>
-              <span className="summary-value">{lobbies.length}</span>
+            <div className="lpv-stat">
+              <span className="lpv-stat-num">{numLobbies}</span>
+              <span className="lpv-stat-label">Lobbies</span>
             </div>
-            <div className="summary-item">
-              <span className="summary-label">Format:</span>
-              <span className="summary-value">BO{bestOf}</span>
+            <div className="lpv-stat">
+              <span className="lpv-stat-num">5v5</span>
+              <span className="lpv-stat-label">Format</span>
             </div>
-            {hasByeTeam && (
-              <div className="summary-item bye-item">
-                <span className="summary-label">Bye Team:</span>
-                <span className="summary-value">Advances free</span>
-              </div>
-            )}
+            <div className="lpv-stat">
+              <span className="lpv-stat-num">BO{bestOf}</span>
+              <span className="lpv-stat-label">Per Lobby</span>
+            </div>
           </div>
 
-          {/* Lobbies Grid */}
-          <div className="lobbies-container">
-            {lobbies.length === 0 ? (
-              <div className="empty-state">
-                <p>No lobbies generated yet. Confirm configuration to create lobbies.</p>
-              </div>
-            ) : (
-              lobbies.map((lobby, idx) => (
-                <div key={lobby.id || idx} className="lobby-card">
-                  <div className="lobby-header">
-                    <span className="lobby-number">Lobby {idx + 1}</span>
-                    {lobby.teams.length === 1 && <span className="bye-badge">BYE</span>}
-                  </div>
+          {/* Lobby grid — 2 columns */}
+          <div className="lpv-lobbies-grid">
+            {lobbies.map((lobby, idx) => {
+              const isBye = lobby.teams.length === 1;
+              const mapName = mapNames[idx % mapNames.length];
 
-                  <div className="matchup-container">
-                    {lobby.teams.length === 2 ? (
-                      <>
-                        {/* Team A */}
-                        <div className="team-box team-a">
-                          <div className="team-label">Team A</div>
-                          <div className="team-name">
-                            {lobby.teams[0]?.name || `Team ${lobby.teams[0]?.id}`}
-                          </div>
-                          {lobby.teams[0]?.logo && (
-                            <img src={lobby.teams[0].logo} alt="Team A" className="team-logo" />
-                          )}
-                        </div>
-
-                        {/* VS */}
-                        <div className="vs-badge">
-                          <span>VS</span>
-                        </div>
-
-                        {/* Team B */}
-                        <div className="team-box team-b">
-                          <div className="team-label">Team B</div>
-                          <div className="team-name">
-                            {lobby.teams[1]?.name || `Team ${lobby.teams[1]?.id}`}
-                          </div>
-                          {lobby.teams[1]?.logo && (
-                            <img src={lobby.teams[1].logo} alt="Team B" className="team-logo" />
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      /* Bye Team Display */
-                      <div className="bye-team-box">
-                        <div className="bye-icon">🎫</div>
-                        <div className="bye-text">
-                          {lobby.teams[0]?.name || `Team ${lobby.teams[0]?.id}`}
-                        </div>
-                        <div className="bye-notice">Advances to next round</div>
-                      </div>
+              return (
+                <div key={lobby.id || idx} className="lpv-lobby-row">
+                  <div className="lpv-lobby-row-top">
+                    <span className="lpv-lobby-badge">Lobby {idx + 1}</span>
+                    {!isBye && (
+                      <span className="lpv-map">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          className="lpv-map-icon"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                          />
+                        </svg>
+                        {mapName}
+                      </span>
                     )}
                   </div>
-
-                  {/* Match Info */}
-                  {lobby.teams.length === 2 && (
-                    <div className="match-info">
-                      <span className="match-count">
-                        {bestOf} match{bestOf > 1 ? 'es' : ''}
-                      </span>
-                      <span className="series-type">Best of {bestOf}</span>
+                  {!isBye ? (
+                    <div className="lpv-matchup">
+                      <span className="lpv-team-a">{getTeamName(lobby.teams[0])}</span>
+                      <span className="lpv-vs">vs</span>
+                      <span className="lpv-team-b">{getTeamName(lobby.teams[1])}</span>
+                    </div>
+                  ) : (
+                    <div className="lpv-matchup">
+                      <span className="lpv-team-a">{getTeamName(lobby.teams[0])}</span>
+                      <span className="lpv-bye-text">BYE</span>
                     </div>
                   )}
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
 
-          {/* Info Section */}
-          <div className="info-section">
-            <div className="info-box">
-              <svg
-                className="info-icon"
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              <div>
-                <p className="info-title">How it works</p>
-                <p className="info-text">
-                  Each lobby plays BO{bestOf} matches. Winner advances to the next round. Match
-                  schedules and times can be set via bulk scheduling.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+          {/* Footer */}
+          <div className="lpv-footer">
+            <button type="button" className="lpv-btn-back" onClick={onClose} disabled={loading}>
+              Back to Edit
+            </button>
 
-        {/* Footer */}
-        <div className="lobby-preview-footer">
-          <button type="button" onClick={onClose} className="btn-back" disabled={loading}>
-            Back to Config
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="btn-start"
-            disabled={loading || lobbies.length === 0}
-          >
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                Creating...
-              </>
-            ) : (
-              <>
-                <svg
-                  className="btn-icon"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                Start Round Matches
-              </>
-            )}
-          </button>
+            <button
+              type="button"
+              className="lpv-btn-start"
+              onClick={onConfirm}
+              disabled={loading || lobbies.length === 0}
+            >
+              {loading ? (
+                <>
+                  <span className="lpv-spinner" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="lpv-btn-icon">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Start Round {roundNumber}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

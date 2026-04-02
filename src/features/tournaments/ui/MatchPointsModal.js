@@ -1,23 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './MatchPointsModal.css';
 
-const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game = false }) => {
+const MatchPointsModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  match,
+  teams,
+  is5v5Game = false,
+  readOnly = false,
+}) => {
   const [scores, setScores] = useState([]);
   const [winner, setWinner] = useState(null);
 
   useEffect(() => {
     if (isOpen && teams) {
-      const initialScores = teams.map((team) => ({
-        team_id: team.id,
-        team_name: team.team_name,
-        wins: '',
-        position_points: '',
-        kill_points: '',
-      }));
-      setScores(initialScores);
+      if (readOnly && match?.scores?.length) {
+        // Pre-populate from submitted scores
+        const preloaded = teams.map((team) => {
+          const saved = match.scores.find((s) => s.team_id === team.id || s.team === team.id);
+          return {
+            team_id: team.id,
+            team_name: team.team_name,
+            wins: saved?.wins ?? 0,
+            position_points: saved?.position_points ?? 0,
+            kill_points: saved?.kill_points ?? 0,
+          };
+        });
+        setScores(preloaded);
+      } else {
+        const initialScores = teams.map((team) => ({
+          team_id: team.id,
+          team_name: team.team_name,
+          wins: '',
+          position_points: '',
+          kill_points: '',
+        }));
+        setScores(initialScores);
+      }
       setWinner(null);
     }
-  }, [isOpen, teams]);
+  }, [isOpen, teams, readOnly, match?.scores]);
 
   const handleScoreChange = (teamId, field, value) => {
     setScores((prev) =>
@@ -44,7 +68,6 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
     return positionPts + killPts;
   };
 
-  // Auto-detect winner from scores (higher score wins)
   const getScoreBasedWinner = () => {
     if (scores.length !== 2) return null;
     const s0 = scores[0].position_points === '' ? 0 : Number(scores[0].position_points);
@@ -54,7 +77,6 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
     return null;
   };
 
-  // Effective winner: manual selection or auto from scores
   const effectiveWinner = winner || getScoreBasedWinner();
   const winnerName = scores.find((s) => s.team_id === effectiveWinner)?.team_name;
 
@@ -85,46 +107,79 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
 
   if (!isOpen) return null;
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
+  const modalContent = (
+    <div className="mpm-overlay" onClick={onClose}>
       <div
-        className={`modal-content match-points-modal ${is5v5Game ? 'match-points-modal-5v5' : ''}`}
+        className={`mpm-dialog ${is5v5Game ? 'mpm-dialog-5v5' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-header">
-          <h2 className={is5v5Game ? '' : 'gradient-text'}>
-            {is5v5Game ? 'Select Winner' : `Enter Points - Match ${match?.match_number}`}
-          </h2>
-          <button type="button" className="close-btn" onClick={onClose}>
-            ✕
+        {/* Header */}
+        <div className="mpm-header">
+          <div className="mpm-header-left">
+            <div className="mpm-header-icon">
+              <svg className="mpm-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="mpm-title">
+                {readOnly
+                  ? `Points - Match ${match?.match_number}`
+                  : is5v5Game
+                    ? 'Select Winner'
+                    : `Enter Points - Match ${match?.match_number}`}
+              </h2>
+              {!is5v5Game && !readOnly && (
+                <p className="mpm-subtitle">
+                  Enter points for each team. Total = Placement + Kill Points
+                </p>
+              )}
+            </div>
+          </div>
+          <button className="mpm-close" onClick={onClose}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-4 h-4">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+        {/* Body */}
+        <form
+          onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit}
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+        >
+          <div className="mpm-body">
             {is5v5Game ? (
-              // 5v5 WINNER SELECTION LAYOUT
-              <div className="points-5v5-container">
-                <p className="select-winner-subtitle">
-                  Enter scores or simply select the winning team
-                </p>
+              /* ── 5v5 WINNER SELECTION ── */
+              <div className="mpm-5v5-container">
+                <p className="mpm-5v5-subtitle">Enter scores or simply select the winning team</p>
 
-                <p className="quick-select-label">Quick Select Winner</p>
-                <div className="winner-selection-grid">
+                <p className="mpm-section-label">Quick Select Winner</p>
+                <div className="mpm-winner-grid">
                   {scores.map((score) => (
                     <button
                       key={score.team_id}
                       type="button"
-                      className={`winner-card ${effectiveWinner === score.team_id ? 'selected' : ''}`}
+                      className={`mpm-winner-card ${effectiveWinner === score.team_id ? 'mpm-winner-card--selected' : ''}`}
                       onClick={() => setWinner(score.team_id)}
                     >
-                      <div className="winner-card-abbr">
+                      <div className="mpm-winner-abbr">
                         {score.team_name?.substring(0, 3).toUpperCase()}
                       </div>
-                      <div className="winner-card-name">{score.team_name}</div>
+                      <div className="mpm-winner-name">{score.team_name}</div>
                       {effectiveWinner === score.team_id && (
-                        <div className="winner-crown">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <div className="mpm-winner-crown">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z" />
                           </svg>
                         </div>
@@ -133,18 +188,18 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
                   ))}
                 </div>
 
-                <div className="score-divider">
+                <div className="mpm-divider">
                   <span>OR ENTER SCORES</span>
                 </div>
 
-                <div className="score-inputs-row-5v5">
+                <div className="mpm-stepper-row">
                   {scores.map((score) => (
-                    <div key={score.team_id} className="score-column-5v5">
-                      <div className="score-team-label">{score.team_name}</div>
-                      <div className="score-stepper">
+                    <div key={score.team_id} className="mpm-stepper-col">
+                      <div className="mpm-stepper-label">{score.team_name}</div>
+                      <div className="mpm-stepper">
                         <button
                           type="button"
-                          className="stepper-btn"
+                          className="mpm-stepper-btn"
                           onClick={() => handleScoreIncrement(score.team_id, -1)}
                         >
                           —
@@ -156,11 +211,11 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
                           onChange={(e) =>
                             handleScoreChange(score.team_id, 'position_points', e.target.value)
                           }
-                          className="score-stepper-input"
+                          className="mpm-stepper-input"
                         />
                         <button
                           type="button"
-                          className="stepper-btn"
+                          className="mpm-stepper-btn"
                           onClick={() => handleScoreIncrement(score.team_id, 1)}
                         >
                           +
@@ -171,8 +226,8 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
                 </div>
 
                 {effectiveWinner && (
-                  <div className="winner-banner">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="mpm-winner-banner">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z" />
                     </svg>
                     <span>
@@ -180,126 +235,131 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
                     </span>
                   </div>
                 )}
-
-                <div className="modal-actions-5v5">
-                  <button type="button" className="btn-cancel-5v5" onClick={onClose}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-confirm-winner" disabled={!effectiveWinner}>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Confirm Winner
-                  </button>
-                </div>
               </div>
             ) : (
-              // BR STANDARD LAYOUT
+              /* ── BR STANDARD LAYOUT ── */
               <>
-                <div className="info-box">
-                  <p>
+                <div className="mpm-note">
+                  <svg
+                    className="mpm-note-icon"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>
                     <strong>Note:</strong> Wins are for display only. Total Points = Position Points
                     + Kill Points
-                  </p>
+                  </span>
                 </div>
 
-                <div className="points-table-wrapper">
-                  <table className="points-table">
+                <div className="mpm-table-wrap">
+                  <table className="mpm-table">
                     <thead>
                       <tr>
-                        <th className="team-name-cell">Team Name</th>
-                        <th className="score-input-cell">Wins</th>
-                        <th className="score-input-cell">Position Pts</th>
-                        <th className="score-input-cell">Kill Pts</th>
-                        <th className="total-points-cell">Total Pts</th>
+                        <th className="mpm-th mpm-th-team">Team Name</th>
+                        <th className="mpm-th mpm-th-score">Wins</th>
+                        <th className="mpm-th mpm-th-score">Placement Pts</th>
+                        <th className="mpm-th mpm-th-score">Kill Pts</th>
+                        <th className="mpm-th mpm-th-total">Total Pts</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {scores.map((score) => (
-                        <tr key={score.team_id}>
-                          <td className="team-name-cell">
-                            <div className="team-name-wrapper">
-                              <div className="team-avatar-mini">
+                      {scores.map((score, idx) => (
+                        <tr key={score.team_id} className="mpm-row">
+                          <td className="mpm-td mpm-td-team">
+                            <div className="mpm-team-cell">
+                              <span className="mpm-team-num">{idx + 1}</span>
+                              <div className="mpm-team-avatar">
                                 <svg
-                                  className="w-4 h-4 text-white/50"
                                   fill="currentColor"
                                   viewBox="0 0 20 20"
+                                  className="mpm-avatar-icon"
                                 >
                                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
                                 </svg>
                               </div>
-                              <span className="team-name-text">{score.team_name}</span>
+                              <span className="mpm-team-name">{score.team_name}</span>
                             </div>
                           </td>
-                          <td className="score-input-cell">
-                            <input
-                              type="number"
-                              min="0"
-                              max="1"
-                              value={score.wins}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '1' || val === '' || val === '0') {
-                                  handleScoreChange(score.team_id, 'wins', val);
+                          <td className="mpm-td mpm-td-score">
+                            {readOnly ? (
+                              <span className="mpm-total">{score.wins ?? 0}</span>
+                            ) : (
+                              <input
+                                type="number"
+                                min="0"
+                                max="1"
+                                value={score.wins}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === '1' || val === '' || val === '0') {
+                                    handleScoreChange(score.team_id, 'wins', val);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown')
+                                    e.preventDefault();
+                                }}
+                                disabled={
+                                  scores.some((s) => s.wins === 1 || s.wins === '1') &&
+                                  score.wins !== 1 &&
+                                  score.wins !== '1'
                                 }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                                  e.preventDefault();
-                                }
-                              }}
-                              disabled={
-                                scores.some((s) => s.wins === 1 || s.wins === '1') &&
-                                score.wins !== 1 &&
-                                score.wins !== '1'
-                              }
-                              placeholder=""
-                              className={`score-input ${scores.some((s) => s.wins === 1 || s.wins === '1') && score.wins !== 1 && score.wins !== '1' ? 'opacity-20 cursor-not-allowed' : ''}`}
-                            />
+                                className={`mpm-input ${scores.some((s) => s.wins === 1 || s.wins === '1') && score.wins !== 1 && score.wins !== '1' ? 'mpm-input--disabled' : ''}`}
+                              />
+                            )}
                           </td>
-                          <td className="score-input-cell">
-                            <input
-                              type="number"
-                              min="0"
-                              value={score.position_points}
-                              onChange={(e) =>
-                                handleScoreChange(score.team_id, 'position_points', e.target.value)
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                                  e.preventDefault();
+                          <td className="mpm-td mpm-td-score">
+                            {readOnly ? (
+                              <span className="mpm-total">{score.position_points ?? 0}</span>
+                            ) : (
+                              <input
+                                type="number"
+                                min="0"
+                                value={score.position_points}
+                                onChange={(e) =>
+                                  handleScoreChange(
+                                    score.team_id,
+                                    'position_points',
+                                    e.target.value
+                                  )
                                 }
-                              }}
-                              placeholder=""
-                              className="score-input"
-                            />
+                                onKeyDown={(e) => {
+                                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown')
+                                    e.preventDefault();
+                                }}
+                                className="mpm-input"
+                              />
+                            )}
                           </td>
-                          <td className="score-input-cell">
-                            <input
-                              type="number"
-                              min="0"
-                              value={score.kill_points}
-                              onChange={(e) =>
-                                handleScoreChange(score.team_id, 'kill_points', e.target.value)
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                                  e.preventDefault();
+                          <td className="mpm-td mpm-td-score">
+                            {readOnly ? (
+                              <span className="mpm-total">{score.kill_points ?? 0}</span>
+                            ) : (
+                              <input
+                                type="number"
+                                min="0"
+                                value={score.kill_points}
+                                onChange={(e) =>
+                                  handleScoreChange(score.team_id, 'kill_points', e.target.value)
                                 }
-                              }}
-                              placeholder=""
-                              className="score-input"
-                            />
+                                onKeyDown={(e) => {
+                                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown')
+                                    e.preventDefault();
+                                }}
+                                className="mpm-input"
+                              />
+                            )}
                           </td>
-                          <td className="total-points-cell">
-                            <span className="total-points">{calculateTotal(score)}</span>
+                          <td className="mpm-td mpm-td-total">
+                            <span className="mpm-total">{calculateTotal(score)}</span>
                           </td>
                         </tr>
                       ))}
@@ -308,26 +368,42 @@ const MatchPointsModal = ({ isOpen, onClose, onSubmit, match, teams, is5v5Game =
                 </div>
               </>
             )}
-
-            {!is5v5Game && (
-              <button type="submit" className="btn-submit-points">
-                <svg
-                  className="check-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                Submit Points
+          </div>
+          <div className="mpm-footer">
+            {readOnly ? (
+              <button type="button" className="mpm-btn-submit" onClick={onClose}>
+                Close
               </button>
+            ) : (
+              <>
+                <button type="button" className="mpm-btn-cancel" onClick={onClose}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="mpm-btn-submit"
+                  disabled={is5v5Game && !effectiveWinner}
+                >
+                  <svg
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    viewBox="0 0 24 24"
+                    className="mpm-btn-icon"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {is5v5Game ? 'Confirm Winner' : 'Submit Points'}
+                </button>
+              </>
             )}
           </div>
         </form>
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default MatchPointsModal;

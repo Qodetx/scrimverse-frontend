@@ -1,0 +1,316 @@
+/* MyDataPage.css - Dark themed data export viewer matching Scrimverse design */
+
+.mydata-page {
+  min-height: 100vh;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  padding: 0;
+}
+
+.mydata-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px 60px;
+}
+
+/* Header */
+.mydata-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.mydata-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.mydata-logo {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+}
+
+.mydata-logo span {
+  color: hsl(var(--accent));
+}
+
+.mydata-dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--secondary) / 0.2);
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.mydata-dl-btn:hover {
+  background: hsl(var(--secondary) / 0.4);
+  color: hsl(var(--foreground));
+}
+
+.mydata-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 12px 0 6px;
+}
+
+.mydata-subtitle {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Section */
+.mydata-section {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.mydata-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: hsl(var(--accent));
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mydata-section-title svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Info grid (key-value pairs) */
+.mydata-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .mydata-info-grid {
+    grid-template-columns: 1fr;
+  }
+  .mydata-container {
+    padding: 20px 16px 40px;
+  }
+}
+
+.mydata-info-item {
+  padding: 10px 14px;
+  background: hsl(var(--muted));
+  border-radius: 8px;
+}
+
+.mydata-info-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.mydata-info-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  word-break: break-word;
+}
+
+/* Tables */
+.mydata-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mydata-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.mydata-table thead {
+  background: hsl(var(--muted));
+}
+
+.mydata-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.mydata-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.mydata-table tbody tr:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+/* Status badges */
+.mydata-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.mydata-badge--completed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.mydata-badge--pending {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+}
+
+.mydata-badge--failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.mydata-badge--active,
+.mydata-badge--confirmed,
+.mydata-badge--selected {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+/* Empty state */
+.mydata-empty {
+  text-align: center;
+  padding: 20px;
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Footer actions */
+.mydata-footer {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.mydata-disclaimer {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.mydata-footer-link {
+  color: hsl(var(--accent));
+  text-decoration: none;
+}
+
+.mydata-footer-link:hover {
+  text-decoration: underline;
+}
+
+/* Error / loading states */
+.mydata-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  gap: 16px;
+}
+
+.mydata-state-icon {
+  width: 64px;
+  height: 64px;
+  color: hsl(var(--muted-foreground));
+}
+
+.mydata-state-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.mydata-state-msg {
+  font-size: 14px;
+  color: hsl(var(--muted-foreground));
+  max-width: 400px;
+}
+
+.mydata-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid hsl(var(--border));
+  border-top-color: hsl(var(--accent));
+  border-radius: 50%;
+  animation: mydata-spin 0.8s linear infinite;
+}
+
+@keyframes mydata-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Notification summary cards */
+.mydata-notif-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 500px) {
+  .mydata-notif-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mydata-notif-card {
+  padding: 16px;
+  background: hsl(var(--muted));
+  border-radius: 8px;
+  text-align: center;
+}
+
+.mydata-notif-count {
+  font-size: 28px;
+  font-weight: 800;
+  color: hsl(var(--accent));
+}
+
+.mydata-notif-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  margin-top: 4px;
+}

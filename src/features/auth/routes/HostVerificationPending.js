@@ -1,299 +1,132 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Shield, Clock, XCircle, Mail } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
-import { authAPI } from '../../../utils/api';
-import './HostVerificationPending.css';
+import Navbar from '../../../components/Navbar';
+import Footer from '../../../components/Footer';
 
 const HostVerificationPending = () => {
-  const { user, fetchUserData } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // COMMENTED OUT - Aadhar upload functionality (may be needed in future)
-  // const [uploading, setUploading] = useState(false);
-  // const [error, setError] = useState('');
-  // const [success, setSuccess] = useState('');
-  // const [frontImage, setFrontImage] = useState(null);
-  // const [backImage, setBackImage] = useState(null);
-  // const [frontPreview, setFrontPreview] = useState(null);
-  // const [backPreview, setBackPreview] = useState(null);
-
   useEffect(() => {
-    // Check if user is approved, redirect to dashboard
     if (user?.profile?.verification_status === 'approved') {
       navigate('/host/dashboard');
     }
   }, [user, navigate]);
 
-  // COMMENTED OUT - Aadhar upload functionality (may be needed in future)
-  // const handleFileChange = (e, side) => {
-  //   const file = e.target.files[0];
-  //   if (!file) return;
-
-  //   // Validate file size (5MB)
-  //   const maxSize = 5 * 1024 * 1024;
-  //   if (file.size > maxSize) {
-  //     setError('File size must be less than 5MB');
-  //     return;
-  //   }
-
-  //   // Validate file type
-  //   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  //   if (!allowedTypes.includes(file.type)) {
-  //     setError('Only JPG, JPEG, PNG, and WEBP images are allowed');
-  //     return;
-  //   }
-
-  //   setError('');
-
-  //   if (side === 'front') {
-  //     setFrontImage(file);
-  //     setFrontPreview(URL.createObjectURL(file));
-  //   } else {
-  //     setBackImage(file);
-  //     setBackPreview(URL.createObjectURL(file));
-  //   }
-  // };
-
-  // const handleUpload = async (e) => {
-  //   e.preventDefault();
-  //   setError('');
-  //   setSuccess('');
-
-  //   if (!frontImage || !backImage) {
-  //     setError('Please upload both front and back images of your Aadhar card');
-  //     return;
-  //   }
-
-  //   setUploading(true);
-
-  //   try {
-  //     const formData = new FormData();
-  //     formData.append('aadhar_card_front', frontImage);
-  //     formData.append('aadhar_card_back', backImage);
-
-  //     const response = await authAPI.uploadAadhar(formData);
-  //     setSuccess(response.data.message);
-
-  //     // Refresh user data to get updated verification status
-  //     await fetchUserData();
-  //   } catch (err) {
-  //     if (err.response && err.response.data) {
-  //       setError(err.response.data.error || 'Upload failed. Please try again.');
-  //     } else {
-  //       setError('Something went wrong. Please try again.');
-  //     }
-  //   } finally {
-  //     setUploading(false);
-  //   }
-  // };
-
   const verificationStatus = user?.profile?.verification_status;
-  // COMMENTED OUT - Aadhar upload functionality (may be needed in future)
-  // const hasUploadedAadhar = user?.profile?.aadhar_card_front && user?.profile?.aadhar_card_back;
+  const rejectionReason = user?.profile?.verification_notes;
 
   return (
-    <div className="verification-pending-page">
-      <div className="verification-container">
-        <div className="verification-card">
-          {/* Header */}
-          <div className="verification-header">
-            <div className="icon-wrapper">
-              <svg
-                className="verification-icon"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+    <>
+      <Navbar />
+      <main className="pt-24 pb-16 px-4">
+        <div className="max-w-md mx-auto">
+          <div className="cyber-card border border-accent/30 p-8">
+            {/* Icon */}
+            <div className="flex flex-col items-center mb-8">
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${
+                  verificationStatus === 'rejected' ? 'bg-destructive/20' : 'bg-accent/20'
+                }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
-            </div>
-            <h1>Host Verification</h1>
-            <p className="subtitle">We will get back to you soon</p>
-          </div>
-
-          {/* Status Display */}
-          {verificationStatus === 'pending' && (
-            <div className="status-box status-pending">
-              <svg className="status-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div>
-                <h3>Verification Pending</h3>
-                <p>
-                  Your account is under review. We'll notify you once the admin approves your
-                  account. You'll be able to access the host dashboard after approval.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {verificationStatus === 'rejected' && (
-            <div className="status-box status-rejected">
-              <svg className="status-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div>
-                <h3>Verification Rejected</h3>
-                <p>
-                  {user?.profile?.verification_notes ||
-                    'Your verification was rejected. Please contact support for more information.'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* COMMENTED OUT - Aadhar upload form (may be needed in future) */}
-          {/* {(!hasUploadedAadhar || verificationStatus === 'rejected') && (
-            <form onSubmit={handleUpload} className="upload-form">
-              <div className="upload-instructions">
-                <h3>Upload Your Aadhar Card</h3>
-                <p>Please upload clear images of both sides of your Aadhar card</p>
-                <ul className="requirements-list">
-                  <li>✓ Maximum file size: 5MB per image</li>
-                  <li>✓ Supported formats: JPG, JPEG, PNG, WEBP</li>
-                  <li>✓ Images should be clear and readable</li>
-                  <li>✓ All details must be visible</li>
-                </ul>
-              </div>
-
-              {error && (
-                <div className="alert alert-error">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="alert alert-success">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  {success}
-                </div>
-              )}
-
-              <div className="upload-grid">
-                <div className="upload-box">
-                  <label htmlFor="front-upload" className="upload-label">
-                    {frontPreview ? (
-                      <div className="preview-container">
-                        <img src={frontPreview} alt="Aadhar Front" className="preview-image" />
-                        <div className="preview-overlay">
-                          <span>Click to change</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="upload-placeholder">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                          />
-                        </svg>
-                        <span>Upload Front Side</span>
-                        <small>JPG, PNG, WEBP (Max 5MB)</small>
-                      </div>
-                    )}
-                  </label>
-                  <input
-                    id="front-upload"
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    onChange={(e) => handleFileChange(e, 'front')}
-                    className="file-input"
-                  />
-                </div>
-
-                <div className="upload-box">
-                  <label htmlFor="back-upload" className="upload-label">
-                    {backPreview ? (
-                      <div className="preview-container">
-                        <img src={backPreview} alt="Aadhar Back" className="preview-image" />
-                        <div className="preview-overlay">
-                          <span>Click to change</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="upload-placeholder">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                          />
-                        </svg>
-                        <span>Upload Back Side</span>
-                        <small>JPG, PNG, WEBP (Max 5MB)</small>
-                      </div>
-                    )}
-                  </label>
-                  <input
-                    id="back-upload"
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    onChange={(e) => handleFileChange(e, 'back')}
-                    className="file-input"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={uploading || !frontImage || !backImage}
-                className="submit-btn"
-              >
-                {uploading ? (
-                  <div className="loading-spinner">
-                    <div className="spinner"></div>
-                    Uploading...
-                  </div>
+                {verificationStatus === 'rejected' ? (
+                  <XCircle className="h-8 w-8 text-destructive" />
                 ) : (
-                  'Submit for Verification'
+                  <Shield className="h-8 w-8 text-accent" />
                 )}
-              </button>
-            </form>
-          )} */}
+              </div>
 
-          {/* Footer */}
-          <div className="verification-footer">
-            <p>
-              Need help? Contact us at{' '}
-              <a href="mailto:support@scrimverse.com">support@scrimverse.com</a>
-            </p>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight text-center">
+                {verificationStatus === 'rejected'
+                  ? 'Application Rejected'
+                  : 'Account Under Verification'}
+              </h1>
+              <p className="text-muted-foreground mt-2 text-center text-sm">
+                {verificationStatus === 'rejected'
+                  ? 'Your host application was not approved.'
+                  : 'Your application is under review.'}
+              </p>
+            </div>
+
+            {/* Status box */}
+            {verificationStatus === 'pending' && (
+              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 flex gap-3 mb-6">
+                <Clock className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Verification Pending</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    We'll notify you by email once our team reviews your application. This typically
+                    takes 1–2 business days.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {verificationStatus === 'rejected' && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex gap-3 mb-6">
+                <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Reason</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {rejectionReason ||
+                      'Your application did not meet our requirements. Please contact support for details.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* What happens next */}
+            {verificationStatus !== 'rejected' && (
+              <div className="space-y-3 mb-6">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  What happens next
+                </p>
+                <div className="space-y-2">
+                  {[
+                    'Our team reviews your application',
+                    'You receive an email notification on any decision',
+                    'On approval, your full host portal unlocks',
+                    'Blue tick ✓ may be awarded for verified hosts',
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="w-4 h-4 rounded-full bg-accent/20 text-accent text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
+                        {i + 1}
+                      </span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Support */}
+            <div className="border-t border-border pt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <Mail className="h-4 w-4 flex-shrink-0" />
+              <span>
+                Need help?{' '}
+                <a
+                  href="mailto:support@scrimverse.com"
+                  className="text-accent hover:text-accent/80 transition-colors font-medium"
+                >
+                  support@scrimverse.com
+                </a>
+              </span>
+            </div>
+
+            {/* Sign out button */}
+            <button
+              onClick={logout}
+              className="w-full mt-4 py-2.5 px-4 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
-      </div>
-    </div>
+      </main>
+      <Footer />
+    </>
   );
 };
 

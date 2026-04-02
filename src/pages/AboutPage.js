@@ -1,7 +1,20 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import './AboutPage.css';
+import {
+  Shield,
+  Users,
+  Star,
+  Heart,
+  Trophy,
+  UserPlus,
+  Target,
+  Award,
+  Zap,
+  HeadphonesIcon,
+  Gamepad2,
+} from 'lucide-react';
 
 const AboutPage = () => {
   useEffect(() => {
@@ -9,341 +22,218 @@ const AboutPage = () => {
   }, []);
 
   return (
-    <div className="about-wrapper">
-      <div className="about-glow-purple"></div>
-      <div className="about-glow-blue"></div>
-
-      <div className="about-container">
-        {/* Hero Section */}
-
-        <header className="about-hero">
-          <h1 className="about-hero-title">About ScrimVerse</h1>
-          <p className="about-hero-subtitle">
-            Building the ultimate gaming ecosystem where legends are born, skills are tested, and
-            communities thrive in the competitive arena.
-          </p>
-        </header>
-
-        {/* Mission Card */}
-        <div className="mission-card">
-          <div className="mission-content">
-            <h2 className="mission-title">Our Mission</h2>
-            <p className="mission-text">
-              We're democratizing competitive gaming by creating a platform where players of all
-              skill levels can compete, grow, and earn recognition. From casual scrims to
-              professional tournaments, ScrimVerse provides the tools and infrastructure to make
-              esports accessible to everyone.
+    <>
+      <Navbar />
+      <main className="pt-20 pb-12 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Hero Section */}
+          <div className="text-center mb-16 pt-8">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+              About ScrimVerse
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+              We&apos;re building the ultimate gaming ecosystem where players connect, compete, and
+              create lasting memories. ScrimVerse is more than a platform — it&apos;s a community
+              where legends are born.
             </p>
           </div>
-          <div className="mission-icon">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="2" y="7" width="20" height="14" rx="2" />
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-              <circle cx="8" cy="14" r="2" />
-              <path d="M15 11h2" />
-              <path d="M15 14h2" />
-            </svg>
-          </div>
+
+          {/* Mission Card */}
+          <section className="mb-16">
+            <div className="cyber-card p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div>
+                  <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+                    Our Mission
+                  </h2>
+                  <p className="text-muted-foreground text-lg leading-relaxed">
+                    To democratize competitive gaming by providing a platform where every player,
+                    regardless of skill level, can participate in tournaments, build meaningful
+                    connections, and showcase their talent to the world.
+                  </p>
+                </div>
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <div className="w-48 h-48 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center">
+                      <Gamepad2 className="h-24 w-24 text-primary" />
+                    </div>
+                    <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Our Values */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+              Our Values
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                {
+                  icon: Shield,
+                  title: 'Fair Play',
+                  desc: 'Equal opportunity for all players with strict anti-cheat measures.',
+                },
+                {
+                  icon: Users,
+                  title: 'Community',
+                  desc: 'Building connections and friendships through competitive gaming.',
+                },
+                {
+                  icon: Star,
+                  title: 'Excellence',
+                  desc: 'High-quality features and dedicated support for every user.',
+                },
+                {
+                  icon: Heart,
+                  title: 'Passion',
+                  desc: 'Built by gamers who love and understand the community.',
+                },
+              ].map((v) => (
+                <div key={v.title} className="cyber-card p-6 text-center">
+                  <div className="flex justify-center mb-4">
+                    <v.icon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">{v.title}</h3>
+                  <p className="text-sm text-muted-foreground">{v.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* What Makes Us Different */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+              What Makes Us Different
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[
+                {
+                  icon: Trophy,
+                  title: 'Advanced Tournament System',
+                  desc: 'Create custom brackets, manage multiple game modes, and track live statistics with our comprehensive tournament platform.',
+                },
+                {
+                  icon: UserPlus,
+                  title: 'Clan Management',
+                  desc: 'Build and manage your gaming clan with recruitment tools, member tracking, and team coordination features.',
+                },
+                {
+                  icon: Target,
+                  title: 'Skill Matching',
+                  desc: 'Algorithmic matchmaking ensures balanced and competitive gameplay for all skill levels.',
+                },
+                {
+                  icon: Award,
+                  title: 'Achievement System',
+                  desc: 'Detailed player statistics, rankings, and achievement badges that showcase your journey.',
+                },
+                {
+                  icon: Zap,
+                  title: 'Real-time Updates',
+                  desc: 'Instant notifications for match results, tournament updates, and team activities.',
+                },
+                {
+                  icon: HeadphonesIcon,
+                  title: '24/7 Support',
+                  desc: 'Dedicated support team available around the clock for technical assistance.',
+                },
+              ].map((f) => (
+                <div key={f.title} className="cyber-card p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <f.icon className="h-6 w-6 text-primary" />
+                    <h3 className="text-xl font-semibold text-foreground">{f.title}</h3>
+                  </div>
+                  <p className="text-muted-foreground">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Built by Gamers */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+              Built by Gamers, For Gamers
+            </h2>
+            <div className="cyber-card p-8 text-center">
+              <div className="max-w-3xl mx-auto">
+                <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                  Our team consists of passionate gamers, esports professionals, and tech
+                  enthusiasts who understand the gaming community&apos;s needs. We&apos;ve been
+                  where you are — grinding ranks, organizing scrims, and building teams.
+                </p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  <span className="bg-secondary border border-border text-foreground text-sm px-4 py-2 rounded-full flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-primary" />
+                    Tournament Winners
+                  </span>
+                  <span className="bg-secondary border border-border text-foreground text-sm px-4 py-2 rounded-full flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Community Leaders
+                  </span>
+                  <span className="bg-secondary border border-border text-foreground text-sm px-4 py-2 rounded-full flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    Tech Innovators
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Our Impact */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-center mb-12 bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+              Our Impact
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[
+                { value: '10K+', label: 'Active Players' },
+                { value: '500+', label: 'Tournaments' },
+                { value: '₹50L+', label: 'Prize Money' },
+                { value: '200+', label: 'Active Clans' },
+              ].map((s) => (
+                <div key={s.label} className="cyber-card p-6 text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+                    {s.value}
+                  </div>
+                  <div className="text-sm text-muted-foreground">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* CTA Section */}
+          <section className="mb-8">
+            <div className="cyber-card p-12 text-center border border-primary/30">
+              <h2 className="text-3xl font-bold text-foreground mb-4">Join the Revolution</h2>
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                Be part of India&apos;s fastest-growing esports community. Compete, connect, and
+                conquer.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  to="/player-auth"
+                  className="gaming-button inline-flex items-center gap-2 px-8 py-3 rounded-lg font-bold text-white"
+                >
+                  <Heart className="h-5 w-5" />
+                  Join Community
+                </Link>
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center gap-2 px-8 py-3 rounded-lg font-semibold border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all"
+                >
+                  <HeadphonesIcon className="h-5 w-5" />
+                  Contact Us
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
-
-        {/* Our Values */}
-        <div className="section-header">
-          <span className="section-tag">Core Principles</span>
-          <h2 className="section-title">Our Values</h2>
-        </div>
-        <div className="values-grid">
-          <div className="value-card">
-            <div className="value-icon">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
-            </div>
-            <h3 className="value-title">Fair Play</h3>
-            <p className="value-desc">
-              Equal opportunity for all players with strict anti-cheat measures.
-            </p>
-          </div>
-          <div className="value-card">
-            <div className="value-icon">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                <circle cx="12" cy="12" r="1" />
-                <circle cx="18" cy="12" r="1" />
-              </svg>
-            </div>
-            <h3 className="value-title">Community</h3>
-            <p className="value-desc">
-              Building connections and friendships through competitive gaming.
-            </p>
-          </div>
-          <div className="value-card">
-            <div className="value-icon">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </div>
-            <h3 className="value-title">Excellence</h3>
-            <p className="value-desc">
-              High-quality features and dedicated support for every user.
-            </p>
-          </div>
-          <div className="value-card">
-            <div className="value-icon">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-              </svg>
-            </div>
-            <h3 className="value-title">Passion</h3>
-            <p className="value-desc">Built by gamers who love and understand the community.</p>
-          </div>
-        </div>
-
-        {/* What Makes Us Different */}
-        <div className="section-header">
-          <span className="section-tag">Platform Features</span>
-          <h2 className="section-title">What Makes Us Different</h2>
-        </div>
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                <path d="M4 22h16" />
-                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-                <circle cx="12" cy="6" r="1.5" />
-              </svg>
-            </div>
-            <h3 className="feature-title">Advanced Tournament System</h3>
-            <p className="feature-desc">
-              Custom brackets, automated scheduling, and live statistics tracking.
-            </p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="8.5" cy="7" r="4" />
-                <path d="M20 8v6" />
-                <path d="M23 11h-6" />
-                <path d="M17 21v-2a4 4 0 0 0-1.5-3.1" />
-              </svg>
-            </div>
-            <h3 className="feature-title">Clan Management</h3>
-            <p className="feature-desc">
-              Comprehensive tools for team recruitment, coordination, and performance tracking.
-            </p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2v20" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                <circle cx="12" cy="12" r="2" />
-              </svg>
-            </div>
-            <h3 className="feature-title">Skill Matching</h3>
-            <p className="feature-desc">
-              Algorithmic matchmaking ensures balanced and competitive gameplay.
-            </p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
-                <path d="M12 8v8" />
-                <path d="M8 12h8" />
-              </svg>
-            </div>
-            <h3 className="feature-title">Achievement System</h3>
-            <p className="feature-desc">
-              Detailed player statistics, rankings, and achievement badges.
-            </p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-              </svg>
-            </div>
-            <h3 className="feature-title">Real-time Updates</h3>
-            <p className="feature-desc">
-              Instant notifications for match results, tournament updates, and team activities.
-            </p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" />
-                <path d="M16.24 7.76A6 6 0 1 0 19.07 19.07" />
-              </svg>
-            </div>
-            <h3 className="feature-title">24/7 Support</h3>
-            <p className="feature-desc">
-              Dedicated support team available around the clock for technical assistance.
-            </p>
-          </div>
-        </div>
-
-        {/* Built by Gamers */}
-        <section className="built-section">
-          <h2 className="built-title">Built by Gamers, For Gamers</h2>
-          <p className="built-desc">
-            Our team consists of esports professionals, tournament organizers, and tech enthusiasts
-            who understand the gaming community.
-          </p>
-          <div className="badges-container">
-            <span className="badge-pill">🏆 Tournament Winners</span>
-            <span className="badge-pill">👥 Community Leaders</span>
-            <span className="badge-pill">💻 Tech Innovators</span>
-          </div>
-        </section>
-
-        {/* Our Impact */}
-        <div className="section-header">
-          <span className="section-tag">Statistics</span>
-          <h2 className="section-title">Our Impact</h2>
-        </div>
-        <div className="stats-board">
-          <div className="stat-item">
-            <div className="stat-number">10K+</div>
-            <div className="stat-label">Active Players</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number">500+</div>
-            <div className="stat-label">Tournaments</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number">₹50L+</div>
-            <div className="stat-label">Prize Money</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number">200+</div>
-            <div className="stat-label">Active Clans</div>
-          </div>
-        </div>
-
-        {/* CTA Section */}
-        <section className="cta-section">
-          <h2 className="cta-title">Join the Revolution</h2>
-          <p className="cta-desc">
-            Be part of India's fastest-growing esports community. Compete, connect, and conquer.
-          </p>
-          <Link to="/player/register" className="cta-btn">
-            Join Community
-          </Link>
-        </section>
-      </div>
-
+      </main>
       <Footer />
-    </div>
+    </>
   );
 };
 

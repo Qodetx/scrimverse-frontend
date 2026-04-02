@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import './HelpPage.css';
+import {
+  Trophy,
+  Users,
+  Settings,
+  Shield,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  MessageCircle,
+  AlertCircle,
+  BookOpen,
+} from 'lucide-react';
 
 const HelpPage = () => {
   const [openItems, setOpenItems] = useState({});
@@ -11,25 +23,7 @@ const HelpPage = () => {
     {
       category: 'Tournaments & Competitions',
       description: 'Learn how to join tournaments, understand rules, and track your progress.',
-      icon: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-          <path d="M4 22h16" />
-          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-        </svg>
-      ),
+      icon: Trophy,
       faqs: [
         {
           question: 'How to join a tournament',
@@ -56,23 +50,7 @@ const HelpPage = () => {
     {
       category: 'Team Management',
       description: 'Everything about creating teams, inviting members, and team coordination.',
-      icon: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      ),
+      icon: Users,
       faqs: [
         {
           question: 'Creating your team',
@@ -99,21 +77,7 @@ const HelpPage = () => {
     {
       category: 'Account & Profile',
       description: 'Manage your account settings, profile customization, and preferences.',
-      icon: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      ),
+      icon: Settings,
       faqs: [
         {
           question: 'Profile setup',
@@ -140,20 +104,7 @@ const HelpPage = () => {
     {
       category: 'Safety & Guidelines',
       description: 'Community guidelines, reporting systems, and platform safety.',
-      icon: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-        </svg>
-      ),
+      icon: Shield,
       faqs: [
         {
           question: 'Community guidelines',
@@ -184,16 +135,19 @@ const HelpPage = () => {
       title: 'Contact Support',
       description: 'Get direct help from our team',
       link: '/contact',
+      icon: MessageCircle,
     },
     {
       title: 'Report an Issue',
       description: 'Report bugs or problems',
       link: '/report-issue',
+      icon: AlertCircle,
     },
     {
       title: 'Player Guidelines',
       description: 'Learn our community rules',
       link: '/player-guidelines',
+      icon: BookOpen,
     },
   ];
 
@@ -217,110 +171,118 @@ const HelpPage = () => {
     .filter((category) => category.faqs.length > 0);
 
   return (
-    <div className="help-center-wrapper">
-      <div className="glow-overlay"></div>
-      <div className="neon-border-top"></div>
-
-      <header className="help-header">
-        <h1 className="help-title">ScrimVerse Help Center</h1>
-        <p className="help-subtitle">
-          Everything you need to know about competing, hosting, and managing teams on ScrimVerse.
-        </p>
-
-        <div className="search-container">
-          <div className="search-icon">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            className="help-search-input"
-            placeholder="Search for help..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </header>
-
-      <main className="faq-grid">
-        {(searchQuery ? filteredFaqs : faqData).map((category, catIdx) => (
-          <div key={catIdx} className="category-card">
-            <div className="category-header">
-              <div className="category-icon">{category.icon}</div>
-              <h2 className="category-title">{category.category}</h2>
+    <>
+      <Navbar />
+      <main className="min-h-screen">
+        {/* Header section with border-b divider — matches Lovable */}
+        <div className="border-b border-border bg-background/95 backdrop-blur pt-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="text-center space-y-4">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+                ScrimVerse Help Center
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Find answers to your questions and learn how to make the most of ScrimVerse
+              </p>
+              {/* Search */}
+              <div className="relative max-w-md mx-auto pt-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search for help..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                />
+              </div>
             </div>
-            <p className="category-desc">{category.description}</p>
+          </div>
+        </div>
 
-            <div className="accordion-list">
-              {category.faqs.map((faq, faqIdx) => {
-                const isOpen = openItems[`${catIdx}-${faqIdx}`];
-                return (
-                  <div key={faqIdx} className="accordion-item">
-                    <button
-                      className="accordion-trigger"
-                      onClick={() => toggleAccordion(catIdx, faqIdx)}
-                    >
-                      <span>{faq.question}</span>
-                      <svg
-                        className={`chevron-icon ${isOpen ? 'rotated' : ''}`}
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </button>
-                    <div className={`accordion-content ${isOpen ? 'open' : ''}`}>
-                      <p className="answer-text">{faq.answer}</p>
+        {/* FAQ content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* FAQ Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {(searchQuery ? filteredFaqs : faqData).map((category, catIdx) => (
+              <div key={catIdx} className="cyber-card rounded-lg">
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center">
+                      <category.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-foreground text-lg">{category.category}</h2>
+                      <p className="text-sm text-muted-foreground">{category.description}</p>
                     </div>
                   </div>
-                );
-              })}
+
+                  <ul className="space-y-2 mt-4">
+                    {category.faqs.map((faq, faqIdx) => {
+                      const isOpen = openItems[`${catIdx}-${faqIdx}`];
+                      return (
+                        <li key={faqIdx}>
+                          <button
+                            className="w-full flex items-center justify-between px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                            onClick={() => toggleAccordion(catIdx, faqIdx)}
+                          >
+                            <span className="flex items-center gap-2">
+                              <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              {faq.question}
+                            </span>
+                            {isOpen ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            )}
+                          </button>
+                          {isOpen && (
+                            <div className="px-3 py-3 ml-6 text-sm text-muted-foreground bg-secondary/30 rounded-lg mt-1">
+                              {faq.answer}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* No Results */}
+          {searchQuery && filteredFaqs.length === 0 && (
+            <div className="text-center py-12">
+              <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-foreground">No results found</h3>
+              <p className="text-muted-foreground">
+                Try different keywords or browse the categories above
+              </p>
+            </div>
+          )}
+
+          {/* Still Need Help */}
+          <div className="cyber-card rounded-lg p-6">
+            <h2 className="text-2xl font-semibold mb-6 text-center bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+              Still need help?
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {stillHelpCards.map((card, idx) => (
+                <Link
+                  key={idx}
+                  to={card.link}
+                  className="flex flex-col items-center text-center p-4 border border-border rounded-lg hover:border-primary/50 hover:bg-secondary/30 transition-all gap-2"
+                >
+                  <card.icon className="h-6 w-6 text-primary" />
+                  <span className="font-semibold text-foreground">{card.title}</span>
+                  <span className="text-xs text-muted-foreground">{card.description}</span>
+                </Link>
+              ))}
             </div>
           </div>
-        ))}
-      </main>
-
-      <section className="still-help-section">
-        <h2 className="still-help-title">Still need help?</h2>
-        <div className="help-cards-container">
-          {stillHelpCards.map((card, idx) => {
-            if (card.link.startsWith('http') || card.link.startsWith('mailto')) {
-              return (
-                <a key={idx} href={card.link} className="action-card">
-                  <h3 className="action-card-title">{card.title}</h3>
-                  <p className="action-card-desc">{card.description}</p>
-                </a>
-              );
-            }
-            return (
-              <Link key={idx} to={card.link} className="action-card">
-                <h3 className="action-card-title">{card.title}</h3>
-                <p className="action-card-desc">{card.description}</p>
-              </Link>
-            );
-          })}
         </div>
-      </section>
-
+      </main>
       <Footer />
-    </div>
+    </>
   );
 };
 

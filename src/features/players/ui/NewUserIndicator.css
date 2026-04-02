@@ -1,0 +1,85 @@
+.new-user-indicator {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 12px;
+  pointer-events: auto;
+  z-index: 1000;
+}
+
+/* Purple glassmorphic card */
+.indicator-tooltip {
+  position: relative;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(147, 51, 234, 0.1) 100%);
+  backdrop-filter: blur(12px);
+  color: hsl(var(--foreground));
+  padding: 1rem 1.25rem;
+  border-radius: 0.875rem;
+  width: 240px;
+  box-shadow:
+    0 8px 32px rgba(168, 85, 247, 0.2),
+    inset 0 0 1px rgba(168, 85, 247, 0.3);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  animation: tooltipSlideIn 0.3s ease-out;
+}
+
+@keyframes tooltipSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.indicator-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+/* Arrow pointing down from tooltip to the button below */
+.indicator-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(147, 51, 234, 0.1) 100%);
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  border-left: 1px solid rgba(168, 85, 247, 0.25);
+  border-bottom: 1px solid rgba(168, 85, 247, 0.25);
+  backdrop-filter: blur(12px);
+  box-shadow: 4px 4px 8px rgba(168, 85, 247, 0.1);
+}
+
+/* Hide pulse dot entirely */
+.indicator-pulse {
+  display: none;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .new-user-indicator {
+    bottom: 120%;
+    left: auto;
+    right: 0;
+    transform: none;
+    margin-bottom: 8px;
+    margin-right: -20px;
+  }
+
+  .indicator-tooltip {
+    width: 200px;
+  }
+
+  .indicator-text {
+    font-size: 0.85rem;
+  }
+}

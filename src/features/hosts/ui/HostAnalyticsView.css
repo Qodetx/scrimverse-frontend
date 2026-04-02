@@ -1,0 +1,24 @@
+/* HostAnalyticsView.css */
+
+.ha-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.4);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.ha-skeleton {
+  background: hsl(var(--secondary) / 0.4);
+  border-radius: 0.75rem;
+  animation: ha-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ha-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
