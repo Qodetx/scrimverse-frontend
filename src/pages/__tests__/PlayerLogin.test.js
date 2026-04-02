@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { render, mockPlayerUser, mockTokens } from '../../utils/testUtils';
-import PlayerLogin from '../PlayerLogin';
+import PlayerLogin from '../../features/auth/routes/PlayerLogin';
 import { authAPI } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
 

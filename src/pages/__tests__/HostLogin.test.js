@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { render, mockHostUser, mockTokens } from '../../utils/testUtils';
-import HostLogin from '../HostLogin';
+import HostLogin from '../../features/auth/routes/HostLogin';
 import { authAPI } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
 
