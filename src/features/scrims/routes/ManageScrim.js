@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   DollarSign,
   Layers,
+  Video,
+  Swords,
 } from 'lucide-react';
 import { tournamentAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
@@ -33,7 +35,84 @@ import TeamPlayersModal from '../../tournaments/ui/TeamPlayersModal';
 import RoundNamesModal from '../../tournaments/ui/RoundNamesModal';
 import '../../../features/tournaments/routes/ManageTournament.css';
 
-const ManageScrim = ({ inlineId, onBack } = {}) => {
+// Premium Countdown for Scrim
+const StartCountdown = ({ targetDate }) => {
+  const [timeLeft, setTimeLeft] = useState(null);
+
+  useEffect(() => {
+    const calc = () => {
+      const diff = new Date(targetDate) - new Date();
+      if (diff <= 0) {
+        setTimeLeft(null);
+        return;
+      }
+      setTimeLeft({
+        d: Math.floor(diff / 86400000),
+        h: Math.floor((diff / 3600000) % 24),
+        m: Math.floor((diff / 60000) % 60),
+        s: Math.floor((diff / 1000) % 60),
+      });
+    };
+    calc();
+    const t = setInterval(calc, 1000);
+    return () => clearInterval(t);
+  }, [targetDate]);
+
+  if (!timeLeft) return null;
+
+  const pad = (n) => String(n).padStart(2, '0');
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[hsl(var(--accent))] opacity-70">
+        Engine Start Sequence In
+      </p>
+      <div className="flex items-center gap-3">
+        {timeLeft.d > 0 && (
+          <>
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white tabular-nums">
+                {pad(timeLeft.d)}
+              </div>
+              <span className="text-[8px] font-bold text-gray-500 mt-0.5 uppercase tracking-widest">
+                Days
+              </span>
+            </div>
+            <div className="text-white/20 font-black mb-4">:</div>
+          </>
+        )}
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white tabular-nums">
+            {pad(timeLeft.h)}
+          </div>
+          <span className="text-[8px] font-bold text-gray-500 mt-0.5 uppercase tracking-widest">
+            Hrs
+          </span>
+        </div>
+        <div className="text-white/20 font-black mb-4">:</div>
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white tabular-nums">
+            {pad(timeLeft.m)}
+          </div>
+          <span className="text-[8px] font-bold text-gray-500 mt-0.5 uppercase tracking-widest">
+            Min
+          </span>
+        </div>
+        <div className="text-white/20 font-black mb-4">:</div>
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-[hsl(var(--accent))] tabular-nums shadow-[0_0_20px_hsl(var(--accent)/0.2)]">
+            {pad(timeLeft.s)}
+          </div>
+          <span className="text-[8px] font-bold text-gray-500 mt-0.5 uppercase tracking-widest">
+            Sec
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ManageScrim = ({ inlineId, onBack, onStarted } = {}) => {
   const params = useParams();
   const id = inlineId || params.id;
   const navigate = useNavigate();
@@ -142,7 +221,19 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
     async (roundNum) => {
       try {
         const response = await tournamentAPI.getRoundResults(id, roundNum);
-        setFinalStandings(response.data);
+        const data = response.data;
+        // Flatten findings from groups into a results array for UI compatibility
+        let allResults = [];
+        if (data.groups) {
+          data.groups.forEach((group) => {
+            if (group.standings && Array.isArray(group.standings)) {
+              allResults = [...allResults, ...group.standings];
+            }
+          });
+        }
+        // Also sort if multiple groups (usually 1 for scrims)
+        allResults.sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
+        setFinalStandings({ ...data, results: allResults });
       } catch (error) {
         console.error('Error fetching final standings:', error);
       }
@@ -167,6 +258,11 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
         description: response.data.tournament.description || '',
         rules: response.data.tournament.rules || '',
         banner_image: null,
+        live_link: response.data.tournament.live_link || '',
+        max_participants: response.data.tournament.max_participants || 0,
+        tournament_start: response.data.tournament.tournament_start
+          ? new Date(response.data.tournament.tournament_start).toISOString().slice(0, 16)
+          : '',
       });
       setBannerPreview(response.data.tournament.banner_image || null);
 
@@ -212,6 +308,11 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
         description: tournament.description || '',
         rules: tournament.rules || '',
         banner_image: null,
+        live_link: tournament.live_link || '',
+        max_participants: tournament.max_participants || 0,
+        tournament_start: tournament.tournament_start
+          ? new Date(tournament.tournament_start).toISOString().slice(0, 16)
+          : '',
       });
       setBannerPreview(tournament.banner_image || null);
     }
@@ -248,6 +349,13 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
       const formData = new FormData();
       formData.append('title', editData.title);
       formData.append('description', editData.description);
+      formData.append('rules', editData.rules);
+      formData.append('live_link', editData.live_link || '');
+      formData.append('max_participants', editData.max_participants || 0);
+
+      if (editData.tournament_start) {
+        formData.append('tournament_start', new Date(editData.tournament_start).toISOString());
+      }
       formData.append('rules', editData.rules);
 
       // Add round names if they exist
@@ -430,15 +538,27 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
       const response = await tournamentAPI.getRoundResults(id, currentRound);
       const data = response.data;
 
+      // Flatten groups standings into results for UI
+      let flattenedResults = [];
+      if (data.groups) {
+        data.groups.forEach((group) => {
+          if (group.standings && Array.isArray(group.standings)) {
+            flattenedResults = [...flattenedResults, ...group.standings];
+          }
+        });
+      }
+      // Sort
+      flattenedResults.sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
+
       if (data.is_final_round) {
         // Final round completed - show results modal
         await fetchTournamentData();
-        setScrimResultsData(data.results || []);
+        setScrimResultsData(flattenedResults);
         setShowScrimResults(true);
       } else {
         // Regular round - show eliminated teams modal
         await fetchTournamentData();
-        setEliminatedData(data);
+        setEliminatedData({ ...data, results: flattenedResults });
         setShowEliminatedModal(true);
       }
     } catch (error) {
@@ -516,7 +636,7 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
 
   return (
     <div className="min-h-screen bg-transparent manage-tournament-container">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {/* Back button */}
         <button
           onClick={() => (onBack ? onBack() : navigate('/host/dashboard'))}
@@ -534,7 +654,7 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
               <p className="mt-subtitle">Scrim Management</p>
             </div>
             {tournament.status === 'ongoing' && (
-              <span className="mt-round-badge">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/30">
                 <Zap className="h-3 w-3" />
                 Live
               </span>
@@ -543,30 +663,38 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
 
           {/* Action buttons */}
           <div className="mt-actions-bar">
+            {tournament.live_link && (
+              <a
+                href={tournament.live_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-action-btn mt-action-btn-red animate-pulse"
+              >
+                <Video size={14} /> Go Live
+              </a>
+            )}
             <button onClick={() => navigate(`/scrims/${id}`)} className="mt-action-btn">
-              <Eye className="h-3.5 w-3.5" /> View Details
+              <Eye size={14} /> View Details
             </button>
             <button onClick={() => setShowOverviewDialog(true)} className="mt-action-btn">
-              <Info className="h-3.5 w-3.5" /> Overview
+              <Info size={14} /> Overview
             </button>
-            {(tournament.status === 'ongoing' || tournament.status === 'completed') && (
-              <button
-                onClick={() => setShowPointsTable(true)}
-                className="mt-action-btn mt-action-btn-purple"
-              >
-                <BarChart3 className="h-3.5 w-3.5" /> Points Table
-              </button>
-            )}
+            <button
+              onClick={() => setShowPointsTable(true)}
+              className="mt-action-btn mt-action-btn-purple"
+            >
+              <BarChart3 size={14} /> Points Table
+            </button>
             <button
               onClick={handleEditToggle}
               disabled={tournament.status !== 'upcoming' && !isEditing}
               className={`mt-action-btn ${isEditing ? 'active' : ''}`}
             >
-              <Settings className="h-3.5 w-3.5" />
+              <Settings size={14} />
               {isEditing ? 'Cancel Edit' : tournament.status === 'upcoming' ? 'Edit' : 'View'}
             </button>
             <button onClick={handleExportCSV} className="mt-action-btn">
-              <Download className="h-3.5 w-3.5" /> Export CSV
+              <Download size={14} /> Export CSV
             </button>
           </div>
         </div>
@@ -631,10 +759,53 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
                       value={editData.rules}
                       onChange={handleEditChange}
                       disabled={tournament.status !== 'upcoming'}
-                      rows={12}
+                      rows={8}
                       className="w-full px-3 py-2.5 bg-[hsl(var(--card)/0.5)] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] font-mono text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Rules & guidelines..."
                       required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1.5">
+                        Live Stream Link (URL)
+                      </label>
+                      <input
+                        type="url"
+                        name="live_link"
+                        value={editData.live_link}
+                        onChange={handleEditChange}
+                        placeholder="https://youtube.com/..."
+                        className="w-full px-3 py-2.5 bg-[hsl(var(--card)/0.5)] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1.5">
+                        Max Teams
+                      </label>
+                      <input
+                        type="number"
+                        name="max_participants"
+                        value={editData.max_participants}
+                        onChange={handleEditChange}
+                        disabled={tournament.status !== 'upcoming'}
+                        className="w-full px-3 py-2.5 bg-[hsl(var(--card)/0.5)] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1.5">
+                      Start Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="tournament_start"
+                      value={editData.tournament_start}
+                      onChange={handleEditChange}
+                      disabled={tournament.status !== 'upcoming'}
+                      className="w-full px-3 py-2.5 bg-[hsl(var(--card)/0.5)] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -663,64 +834,88 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
           <div className="mt-cyber-card p-4 sm:p-6 mb-4">
             {/* upcoming: start scrim */}
             {tournament.status === 'upcoming' && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-[hsl(var(--accent)/0.15)] flex items-center justify-center mx-auto mb-5 border border-[hsl(var(--accent)/0.2)]">
-                  <Settings className="h-8 w-8 text-[hsl(var(--accent))]" />
+              <div className="space-y-4">
+                <div className="text-center py-8 bg-[hsl(var(--accent)/0.02)] border border-[hsl(var(--accent)/0.1)] rounded-3xl relative overflow-hidden">
+                  {/* Decorative background pulse */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--accent)/0.05)] to-transparent opacity-50" />
+
+                  <div className="relative z-10">
+                    <div className="w-16 h-16 rounded-full bg-[hsl(var(--accent)/0.1)] flex items-center justify-center mx-auto mb-4 border border-[hsl(var(--accent)/0.2)] shadow-[0_0_50px_hsl(var(--accent)/0.15)]">
+                      <Zap className="h-8 w-8 text-[hsl(var(--accent))]" />
+                    </div>
+
+                    <h2 className="text-2xl font-black text-[hsl(var(--foreground))] mb-2 uppercase tracking-tight">
+                      Scrim Ready
+                    </h2>
+
+                    <div className="mb-6">
+                      <StartCountdown targetDate={tournament.tournament_start} />
+                    </div>
+
+                    <p className="text-[hsl(var(--muted-foreground))] text-[11px] mb-6 font-medium">
+                      <span className="text-[hsl(var(--foreground))] font-bold">
+                        {tournament.current_participants}
+                      </span>{' '}
+                      of {tournament.max_participants} teams are locked in
+                    </p>
+
+                    <div className="flex justify-center">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await tournamentAPI.startTournament(tournament.id);
+                            showToast('Scrim started successfully!');
+                            if (onStarted) {
+                              onStarted();
+                            } else {
+                              fetchTournamentData();
+                            }
+                          } catch (error) {
+                            console.error('Error starting scrim:', error);
+                            const errorMsg = error.response?.data?.error || 'Failed to start scrim';
+                            showToast(errorMsg, 'error');
+                          }
+                        }}
+                        disabled={new Date() < new Date(tournament.tournament_start)}
+                        className={`group relative inline-flex items-center gap-3 px-12 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${
+                          new Date() < new Date(tournament.tournament_start)
+                            ? 'bg-[hsl(var(--secondary)/0.5)] text-[hsl(var(--muted-foreground))] cursor-not-allowed border border-[hsl(var(--border)/0.5)]'
+                            : 'bg-white text-black hover:scale-105 active:scale-95 shadow-[0_0_50px_rgba(255,255,255,0.2)]'
+                        }`}
+                      >
+                        {new Date() < new Date(tournament.tournament_start) ? (
+                          <>
+                            <Swords className="h-4 w-4" />
+                            Combat Locked
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-4 w-4 fill-current" />
+                            Initialize Scrim
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <h2 className="text-xl font-bold text-[hsl(var(--foreground))] mb-2">
-                  {getEventLabel()} Ready
-                </h2>
-                {new Date() < new Date(tournament.tournament_start) && (
-                  <p className="text-[hsl(var(--muted-foreground))] text-sm mb-1">
-                    Unlocks at {new Date(tournament.tournament_start).toLocaleString()}
-                  </p>
-                )}
-                <p className="text-[hsl(var(--muted-foreground))] text-sm mb-6">
-                  {tournament.current_participants}/{tournament.max_participants} teams registered
-                </p>
-                <button
-                  onClick={async () => {
-                    try {
-                      await tournamentAPI.startTournament(tournament.id);
-                      showToast('Scrim started successfully!');
-                      fetchTournamentData();
-                    } catch (error) {
-                      console.error('Error starting scrim:', error);
-                      const errorMsg = error.response?.data?.error || 'Failed to start scrim';
-                      showToast(errorMsg, 'error');
-                    }
-                  }}
-                  disabled={new Date() < new Date(tournament.tournament_start)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[hsl(142_76%_36%)] hover:bg-[hsl(142_76%_30%)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold text-sm transition-colors"
-                >
-                  {new Date() < new Date(tournament.tournament_start)
-                    ? 'Locked'
-                    : `Start ${getEventLabel()}`}
-                </button>
               </div>
             )}
 
             {/* completed: victory / standings */}
             {tournament.status === 'completed' && (
-              <div className="space-y-4">
-                {/* Victory Header */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-[hsl(var(--accent)/0.08)] border border-[hsl(var(--accent)/0.2)]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[hsl(var(--accent)/0.15)] flex items-center justify-center">
-                      <svg
-                        className="w-5 h-5 text-[hsl(var(--accent))]"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
+              <div className="space-y-6">
+                {/* Celebratory Victory Header */}
+                <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center border border-accent/30">
+                      <Trophy className="w-6 h-6 text-accent" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-[hsl(var(--foreground))]">
-                        {getEventLabel()} Concluded
+                      <h3 className="text-lg font-black text-white tracking-tight leading-none mb-1 text-xs uppercase">
+                        {getEventLabel()} CONCLUDED
                       </h3>
-                      <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                        {finalStandings?.results?.length || 0} teams in final standings
+                      <p className="text-sm font-medium text-gray-400">
+                        {finalStandings?.results?.length || 0} warriors survived the battle
                       </p>
                     </div>
                   </div>
@@ -730,103 +925,80 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
                         setScrimResultsData(finalStandings.results);
                         setShowScrimResults(true);
                       }}
-                      style={{ backgroundColor: '#ffffff', color: '#111111' }}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm"
+                      className="px-5 py-2 rounded-xl bg-white text-dark-bg font-black text-xs uppercase tracking-wider hover:bg-gray-200 transition-all flex items-center gap-2"
                     >
-                      <Trophy className="h-4 w-4" />
-                      View Full Results
+                      <BarChart3 className="w-4 h-4" />
+                      View STANDINGS
                     </button>
                   )}
                 </div>
 
-                {/* Champion Podium - Horizontal Premium Cards */}
+                {/* Champion Podium - Sleek & Compact */}
                 {finalStandings?.results && finalStandings.results.length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* 1st Place - Champion */}
-                    {finalStandings.results[0] && (
+                    {finalStandings.results.slice(0, 3).map((team, idx) => (
                       <div
-                        onClick={() => handleWinnerClick(finalStandings.results[0])}
-                        className="md:col-span-3 lg:col-span-1 relative group cursor-pointer"
+                        key={team.team_id || idx}
+                        onClick={() => handleWinnerClick(team)}
+                        className={`relative group cursor-pointer overflow-hidden rounded-2xl border transition-all duration-300 ${
+                          idx === 0
+                            ? 'bg-gradient-to-br from-[#FFD700]/10 to-transparent border-[#FFD700]/20 hover:border-[#FFD700]/40 p-6'
+                            : idx === 1
+                              ? 'bg-gradient-to-br from-gray-400/10 to-transparent border-white/5 hover:border-gray-400/30 p-5'
+                              : 'bg-gradient-to-br from-[#CD7F32]/10 to-transparent border-white/5 hover:border-[#CD7F32]/30 p-5'
+                        }`}
                       >
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-gold/20 via-accent-gold/10 to-transparent border-2 border-accent-gold/40 p-6 hover:border-accent-gold/60 transition-all">
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-accent-gold/10 rounded-full blur-2xl group-hover:blur-3xl transition-all"></div>
-                          <div className="relative flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-accent-gold to-yellow-600 flex items-center justify-center text-white font-black text-2xl shrink-0 group-hover:scale-110 transition-transform">
-                              {finalStandings.results[0].team_name?.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <svg
-                                  className="w-4 h-4 text-accent-gold"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                <span className="text-accent-gold text-xs font-black uppercase">
-                                  Champion
-                                </span>
-                              </div>
-                              <h4 className="text-white font-black text-xl truncate mb-1">
-                                {finalStandings.results[0].team_name}
-                              </h4>
-                              <p className="text-accent-gold font-black text-lg">
-                                {finalStandings.results[0].total_points}{' '}
-                                <span className="text-xs opacity-60">PTS</span>
-                              </p>
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-14 h-14 rounded-xl flex items-center justify-center font-black text-2xl shadow-lg transition-transform duration-500 group-hover:scale-110 ${
+                              idx === 0
+                                ? 'bg-gradient-to-br from-[#FFD700] to-[#B8860B] text-dark-bg'
+                                : idx === 1
+                                  ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-dark-bg'
+                                  : 'bg-gradient-to-br from-[#CD7F32] to-[#8B4513] text-white'
+                            }`}
+                          >
+                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span
+                              className={`text-[10px] font-black uppercase tracking-widest mb-1 block ${
+                                idx === 0
+                                  ? 'text-[#FFD700]'
+                                  : idx === 1
+                                    ? 'text-gray-300'
+                                    : 'text-[#CD7F32]'
+                              }`}
+                            >
+                              {idx === 0
+                                ? '🏆 CHAMPION'
+                                : idx === 1
+                                  ? '🥈 RUNNER UP'
+                                  : '🥉 3RD PLACE'}
+                            </span>
+                            <h4 className="text-white font-bold text-lg truncate leading-tight">
+                              {team.team_name}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span
+                                className={`text-sm font-black ${
+                                  idx === 0
+                                    ? 'text-[#FFD700]'
+                                    : idx === 1
+                                      ? 'text-gray-300'
+                                      : 'text-[#CD7F32]'
+                                }`}
+                              >
+                                {team.total_points}
+                              </span>
+                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                PTS
+                              </span>
                             </div>
                           </div>
                         </div>
                       </div>
-                    )}
-
-                    {/* 2nd Place */}
-                    {finalStandings.results[1] && (
-                      <div
-                        onClick={() => handleWinnerClick(finalStandings.results[1])}
-                        className="relative group cursor-pointer"
-                      >
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-400/10 via-gray-400/5 to-transparent border border-gray-400/20 p-5 hover:border-gray-400/40 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center text-white font-black text-lg shrink-0">
-                              2
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white font-bold text-base truncate mb-0.5">
-                                {finalStandings.results[1].team_name}
-                              </p>
-                              <p className="text-gray-400 font-bold text-sm">
-                                {finalStandings.results[1].total_points} PTS
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 3rd Place */}
-                    {finalStandings.results[2] && (
-                      <div
-                        onClick={() => handleWinnerClick(finalStandings.results[2])}
-                        className="relative group cursor-pointer"
-                      >
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-transparent border border-orange-500/20 p-5 hover:border-orange-500/40 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-400 to-orange-700 flex items-center justify-center text-white font-black text-lg shrink-0">
-                              3
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white font-bold text-base truncate mb-0.5">
-                                {finalStandings.results[2].team_name}
-                              </p>
-                              <p className="text-gray-400 font-bold text-sm">
-                                {finalStandings.results[2].total_points} PTS
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
 
@@ -951,7 +1123,7 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
                             <div className="flex items-center gap-3">
                               <button
                                 onClick={() => setShowRoundConfigModal(true)}
-                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[hsl(var(--border)/0.4)] bg-[hsl(var(--secondary)/0.4)] hover:bg-[hsl(var(--secondary)/0.7)] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] text-xs font-medium transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 hover:text-orange-300 text-xs font-medium transition-colors"
                               >
                                 <Settings className="h-3 w-3" />
                                 Reconfigure
@@ -1031,7 +1203,7 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
                                 </span>
                               </div>
                               {activeMatch.status === 'ongoing' && (
-                                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/30 animate-pulse">
+                                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/30">
                                   LIVE
                                 </span>
                               )}
@@ -1160,7 +1332,10 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
                                   </button>
                                 </>
                               )}
-                              {activeMatch.status === 'ended' && (
+                              {/* Match Control Buttons */}
+                              {(activeMatch.status === 'ended' ||
+                                (activeMatch.status === 'completed' &&
+                                  !activeMatch.scores_submitted)) && (
                                 <button
                                   onClick={() => {
                                     setSelectedGroup(scrimGroup);
@@ -1172,19 +1347,20 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
                                   Enter Points Table
                                 </button>
                               )}
-                              {activeMatch.status === 'completed' && (
-                                <button
-                                  onClick={() => {
-                                    setSelectedGroup(scrimGroup);
-                                    handleViewPoints(activeMatch);
-                                  }}
-                                  style={{ backgroundColor: '#ffffff', color: '#111111' }}
-                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors hover:opacity-90"
-                                >
-                                  <BarChart3 className="h-4 w-4" />
-                                  View Points
-                                </button>
-                              )}
+                              {activeMatch.status === 'completed' &&
+                                activeMatch.scores_submitted && (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedGroup(scrimGroup);
+                                      handleViewPoints(activeMatch);
+                                    }}
+                                    style={{ backgroundColor: '#ffffff', color: '#111111' }}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors hover:opacity-90"
+                                  >
+                                    <BarChart3 className="h-4 w-4" />
+                                    View Points
+                                  </button>
+                                )}
                             </div>
                           </div>
                         )}
@@ -1226,7 +1402,7 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
                                   onClick={() => handleTeamClick(team)}
                                   className="px-3 py-2 bg-[hsl(var(--secondary)/0.3)] hover:bg-[hsl(var(--secondary)/0.5)] rounded-lg text-sm text-center truncate border border-[hsl(var(--border)/0.3)] cursor-pointer transition-colors text-[hsl(var(--foreground))]"
                                 >
-                                  {team.team_name}
+                                  {team.team_name || team.player_name || 'Guest Player'}
                                 </div>
                               ))}
                             </div>
@@ -1764,6 +1940,13 @@ const ManageScrim = ({ inlineId, onBack } = {}) => {
           }}
           team={selectedTeam}
           tournamentId={id}
+        />
+
+        <ScrimPointsTableModal
+          isOpen={showPointsTable}
+          onClose={() => setShowPointsTable(false)}
+          tournamentId={id}
+          roundNumber={currentRound}
         />
 
         <RoundNamesModal

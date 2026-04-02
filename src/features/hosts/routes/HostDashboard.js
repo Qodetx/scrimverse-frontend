@@ -645,6 +645,10 @@ const HostDashboard = () => {
           <ManageScrim
             inlineId={managingTournamentId}
             onBack={() => setManagingTournamentId(null)}
+            onStarted={() => {
+              setManagingTournamentId(null);
+              setActiveView('tournaments');
+            }}
           />
         );
       }

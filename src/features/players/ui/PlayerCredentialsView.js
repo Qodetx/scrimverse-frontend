@@ -345,15 +345,10 @@ const CredentialCard = ({ registration }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling: every 30s, if current round has no credentials yet, re-fetch.
-  // This ensures credentials entered by the host appear without a page refresh.
+  // Polling: every 10s, if tournament is not completed, re-fetch the current round.
+  // This ensures credentials entered or updated by the host appear without a page refresh.
   useEffect(() => {
-    const hasCredentials = () => {
-      const groups = roundsData[selectedRound];
-      return Array.isArray(groups) && groups.some((g) => (g.matches || []).some((m) => m.match_id));
-    };
-
-    if (hasCredentials()) return; // Already have credentials — no need to poll
+    if (tournament.status === 'completed') return;
 
     const id = setInterval(() => {
       // Force re-fetch by clearing the cached value for this round
@@ -362,11 +357,11 @@ const CredentialCard = ({ registration }) => {
         delete next[selectedRound];
         return next;
       });
-    }, 30000);
+    }, 10000); // 10 seconds
 
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRound, roundsData]);
+  }, [selectedRound, tournament.status]);
 
   // Auto-reveal: when countdown expires, clear cache and re-fetch
   const prevExpired = useRef(false);

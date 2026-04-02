@@ -361,7 +361,52 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
     async (roundNum) => {
       try {
         const response = await tournamentAPI.getRoundResults(id, roundNum);
-        setFinalStandings(response.data);
+        const data = response.data;
+
+        // Flatten standings from all groups into a single results array
+        let allResults = [];
+        if (data.groups) {
+          data.groups.forEach((group) => {
+            if (group.standings && Array.isArray(group.standings)) {
+              allResults = [...allResults, ...group.standings];
+            } else if (group.standings && typeof group.standings === 'object') {
+              // Handle single group standings object if needed
+              const standingsArray = Object.values(group.standings).filter(
+                (s) => typeof s === 'object'
+              );
+              allResults = [...allResults, ...standingsArray];
+            }
+          });
+        }
+
+        // Merge with existing results if any
+        if (data.results && Array.isArray(data.results)) {
+          allResults = [...allResults, ...data.results];
+        }
+
+        // Remove duplicates and sort by total points
+        const seenTeams = new Set();
+        const uniqueResults = allResults.filter((team) => {
+          const id = team.team_id || team.id;
+          if (!id || seenTeams.has(id)) return false;
+          seenTeams.add(id);
+          return true;
+        });
+
+        uniqueResults.sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
+
+        // Resolve names from registrations if missing
+        const resultsWithNames = uniqueResults.map((result) => {
+          if (!result.team_name && (result.team_id || result.id)) {
+            const reg = response.data.registrations?.find(
+              (r) => r.team === (result.team_id || result.id)
+            );
+            if (reg) return { ...result, team_name: reg.team_name };
+          }
+          return result;
+        });
+
+        setFinalStandings({ ...data, results: resultsWithNames });
       } catch (error) {
         console.error('Error fetching final standings:', error);
       }
@@ -2167,16 +2212,16 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                           champion && (
                             <div
                               onClick={() => handleWinnerClick(champion)}
-                              className="md:col-span-3 lg:col-span-1 cursor-pointer"
+                              className="cursor-pointer"
                             >
-                              <div className="info-grid-card p-4 border-yellow-500/30 hover:border-yellow-500/50 transition-colors">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-12 h-12 rounded-lg bg-yellow-500/20 flex items-center justify-center text-yellow-500 font-bold text-lg shrink-0">
-                                    {champion.team_name?.charAt(0).toUpperCase()}
+                              <div className="info-grid-card p-3 border-yellow-500/30 hover:border-yellow-500/50 transition-colors h-full">
+                                <div className="flex items-center gap-3 h-full">
+                                  <div className="w-11 h-11 rounded-lg bg-yellow-500/20 flex items-center justify-center text-xl shrink-0">
+                                    🥇
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <span className="text-yellow-500 text-[10px] font-semibold uppercase">
-                                      Champion
+                                    <span className="text-yellow-500 text-[10px] font-semibold uppercase flex items-center gap-1">
+                                      🥇 CHAMPION
                                     </span>
                                     <h4 className="text-foreground font-bold text-base truncate">
                                       {champion.team_name}
@@ -2199,19 +2244,31 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                       {finalStandings.results?.[1] && (
                         <div
                           onClick={() => handleWinnerClick(finalStandings.results[1])}
-                          className="cursor-pointer"
+                          className="cursor-pointer h-full"
                         >
-                          <div className="info-grid-card p-4 hover:border-muted-foreground/30 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground font-bold shrink-0">
-                                2
+                          <div className="info-grid-card p-3 hover:border-muted-foreground/30 transition-colors h-full">
+                            <div className="flex items-center gap-3 h-full">
+                              <div className="w-11 h-11 rounded-lg bg-secondary flex items-center justify-center text-xl shrink-0">
+                                🥈
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-foreground font-semibold text-sm truncate">
-                                  {finalStandings.results[1].team_name}
-                                </p>
-                                <p className="text-muted-foreground text-xs">
-                                  {finalStandings.results[1].total_points} PTS
+                                <span className="text-gray-400 text-[10px] font-semibold uppercase">
+                                  RUNNER UP
+                                </span>
+                                <h4 className="text-foreground font-bold text-base truncate">
+                                  {finalStandings.results[1].team_name ||
+                                    finalStandings.results[1].name ||
+                                    'Team 2'}
+                                </h4>
+                                <p className="text-muted-foreground font-semibold text-sm">
+                                  {finalStandings.results[1].total_points ||
+                                    finalStandings.results[1].match_wins ||
+                                    0}{' '}
+                                  <span className="text-xs opacity-60">
+                                    {finalStandings.results[1].match_wins !== undefined
+                                      ? 'WINS'
+                                      : 'PTS'}
+                                  </span>
                                 </p>
                               </div>
                             </div>
@@ -2223,19 +2280,31 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                       {finalStandings.results?.[2] && (
                         <div
                           onClick={() => handleWinnerClick(finalStandings.results[2])}
-                          className="cursor-pointer"
+                          className="cursor-pointer h-full"
                         >
-                          <div className="info-grid-card p-4 hover:border-orange-500/30 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-orange-500/15 flex items-center justify-center text-orange-500 font-bold shrink-0">
-                                3
+                          <div className="info-grid-card p-3 hover:border-orange-500/30 transition-colors h-full">
+                            <div className="flex items-center gap-3 h-full">
+                              <div className="w-11 h-11 rounded-lg bg-orange-500/15 flex items-center justify-center text-xl shrink-0">
+                                🥉
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-foreground font-semibold text-sm truncate">
-                                  {finalStandings.results[2].team_name}
-                                </p>
-                                <p className="text-muted-foreground text-xs">
-                                  {finalStandings.results[2].total_points} PTS
+                                <span className="text-orange-500/70 text-[10px] font-semibold uppercase">
+                                  3RD PLACE
+                                </span>
+                                <h4 className="text-foreground font-bold text-base truncate">
+                                  {finalStandings.results[2].team_name ||
+                                    finalStandings.results[2].name ||
+                                    'Team 3'}
+                                </h4>
+                                <p className="text-muted-foreground font-semibold text-sm">
+                                  {finalStandings.results[2].total_points ||
+                                    finalStandings.results[2].match_wins ||
+                                    0}{' '}
+                                  <span className="text-xs opacity-60">
+                                    {finalStandings.results[2].match_wins !== undefined
+                                      ? 'WINS'
+                                      : 'PTS'}
+                                  </span>
                                 </p>
                               </div>
                             </div>

@@ -22,7 +22,7 @@ const MatchPointsModal = ({
           const saved = match.scores.find((s) => s.team_id === team.id || s.team === team.id);
           return {
             team_id: team.id,
-            team_name: team.team_name,
+            team_name: team.team_name || team.player_name || 'Guest Player',
             wins: saved?.wins ?? 0,
             position_points: saved?.position_points ?? 0,
             kill_points: saved?.kill_points ?? 0,
@@ -32,7 +32,7 @@ const MatchPointsModal = ({
       } else {
         const initialScores = teams.map((team) => ({
           team_id: team.id,
-          team_name: team.team_name,
+          team_name: team.team_name || team.player_name || 'Guest Player',
           wins: '',
           position_points: '',
           kill_points: '',
@@ -116,30 +116,13 @@ const MatchPointsModal = ({
         {/* Header */}
         <div className="mpm-header">
           <div className="mpm-header-left">
-            <div className="mpm-header-icon">
-              <svg className="mpm-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h2 className="mpm-title">
-                {readOnly
-                  ? `Points - Match ${match?.match_number}`
-                  : is5v5Game
-                    ? 'Select Winner'
-                    : `Enter Points - Match ${match?.match_number}`}
-              </h2>
-              {!is5v5Game && !readOnly && (
-                <p className="mpm-subtitle">
-                  Enter points for each team. Total = Placement + Kill Points
-                </p>
-              )}
-            </div>
+            <h2 className="mpm-title">
+              {readOnly
+                ? `Match ${match?.match_number} Points Table`
+                : is5v5Game
+                  ? 'Select Winner'
+                  : `Match ${match?.match_number} Points Table`}
+            </h2>
           </div>
           <button className="mpm-close" onClick={onClose}>
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-4 h-4">
@@ -239,82 +222,27 @@ const MatchPointsModal = ({
             ) : (
               /* ── BR STANDARD LAYOUT ── */
               <>
-                <div className="mpm-note">
-                  <svg
-                    className="mpm-note-icon"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>
-                    <strong>Note:</strong> Wins are for display only. Total Points = Position Points
-                    + Kill Points
-                  </span>
-                </div>
-
                 <div className="mpm-table-wrap">
                   <table className="mpm-table">
                     <thead>
                       <tr>
+                        <th className="mpm-th mpm-th-num">#</th>
                         <th className="mpm-th mpm-th-team">Team Name</th>
-                        <th className="mpm-th mpm-th-score">Wins</th>
-                        <th className="mpm-th mpm-th-score">Placement Pts</th>
-                        <th className="mpm-th mpm-th-score">Kill Pts</th>
-                        <th className="mpm-th mpm-th-total">Total Pts</th>
+                        <th className="mpm-th mpm-th-score">Placement</th>
+                        <th className="mpm-th mpm-th-score">Kills</th>
+                        <th className="mpm-th mpm-th-total">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {scores.map((score, idx) => (
                         <tr key={score.team_id} className="mpm-row">
+                          <td className="mpm-td mpm-td-num">
+                            <span className="mpm-team-num">{idx + 1}</span>
+                          </td>
                           <td className="mpm-td mpm-td-team">
                             <div className="mpm-team-cell">
-                              <span className="mpm-team-num">{idx + 1}</span>
-                              <div className="mpm-team-avatar">
-                                <svg
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                  className="mpm-avatar-icon"
-                                >
-                                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                                </svg>
-                              </div>
                               <span className="mpm-team-name">{score.team_name}</span>
                             </div>
-                          </td>
-                          <td className="mpm-td mpm-td-score">
-                            {readOnly ? (
-                              <span className="mpm-total">{score.wins ?? 0}</span>
-                            ) : (
-                              <input
-                                type="number"
-                                min="0"
-                                max="1"
-                                value={score.wins}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (val === '1' || val === '' || val === '0') {
-                                    handleScoreChange(score.team_id, 'wins', val);
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown')
-                                    e.preventDefault();
-                                }}
-                                disabled={
-                                  scores.some((s) => s.wins === 1 || s.wins === '1') &&
-                                  score.wins !== 1 &&
-                                  score.wins !== '1'
-                                }
-                                className={`mpm-input ${scores.some((s) => s.wins === 1 || s.wins === '1') && score.wins !== 1 && score.wins !== '1' ? 'mpm-input--disabled' : ''}`}
-                              />
-                            )}
                           </td>
                           <td className="mpm-td mpm-td-score">
                             {readOnly ? (

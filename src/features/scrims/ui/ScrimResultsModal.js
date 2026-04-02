@@ -5,9 +5,9 @@ const ScrimResultsModal = ({ isOpen, onClose, results = [], scrimName }) => {
   if (!isOpen) return null;
 
   const getRankDisplay = (index) => {
-    if (index === 0) return '🥇';
-    if (index === 1) return '🥈';
-    if (index === 2) return '🥉';
+    if (index === 0) return <span style={{ fontSize: '1.25rem' }}>🥇</span>;
+    if (index === 1) return <span style={{ fontSize: '1.25rem' }}>🥈</span>;
+    if (index === 2) return <span style={{ fontSize: '1.25rem' }}>🥉</span>;
     return index + 1;
   };
 
@@ -29,7 +29,7 @@ const ScrimResultsModal = ({ isOpen, onClose, results = [], scrimName }) => {
         style={{
           background: '#111111',
           border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '0.75rem',
+          borderRadius: '1rem',
           boxShadow: '0 25px 60px rgba(0,0,0,0.9)',
           width: '95vw',
           maxWidth: '800px',
@@ -46,15 +46,23 @@ const ScrimResultsModal = ({ isOpen, onClose, results = [], scrimName }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '1.25rem 1.5rem',
+            padding: '1.5rem 2rem',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
             flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <span style={{ fontSize: '1.25rem' }}>🏆</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>🏆</span>
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, color: '#f0f0f0' }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: '1.25rem',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  letterSpacing: '-0.02em',
+                }}
+              >
                 {scrimName} — Final Results
               </h2>
             </div>
@@ -62,18 +70,21 @@ const ScrimResultsModal = ({ isOpen, onClose, results = [], scrimName }) => {
           <button
             onClick={onClose}
             style={{
-              background: 'none',
+              background: 'rgba(255,255,255,0.05)',
               border: 'none',
-              color: '#888',
+              color: '#ffffff',
               cursor: 'pointer',
-              width: '2rem',
-              height: '2rem',
+              width: '2.5rem',
+              height: '2.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: '0.375rem',
-              fontSize: '1rem',
+              borderRadius: '0.75rem',
+              fontSize: '1.125rem',
+              transition: 'all 0.2s',
             }}
+            onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+            onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
           >
             ✕
           </button>
@@ -83,17 +94,17 @@ const ScrimResultsModal = ({ isOpen, onClose, results = [], scrimName }) => {
         <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#1a1a1a' }}>
+              <tr style={{ background: '#111111' }}>
                 {['Rank', 'Team Name', 'Matches', 'Placement', 'Kills', 'Total'].map((h) => (
                   <th
                     key={h}
                     style={{
-                      padding: '0.625rem 1rem',
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      color: '#888',
+                      padding: '1rem 1.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      color: '#666666',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.07em',
+                      letterSpacing: '0.1em',
                       textAlign: h === 'Team Name' ? 'left' : 'center',
                       borderBottom: '1px solid rgba(255,255,255,0.08)',
                       whiteSpace: 'nowrap',
@@ -109,67 +120,81 @@ const ScrimResultsModal = ({ isOpen, onClose, results = [], scrimName }) => {
                 <tr
                   key={team.team_id || index}
                   style={{
-                    background: index < 3 ? 'rgba(139,92,246,0.04)' : 'transparent',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    background:
+                      index === 0
+                        ? 'rgba(255,215,0,0.03)'
+                        : index === 1
+                          ? 'rgba(192,192,192,0.03)'
+                          : index === 2
+                            ? 'rgba(205,127,50,0.03)'
+                            : 'transparent',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    transition: 'background 0.2s',
                   }}
+                  onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                  onMouseOut={(e) =>
+                    (e.currentTarget.style.background =
+                      index === 0
+                        ? 'rgba(255,215,0,0.03)'
+                        : index === 1
+                          ? 'rgba(192,192,192,0.03)'
+                          : index === 2
+                            ? 'rgba(205,127,50,0.03)'
+                            : 'transparent')
+                  }
                 >
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '1rem' }}>
+                  <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
                     {getRankDisplay(index)}
                   </td>
                   <td
                     style={{
-                      padding: '0.75rem 1rem',
-                      fontWeight: 600,
-                      color: '#f0f0f0',
-                      fontSize: '0.875rem',
+                      padding: '1rem 1.5rem',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      fontSize: '0.9375rem',
                     }}
                   >
                     {team.team_name}
                   </td>
                   <td
                     style={{
-                      padding: '0.75rem 1rem',
+                      padding: '1rem 1.5rem',
                       textAlign: 'center',
-                      color: '#aaa',
-                      fontSize: '0.875rem',
+                      color: '#888888',
+                      fontSize: '0.9375rem',
+                      fontWeight: 600,
                     }}
                   >
-                    {team.matches_played || '—'}
+                    {team.matches_played || team.matches || 0}
                   </td>
                   <td
                     style={{
-                      padding: '0.75rem 1rem',
+                      padding: '1rem 1.5rem',
                       textAlign: 'center',
-                      color: '#aaa',
-                      fontSize: '0.875rem',
+                      color: '#ffffff',
+                      fontSize: '0.9375rem',
+                      fontWeight: 600,
                     }}
                   >
                     {team.position_points || 0}
                   </td>
                   <td
                     style={{
-                      padding: '0.75rem 1rem',
+                      padding: '1rem 1.5rem',
                       textAlign: 'center',
-                      color: '#aaa',
-                      fontSize: '0.875rem',
+                      color: '#ffffff',
+                      fontSize: '0.9375rem',
+                      fontWeight: 600,
                     }}
                   >
                     {team.kill_points || team.total_kills || 0}
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                  <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
                     <span
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '2.5rem',
-                        padding: '0.2rem 0.5rem',
-                        background: 'rgba(139,92,246,0.15)',
-                        border: '1px solid rgba(139,92,246,0.3)',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.875rem',
-                        fontWeight: 700,
-                        color: '#a78bfa',
+                        fontSize: '1rem',
+                        fontWeight: 900,
+                        color: '#8b5cf6', // Lovable Purple
                       }}
                     >
                       {team.total_points || 0}
