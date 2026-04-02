@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { tournamentAPI, authAPI, paymentsAPI, teamAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
+import Navbar from '../../../components/Navbar';
 import RegistrationModal from '../ui/RegistrationModal';
 import './TournamentDetail.css';
 
@@ -340,6 +341,11 @@ const TournamentDetail = () => {
     try {
       const response = await tournamentAPI.getTournament(id);
       const data = response.data;
+      // Redirect if this is actually a scrim
+      if ((data.event_mode || '').toUpperCase() === 'SCRIM') {
+        navigate(`/scrims/${id}`, { replace: true });
+        return;
+      }
       setTournament(data);
       // Fetch results leaderboard for completed tournaments
       if (data.status === 'completed') {
@@ -811,17 +817,13 @@ const TournamentDetail = () => {
           </button>
         </div>
       )}
-      {/* ── Logo-only top bar ── */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/95 backdrop-blur-lg border-b border-border/30 flex items-center px-4">
-        <Link to="/" className="font-bold text-foreground text-base tracking-tight">
-          ScrimVerse
-        </Link>
-      </div>
+      {/* ── Standard Navbar ── */}
+      <Navbar />
 
       {/* ══════════════════════════════════════
           HERO SECTION
       ══════════════════════════════════════ */}
-      <section className="td-hero-section" style={{ paddingTop: '56px' }}>
+      <section className="td-hero-section" style={{ paddingTop: '64px' }}>
         <div
           className="td-hero-image-wrapper"
           style={{

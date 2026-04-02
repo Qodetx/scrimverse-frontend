@@ -1609,7 +1609,7 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
               />
             </button>
             {teamDropdownOpen && (
-              <div className="tm-dropdown-menu">
+              <div className="tm-dropdown-menu tm-game-switcher-dropdown">
                 {GAME_OPTIONS.map((g) => {
                   const hasTeam = !!gameTeamMap[g];
                   return (

@@ -70,6 +70,13 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
+@media (max-width: 640px) {
+  .tm-game-switcher-dropdown {
+    right: auto !important;
+    left: 0 !important;
+  }
+}
+
 .tm-dropdown-item {
   display: flex;
   align-items: center;
@@ -1232,11 +1239,52 @@
 /* ── Role picker ─────────────────────────────────────────────────────────── */
 .tm-role-picker {
   border-top: 1px solid hsl(var(--border) / 0.4);
-  margin-top: 2px;
-  padding-top: 2px;
+  margin-top: 4px;
+  max-height: 180px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1px;
+  /* Premium scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--purple) / 0.3) transparent;
+}
+
+.tm-role-picker::-webkit-scrollbar {
+  width: 4px;
+}
+.tm-role-picker::-webkit-scrollbar-thumb {
+  background: hsl(var(--purple) / 0.3);
+  border-radius: 10px;
+}
+
+@media (min-width: 768px) {
+  .tm-role-picker {
+    position: absolute;
+    right: calc(100% + 4px); /* Show to the LEFT of the main menu */
+    bottom: 0; /* Align to bottom and expand UP */
+    width: 150px;
+    background: hsl(0 0% 7%);
+    border: 1px solid hsl(var(--border) / 0.6);
+    border-radius: 8px;
+    padding: 4px;
+    margin-top: 0;
+    max-height: 320px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  }
+
+  .tm-role-picker::after {
+    content: '';
+    position: absolute;
+    bottom: 35px; /* Position arrow near the bottom item (Set Role) */
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    background: hsl(0 0% 7%);
+    border-right: 1px solid hsl(var(--border) / 0.6);
+    border-top: 1px solid hsl(var(--border) / 0.6);
+    transform: rotate(45deg);
+  }
 }
 
 .tm-role-option {
@@ -1244,15 +1292,13 @@
   border: none;
   color: hsl(var(--muted-foreground));
   font-size: 11px;
-  padding: 5px 10px 5px 22px;
-  border-radius: 4px;
+  padding: 7px 12px;
+  border-radius: 6px;
   cursor: pointer;
   text-align: left;
   width: 100%;
   white-space: nowrap;
-  transition:
-    background 0.12s,
-    color 0.12s;
+  transition: all 0.12s;
 }
 
 .tm-role-option:hover {
@@ -1261,6 +1307,7 @@
 }
 
 .tm-role-option.active {
+  background: hsl(var(--purple) / 0.1);
   color: hsl(var(--purple));
-  font-weight: 600;
+  font-weight: 700;
 }

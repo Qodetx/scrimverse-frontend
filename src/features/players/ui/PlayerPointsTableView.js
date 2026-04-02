@@ -46,7 +46,7 @@ const getRankIcon = (rank) => {
 
 // ─── Custom dropdown ──────────────────────────────────────────────────────────
 
-const CustomDropdown = ({ trigger, children, align = 'right' }) => {
+const CustomDropdown = ({ trigger, children, align = 'right', menuClassName = '' }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -63,7 +63,7 @@ const CustomDropdown = ({ trigger, children, align = 'right' }) => {
       <div onClick={() => setOpen((v) => !v)}>{trigger(open)}</div>
       {open && (
         <div
-          className="pt-dropdown-menu"
+          className={`pt-dropdown-menu ${menuClassName}`}
           style={align === 'left' ? { right: 'auto', left: 0 } : {}}
         >
           {typeof children === 'function' ? children(() => setOpen(false)) : children}
@@ -348,6 +348,7 @@ const PlayerPointsTableView = () => {
           {/* Group dropdown */}
           <CustomDropdown
             align="right"
+            menuClassName="pt-dropdown-group-mobile"
             trigger={(open) => (
               <button
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"

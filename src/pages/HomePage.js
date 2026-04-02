@@ -216,7 +216,7 @@ const HomePage = () => {
               The ultimate platform for competitive gaming tournaments and scrimmages. Join
               thousands of players competing for glory and prizes.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-purple" />
                 <span className="text-xs font-bold text-foreground/80">SCRIMVERSE</span>

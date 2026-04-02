@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Instagram, Linkedin } from 'lucide-react';
+import logo from '../assets/scrimverse-logo-bgTransparant.png';
 import './Footer.css';
 
 const Footer = () => {
@@ -10,21 +11,25 @@ const Footer = () => {
       style={{ background: 'linear-gradient(180deg, hsl(0 0% 6%) 0%, hsl(0 0% 4%) 100%)' }}
     >
       {/* Large Background Watermark Text */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-        <span
-          className="text-[5rem] sm:text-[8rem] md:text-[10rem] lg:text-[14rem] font-black tracking-tighter whitespace-nowrap uppercase"
-          style={{ color: 'hsl(265 50% 20% / 0.12)' }}
-        >
-          SCRIMVERSE
-        </span>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden pb-12">
+        <img
+          src={logo}
+          alt=""
+          className="w-[12rem] sm:w-[24rem] md:w-[32rem] lg:w-[48rem] opacity-[0.04] grayscale brightness-0 invert pointer-events-none select-none"
+          style={{ transform: 'rotate(-5deg)' }}
+        />
       </div>
 
       <div className="container mx-auto px-6 py-14 relative z-10 w-full max-w-7xl">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <span className="text-xl font-bold text-white">ScrimVerse</span>
+          <div className="space-y-2">
+            <div className="h-10 flex items-center overflow-visible -ml-16">
+              <img
+                src={logo}
+                alt="ScrimVerse"
+                className="h-40 w-auto object-contain pointer-events-none"
+              />
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               The ultimate platform for competitive gaming tournaments and scrimmages. Join

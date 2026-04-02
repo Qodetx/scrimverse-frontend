@@ -549,12 +549,19 @@
   flex: 1;
 }
 
-/* ── Mobile Overrides ───────────────────────────────────────────────────── */
+/* ── Mobile Overrides (Surgical) ─────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Fix filter dropdown overflow on left side of screen */
+  /* General mobile safety for all dropdowns */
   .pt-dropdown-menu {
+    max-width: calc(100vw - 32px) !important;
+    min-width: 10rem !important;
+  }
+
+  /* Fix LEFT dropdown from overflowing off-screen on mobile */
+  .pt-dropdown-group-mobile {
     right: auto !important;
     left: 0 !important;
+    width: 12rem !important;
   }
 }
 

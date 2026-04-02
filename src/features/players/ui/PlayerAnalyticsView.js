@@ -230,7 +230,7 @@ const PlayerAnalyticsView = () => {
           Player Analytics
         </h2>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="an-header-actions">
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button className="an-filter-btn" onClick={() => setDropdownOpen((v) => !v)}>
               <Gamepad2 size={13} />

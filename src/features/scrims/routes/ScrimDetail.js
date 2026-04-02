@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { tournamentAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
+import Navbar from '../../../components/Navbar';
 import RegistrationModal from '../../tournaments/ui/RegistrationModal';
 import '../../tournaments/routes/TournamentDetail.css';
 
@@ -359,15 +360,11 @@ const ScrimDetail = () => {
   ════════════════════════════════════════════════════════ */
   return (
     <div style={{ minHeight: '100vh' }}>
-      {/* ── Logo-only top bar ── */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/95 backdrop-blur-lg border-b border-border/30 flex items-center px-4">
-        <Link to="/" className="font-bold text-foreground text-base tracking-tight">
-          ScrimVerse
-        </Link>
-      </div>
+      {/* ── Standard Navbar ── */}
+      <Navbar />
 
       {/* ══════════════ HERO ══════════════ */}
-      <section className="td-hero-section" style={{ paddingTop: '56px' }}>
+      <section className="td-hero-section" style={{ paddingTop: '64px' }}>
         <div
           className="td-hero-image-wrapper"
           style={{
@@ -415,6 +412,18 @@ const ScrimDetail = () => {
                   </span>
                 )}
               </div>
+              {/* Actions: Register + Share + region tag — moved to left column */}
+              <div className="td-actions-inner">
+                {renderRegistrationButton()}
+                <div className="td-action-tags">
+                  <button className="td-share-btn" onClick={() => setShowShareModal(true)}>
+                    <IconShare /> Share
+                  </button>
+                  <span className="td-tag-pill">
+                    <IconTarget /> {scrim.region || 'India'}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -444,25 +453,13 @@ const ScrimDetail = () => {
                   <IconExternalLink />
                 </a>
               )}
-              {/* Actions: Register + Share + region tag — same position as TournamentDetail */}
-              <div className="td-actions-inner">
-                {renderRegistrationButton()}
-                <div className="td-action-tags">
-                  <button className="td-share-btn" onClick={() => setShowShareModal(true)}>
-                    <IconShare /> Share
-                  </button>
-                  <span className="td-tag-pill">
-                    <IconTarget /> {scrim.region || 'India'}
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* ══════════════ CONTENT SECTION ══════════════ */}
-      <div style={{ background: 'hsl(220 10% 6%)', paddingBottom: 48 }}>
+      <div style={{ background: 'hsl(220 10% 6%)', paddingTop: 28, paddingBottom: 48 }}>
         {/* ══════════════ TABS ══════════════ */}
         <div className="td-tabs-section">
           <div className="td-tab-list" role="tablist">
@@ -478,7 +475,7 @@ const ScrimDetail = () => {
               className={`td-tab-btn${activeTab === 'briefing' ? ' active' : ''}`}
               onClick={() => setActiveTab('briefing')}
             >
-              <IconShield /> Briefing &amp; Directives
+              <IconShield /> Briefing &amp; Rules
             </button>
             <button
               role="tab"
@@ -613,7 +610,7 @@ const ScrimDetail = () => {
             <div className="td-tab-panel" role="tabpanel">
               <div className="td-three-col">
                 <div>
-                  <p className="td-section-heading">Scrim Briefing</p>
+                  <p className="td-section-heading">Briefing</p>
                   <p className="td-description">
                     {scrim.description || 'No description provided.'}
                   </p>
@@ -621,7 +618,7 @@ const ScrimDetail = () => {
                   {scrim.rules && (
                     <>
                       <hr className="td-divider" />
-                      <p className="td-section-heading">Directives</p>
+                      <p className="td-section-heading">Detailed Rules</p>
                       {typeof scrim.rules === 'string' ? (
                         <div className="td-rules-grid">
                           {scrim.rules

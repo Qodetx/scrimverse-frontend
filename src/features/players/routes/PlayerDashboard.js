@@ -42,6 +42,7 @@ import PlayerTransactionHistoryView from '../ui/PlayerTransactionHistoryView';
 import NotificationsPage from '../../../pages/NotificationsPage';
 import NewUserIndicator from '../ui/NewUserIndicator';
 import './PlayerDashboard.css';
+import logo from '../../../assets/scrimverse-logo-bgTransparant.png';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -119,11 +120,8 @@ const SidebarContent = ({
     <div className="flex flex-col h-full">
       {/* Logo + close button (close only shown in mobile overlay) */}
       <div className="flex items-center justify-between px-4 py-4">
-        <Link
-          to="/"
-          className="font-bold text-foreground text-base tracking-tight hover:text-purple-400 transition-colors"
-        >
-          ScrimVerse
+        <Link to="/" className="h-10 flex items-center -ml-8 overflow-visible">
+          <img src={logo} alt="ScrimVerse" className="h-32 w-auto object-contain" />
         </Link>
         {onClose && (
           <button

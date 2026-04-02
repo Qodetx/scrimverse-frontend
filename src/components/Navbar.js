@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import './Navbar.css';
+import logo from '../assets/scrimverse-logo-bgTransparant.png';
 
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', icon: Home },
@@ -58,11 +59,12 @@ const AuthNavbar = () => {
         </button>
 
         {/* Logo */}
-        <Link
-          to="/"
-          className="flex-1 md:flex-none text-center md:text-left font-bold text-foreground text-base tracking-tight md:mr-8 py-2 hover:text-purple-400 transition-colors"
-        >
-          ScrimVerse
+        <Link to="/" className="h-12 flex items-center -ml-12 overflow-visible md:mr-8">
+          <img
+            src={logo}
+            alt="ScrimVerse"
+            className="h-44 w-auto object-contain transition-transform hover:scale-105 pointer-events-none"
+          />
         </Link>
 
         {/* Desktop right */}
@@ -112,10 +114,10 @@ const AuthNavbar = () => {
             <div className="flex items-center justify-between px-4 py-4">
               <Link
                 to="/"
-                className="font-bold text-foreground text-base tracking-tight hover:text-purple-400 transition-colors"
+                className="flex items-center -ml-4"
                 onClick={() => setSidebarOpen(false)}
               >
-                ScrimVerse
+                <img src={logo} alt="ScrimVerse" className="h-20 w-auto object-contain" />
               </Link>
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -205,8 +207,12 @@ const PublicNavbar = () => {
     <nav className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-lg border-b border-border">
       <div className="w-full px-4 sm:px-6 lg:px-12">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center space-x-2 group">
-            <span className="text-xl font-bold text-foreground">ScrimVerse</span>
+          <Link to="/" className="h-12 flex items-center -ml-16 overflow-visible">
+            <img
+              src={logo}
+              alt="ScrimVerse"
+              className="h-48 w-auto object-contain pointer-events-none"
+            />
           </Link>
 
           <div className="hidden md:flex items-center space-x-6">

@@ -38,6 +38,7 @@ import HostSlotListView from '../ui/HostSlotListView';
 import ManageTournament from '../../tournaments/routes/ManageTournament';
 import ManageScrim from '../../scrims/routes/ManageScrim';
 import NotificationsPage from '../../../pages/NotificationsPage';
+import logo from '../../../assets/scrimverse-logo-bgTransparant.png';
 import './HostDashboard.css';
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
@@ -397,11 +398,12 @@ const SidebarContent = ({
     <div className="flex flex-col h-full">
       {/* Logo + close */}
       <div className="flex items-center justify-between px-4 py-4">
-        <Link
-          to="/"
-          className="font-bold text-foreground text-base tracking-tight hover:text-purple-400 transition-colors"
-        >
-          ScrimVerse
+        <Link to="/" className="h-10 flex items-center -ml-8 overflow-visible">
+          <img
+            src={logo}
+            alt="ScrimVerse"
+            className="h-32 w-auto object-contain transition-transform hover:scale-105 pointer-events-none"
+          />
         </Link>
         {onClose && (
           <button
@@ -725,7 +727,15 @@ const HostDashboard = () => {
           <button onClick={() => setSidebarOpen(true)} className="hd-mobile-menu-btn">
             <Menu size={20} />
           </button>
-          <span className="hd-mobile-title">ScrimVerse</span>
+          <div className="flex items-center gap-1">
+            <Link to="/" className="h-10 flex items-center -ml-8 overflow-visible">
+              <img
+                src={logo}
+                alt="ScrimVerse"
+                className="h-28 w-auto object-contain transition-transform hover:scale-105 pointer-events-none"
+              />
+            </Link>
+          </div>
           <div className="flex items-center gap-1">
             <button className="hd-mobile-menu-btn" onClick={() => setOnboardingOpen(true)}>
               <Gamepad2 size={16} />
