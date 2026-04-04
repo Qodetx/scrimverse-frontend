@@ -64,9 +64,11 @@ api.interceptors.response.use(
           localStorage.removeItem('tokens');
           throw e;
         }
-        const response = await axios.post(`${API_URL}/accounts/token/refresh/`, {
-          refresh: tokens.refresh,
-        });
+        const response = await axios.post(
+          `${API_URL}/accounts/token/refresh/`,
+          { refresh: tokens.refresh },
+          { headers: { 'ngrok-skip-browser-warning': 'true' } }
+        );
 
         const newTokens = {
           access: response.data.access,
