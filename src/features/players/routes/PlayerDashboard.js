@@ -1076,7 +1076,15 @@ const PlayerDashboard = () => {
         >
           <Menu size={20} />
         </button>
-        <span className="flex-1 text-center font-bold text-foreground text-sm">ScrimVerse</span>
+        <div className="flex-1 flex justify-center">
+          <Link to="/" className="h-10 flex items-center -ml-4 overflow-visible">
+            <img
+              src={logo}
+              alt="ScrimVerse"
+              className="h-28 w-auto object-contain pointer-events-none"
+            />
+          </Link>
+        </div>
         <div className="flex items-center gap-1">
           <div className="relative">
             <button

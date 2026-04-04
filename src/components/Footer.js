@@ -11,13 +11,13 @@ const Footer = () => {
       style={{ background: 'linear-gradient(180deg, hsl(0 0% 6%) 0%, hsl(0 0% 4%) 100%)' }}
     >
       {/* Large Background Watermark Text */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden pb-12">
-        <img
-          src={logo}
-          alt=""
-          className="w-[12rem] sm:w-[24rem] md:w-[32rem] lg:w-[48rem] opacity-[0.04] grayscale brightness-0 invert pointer-events-none select-none"
-          style={{ transform: 'rotate(-5deg)' }}
-        />
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+        <span
+          className="text-[3.5rem] sm:text-[8rem] md:text-[10rem] lg:text-[14rem] font-black tracking-tighter whitespace-nowrap uppercase translate-y-[12rem] sm:translate-y-0"
+          style={{ color: 'hsl(265 50% 20% / 0.12)' }}
+        >
+          SCRIMVERSE
+        </span>
       </div>
 
       <div className="container mx-auto px-6 py-14 relative z-10 w-full max-w-7xl">
