@@ -12,8 +12,16 @@ const Footer = () => {
     >
       {/* Large Background Watermark Text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+        {/* Mobile watermark */}
         <span
-          className="text-[3.5rem] sm:text-[8rem] md:text-[10rem] lg:text-[14rem] font-black tracking-tighter whitespace-nowrap uppercase translate-y-[12rem] sm:translate-y-0"
+          className="sm:hidden text-[3.5rem] font-black tracking-tighter whitespace-nowrap uppercase translate-y-[12rem]"
+          style={{ color: 'hsl(265 55% 40% / 0.18)' }}
+        >
+          SCRIMVERSE
+        </span>
+        {/* Desktop watermark */}
+        <span
+          className="hidden sm:inline text-[8rem] md:text-[10rem] lg:text-[14rem] font-black tracking-tighter whitespace-nowrap uppercase"
           style={{ color: 'hsl(265 50% 20% / 0.12)' }}
         >
           SCRIMVERSE
