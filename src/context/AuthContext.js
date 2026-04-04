@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/accounts/me/`, {
         headers: {
           Authorization: `Bearer ${tokens.access}`,
+          'ngrok-skip-browser-warning': 'true',
         },
         params: {
           game: game,
