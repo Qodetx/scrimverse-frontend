@@ -31,8 +31,7 @@ const TournamentCard = ({ tournament, activeTab }) => {
   const [isRegisteredInternal, setIsRegisteredInternal] = useState(tournament.is_registered);
 
   const isGuest = !isAuthenticated();
-  const hostProfileId = user?.profile?.id || user?.host_profile?.id;
-  const isTournamentHost = isHost() && Number(hostProfileId) === Number(tournament.host?.id);
+  // const hostProfileId = user?.profile?.id || user?.host_profile?.id;
 
   const getBaseLink = () => {
     const mode = (tournament.event_mode || '').toUpperCase();

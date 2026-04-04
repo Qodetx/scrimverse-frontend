@@ -83,7 +83,8 @@ const STATIC_SLIDES = [
 ];
 
 const HomePage = () => {
-  const { isAuthenticated, isHost, isPlayer } = useContext(AuthContext);
+  // const { isAuthenticated, isHost, isPlayer } = useContext(AuthContext);
+  const { isAuthenticated, isHost } = useContext(AuthContext);
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slides, setSlides] = useState(STATIC_SLIDES);

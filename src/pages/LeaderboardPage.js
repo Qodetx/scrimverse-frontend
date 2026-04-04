@@ -26,7 +26,7 @@ const LeaderboardPage = () => {
 
   useEffect(() => {
     fetchLeaderboard();
-  }, [activeTab, gameFilter]);
+  }, [activeTab, gameFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchLeaderboard = async () => {
     try {

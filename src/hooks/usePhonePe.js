@@ -137,7 +137,7 @@ const usePhonePe = () => {
         onFailure({ error: err.message });
       }
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Check payment status
