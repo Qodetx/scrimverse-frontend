@@ -273,7 +273,20 @@ const PlayerTournamentsView = () => {
   const { showToast } = useToast();
 
   // ── tab state ──────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState('registered');
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'registered';
+  });
+
+  // Sync activeTab to URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') !== activeTab) {
+      params.set('tab', activeTab);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState(window.history.state, '', newUrl);
+    }
+  }, [activeTab]);
 
   // ── registrations ─────────────────────────────────────────────────────────
   const [registrations, setRegistrations] = useState([]);

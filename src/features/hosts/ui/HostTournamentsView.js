@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Trophy, Swords, Users, Activity, Calendar, ChevronRight } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import { tournamentAPI } from '../../../utils/api';
@@ -27,10 +27,23 @@ const formatDate = (d) => {
 
 const HostTournamentsView = ({ onManage }) => {
   const { user } = useContext(AuthContext);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [subTab, setSubTab] = useState('live');
+  const [subTab, setSubTab] = useState(() => {
+    return searchParams.get('tab') || 'live';
+  });
+
+  // Persist subTab to URL
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (subTab && currentTab !== subTab) {
+      const params = new URLSearchParams(searchParams);
+      params.set('tab', subTab);
+      setSearchParams(params, { replace: true });
+    }
+  }, [subTab, searchParams, setSearchParams]);
 
   const fetchTournaments = async () => {
     setLoading(true);

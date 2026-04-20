@@ -84,7 +84,7 @@ const SkeletonRows = ({ count = 3 }) => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const PlayerSlotListView = ({ focusTournamentId } = {}) => {
+const PlayerSlotListView = ({ focusTournamentId: externalFocusId } = {}) => {
   const [registrations, setRegistrations] = useState([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [slots, setSlots] = useState([]);
@@ -119,10 +119,13 @@ const PlayerSlotListView = ({ focusTournamentId } = {}) => {
           ? all.filter((r) => r.status === 'confirmed' || r.status === 'pending')
           : [];
         setRegistrations(filtered);
-        // Auto-select tournament from notification
-        if (focusTournamentId) {
+
+        // Auto-select tournament from URL or notification
+        const params = new URLSearchParams(window.location.search);
+        const focusId = externalFocusId || params.get('tournament_id') || params.get('id');
+        if (focusId) {
           const idx = filtered.findIndex(
-            (r) => (r.tournament?.id || r.tournament_id) === Number(focusTournamentId)
+            (r) => String(r.tournament?.id || r.tournament_id) === String(focusId)
           );
           setSelectedIdx(idx >= 0 ? idx : 0);
         } else {
@@ -132,11 +135,10 @@ const PlayerSlotListView = ({ focusTournamentId } = {}) => {
         console.error('Error fetching registrations for slot list:', err);
         setRegistrations([]);
       } finally {
-        setLoading(false);
       }
     };
     fetchRegistrations();
-  }, []);
+  }, [externalFocusId]);
 
   // ── derived values (must be before useEffects that depend on them) ────────────
 

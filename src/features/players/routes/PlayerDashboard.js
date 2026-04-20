@@ -775,7 +775,10 @@ const PlayerDashboard = () => {
   const [gameFilter, setGameFilter] = useState('ALL');
 
   // new shell state
-  const [activeView, setActiveView] = useState('overview');
+  const [activeView, setActiveView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') || 'overview';
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -800,6 +803,18 @@ const PlayerDashboard = () => {
     document.documentElement.classList.add('dashboard-active');
     return () => document.documentElement.classList.remove('dashboard-active');
   }, []);
+
+  // Sync activeView to URL query parameter for persistence across refresh/back
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') !== activeView) {
+      params.set('view', activeView);
+      // Use replaceState to avoid cluttering history with tab clicks,
+      // but preserve URL for back navigation from other pages.
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState(window.history.state, '', newUrl);
+    }
+  }, [activeView]);
 
   // ── helper: detect if user is new ────────────────────────────────────────────
   // A user is new if last_login is null (first time logging in after signup)

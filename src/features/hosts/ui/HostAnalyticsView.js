@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BarChart3,
   TrendingUp,
@@ -908,12 +908,35 @@ const SingleTournamentView = ({ t, setSelectedTournament, navigate }) => {
 
 /* ──────────────────── MAIN COMPONENT ──────────────────── */
 const HostAnalyticsView = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [error, setError] = useState(null);
-  const [selectedTournament, setSelectedTournament] = useState('All Tournaments');
-  const [timeRange, setTimeRange] = useState('30d');
+  const [selectedTournament, setSelectedTournament] = useState(() => {
+    return searchParams.get('id') || 'All Tournaments';
+  });
+  const [timeRange, setTimeRange] = useState(() => {
+    return searchParams.get('range') || '30d';
+  });
+
+  // Sync state to URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    let changed = false;
+    if (selectedTournament && params.get('id') !== String(selectedTournament)) {
+      params.set('id', selectedTournament);
+      changed = true;
+    }
+    if (timeRange && params.get('range') !== timeRange) {
+      params.set('range', timeRange);
+      changed = true;
+    }
+    if (changed) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [selectedTournament, timeRange, searchParams, setSearchParams]);
+
   const [tDropdownOpen, setTDropdownOpen] = useState(false);
   const [trDropdownOpen, setTrDropdownOpen] = useState(false);
   const [tSearch, setTSearch] = useState('');

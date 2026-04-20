@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Table2,
   Gamepad2,
@@ -90,13 +90,18 @@ const HostPointsTableView = () => {
   const { user } = useContext(AuthContext);
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ── state ─────────────────────────────────────────────────────────────────
   const [tournaments, setTournaments] = useState([]);
-  const [selectedTournamentIdx, setSelectedTournamentIdx] = useState(0);
-  const [selectedRound, setSelectedRound] = useState(1);
-  const [selectedMatchNum, setSelectedMatchNum] = useState(1);
-  const [selectedGroupIdx, setSelectedGroupIdx] = useState(0);
+  const [selectedTournamentId, setSelectedTournamentId] = useState(() =>
+    searchParams.get('tournament_id')
+  );
+  const [selectedRound, setSelectedRound] = useState(() => Number(searchParams.get('round')) || 1);
+  const [selectedMatchNum, setSelectedMatchNum] = useState(
+    () => Number(searchParams.get('match')) || 1
+  );
+  const [selectedGroupId, setSelectedGroupId] = useState(() => searchParams.get('group_id'));
   const [groupsData, setGroupsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [groupsLoading, setGroupsLoading] = useState(false);
@@ -117,10 +122,13 @@ const HostPointsTableView = () => {
         }
         const res = await tournamentAPI.getHostTournaments(hostId);
         const all = res.data?.results || res.data || [];
-        // Only show tournaments that have started or completed (have data)
         const filtered = Array.isArray(all) ? all.filter((t) => t.status !== 'upcoming') : [];
         setTournaments(filtered);
-        setSelectedTournamentIdx(0);
+
+        const urlId = searchParams.get('tournament_id');
+        if (!urlId && filtered.length > 0) {
+          setSelectedTournamentId(filtered[0].id);
+        }
       } catch (err) {
         console.error('Error fetching host tournaments for points table:', err);
         setTournaments([]);
@@ -132,26 +140,68 @@ const HostPointsTableView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sync state to URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    let changed = false;
+
+    if (selectedTournamentId && params.get('tournament_id') !== String(selectedTournamentId)) {
+      params.set('tournament_id', selectedTournamentId);
+      changed = true;
+    }
+    if (selectedRound && params.get('round') !== String(selectedRound)) {
+      params.set('round', selectedRound);
+      changed = true;
+    }
+    if (selectedMatchNum && params.get('match') !== String(selectedMatchNum)) {
+      params.set('match', selectedMatchNum);
+      changed = true;
+    }
+    if (selectedGroupId && params.get('group_id') !== String(selectedGroupId)) {
+      params.set('group_id', selectedGroupId);
+      changed = true;
+    } else if (!selectedGroupId && params.has('group_id')) {
+      params.delete('group_id');
+      changed = true;
+    }
+
+    if (changed) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [
+    selectedTournamentId,
+    selectedRound,
+    selectedMatchNum,
+    selectedGroupId,
+    searchParams,
+    setSearchParams,
+  ]);
+
   // ── fetch groups when tournament or round changes ─────────────────────────
 
   useEffect(() => {
-    if (tournaments.length === 0) return;
-    const tournament = tournaments[selectedTournamentIdx];
-    if (!tournament) return;
+    if (tournaments.length === 0 || !selectedTournamentId) return;
 
-    const tournamentId = tournament.id;
-    if (!tournamentId) return;
+    const tournamentId = selectedTournamentId;
 
     const fetchGroups = async () => {
       setGroupsLoading(true);
       setGroupsData([]);
-      setSelectedGroupIdx(0);
-      setSelectedMatchNum(1);
       try {
         const res = await tournamentAPI.getRoundGroups(tournamentId, selectedRound);
         const groups =
           res.data?.groups || res.data?.results || (Array.isArray(res.data) ? res.data : []);
         setGroupsData(groups);
+
+        // Auto-select first group if none selected or current not in list
+        if (!selectedGroupId && groups.length > 0) {
+          setSelectedGroupId(groups[0].id);
+        } else if (
+          selectedGroupId &&
+          !groups.find((g) => String(g.id) === String(selectedGroupId))
+        ) {
+          setSelectedGroupId(groups.length > 0 ? groups[0].id : null);
+        }
       } catch (err) {
         if (err.response?.status !== 404) {
           console.error('Error fetching round groups:', err);
@@ -163,18 +213,19 @@ const HostPointsTableView = () => {
     };
 
     fetchGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournaments, selectedTournamentIdx, selectedRound]);
+  }, [tournaments, selectedTournamentId, selectedRound]);
 
   // ── derived values ────────────────────────────────────────────────────────
 
-  const tournament = tournaments[selectedTournamentIdx] || null;
+  const selectedIdx = tournaments.findIndex((t) => String(t.id) === String(selectedTournamentId));
+  const tournament = selectedIdx !== -1 ? tournaments[selectedIdx] : null;
   const tournamentTitle = tournament?.title || tournament?.name || '';
 
   const roundCount = tournament ? getRoundCount(tournament) : 1;
   const roundNumbers = Array.from({ length: roundCount }, (_, i) => i + 1);
 
-  const selectedGroup = groupsData[selectedGroupIdx] || null;
+  const selectedGroupIdx = groupsData.findIndex((g) => String(g.id) === String(selectedGroupId));
+  const selectedGroup = selectedGroupIdx !== -1 ? groupsData[selectedGroupIdx] : null;
   const groupName = selectedGroup?.group_name || '';
 
   const matchList = selectedGroup?.matches || [];
@@ -356,14 +407,16 @@ const HostPointsTableView = () => {
                 groupsData.map((group, i) => (
                   <button
                     key={group.id || i}
-                    className={`hpt-dropdown-option${i === selectedGroupIdx ? ' selected' : ''}`}
+                    className={`hpt-dropdown-option${String(group.id) === String(selectedGroupId) ? ' selected' : ''}`}
                     onClick={() => {
-                      setSelectedGroupIdx(i);
+                      setSelectedGroupId(group.id);
                       setSelectedMatchNum(1);
                       close();
                     }}
                   >
-                    {i === selectedGroupIdx && <Check size={12} style={{ flexShrink: 0 }} />}
+                    {String(group.id) === String(selectedGroupId) && (
+                      <Check size={12} style={{ flexShrink: 0 }} />
+                    )}
                     <span className="hpt-dropdown-option-label">{group.group_name}</span>
                   </button>
                 ))
@@ -413,16 +466,18 @@ const HostPointsTableView = () => {
                 return (
                   <button
                     key={t.id || i}
-                    className={`hpt-dropdown-option${i === selectedTournamentIdx ? ' selected' : ''}`}
+                    className={`hpt-dropdown-option${String(t.id) === String(selectedTournamentId) ? ' selected' : ''}`}
                     onClick={() => {
-                      setSelectedTournamentIdx(i);
+                      setSelectedTournamentId(t.id);
                       setSelectedRound(1);
                       setSelectedMatchNum(1);
-                      setSelectedGroupIdx(0);
+                      setSelectedGroupId(null);
                       close();
                     }}
                   >
-                    {i === selectedTournamentIdx && <Check size={12} style={{ flexShrink: 0 }} />}
+                    {String(t.id) === String(selectedTournamentId) && (
+                      <Check size={12} style={{ flexShrink: 0 }} />
+                    )}
                     <span className="hpt-dropdown-option-label">
                       {name}
                       {game ? ` · ${game}` : ''}
@@ -455,7 +510,7 @@ const HostPointsTableView = () => {
                   onClick={() => {
                     setSelectedRound(roundNum);
                     setSelectedMatchNum(1);
-                    setSelectedGroupIdx(0);
+                    setSelectedGroupId(null);
                   }}
                 >
                   {getRoundLabel(tournament, roundNum)}

@@ -96,6 +96,7 @@ const PlayerPointsTableView = () => {
   const [selectedRound, setSelectedRound] = useState(1);
   const [selectedMatchNum, setSelectedMatchNum] = useState(1);
   const [selectedGroupIdx, setSelectedGroupIdx] = useState(0);
+
   const [groupsData, setGroupsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [groupsLoading, setGroupsLoading] = useState(false);

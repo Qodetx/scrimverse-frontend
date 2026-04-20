@@ -672,6 +672,7 @@ const PlayerCredentialsView = () => {
   const [loading, setLoading] = useState(true);
   const [gameFilter, setGameFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('ongoing');
+
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef(null);
 

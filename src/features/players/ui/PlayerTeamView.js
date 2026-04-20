@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users,
   UserPlus,
@@ -515,91 +515,28 @@ const TempTeamMiniCard = ({
   );
 };
 
-// ─── KD Ratio stat card with Tournament / Scrim / All filter ─────────────────
-const KD_FILTER_OPTIONS = [
-  { label: 'All', value: 'all' },
-  { label: 'Tournament', value: 'tournament' },
-  { label: 'Scrim', value: 'scrim' },
-];
-
-const IS_5V5_GAME = (game) => ['Valorant', 'COD'].includes(game);
-
-const KDStatCard = ({ team }) => {
-  const [kdFilter, setKdFilter] = useState('all');
-  const [dropOpen, setDropOpen] = useState(false);
-
-  const is5v5 = IS_5V5_GAME(team?.game);
-
-  const computeKD = () => {
-    const os = team?.overall_stats;
-    const fallbackMatches = team?.total_matches || 0;
-
-    if (kdFilter === 'tournament') {
-      const matches = os?.tournament_matches || fallbackMatches;
-      if (matches === 0) return 'N/A';
-      if (is5v5) return (os?.tournament_points || 0) / matches;
-      return ((os?.tournament_kills || 0) / matches).toFixed(2);
-    }
-    if (kdFilter === 'scrim') {
-      const matches = os?.scrim_matches || 0;
-      if (matches === 0) return 'N/A';
-      if (is5v5) return ((os?.scrim_points || 0) / matches).toFixed(2);
-      return ((os?.scrim_kills || 0) / matches).toFixed(2);
-    }
-    // All
-    const matches = os?.matches_played || fallbackMatches;
-    if (matches === 0) return 'N/A';
-    if (is5v5) return ((os?.total_points || 0) / matches).toFixed(2);
-    return ((os?.total_kills || 0) / matches).toFixed(2);
-  };
-
-  const activeLabel = KD_FILTER_OPTIONS.find((o) => o.value === kdFilter)?.label;
-
-  return (
-    <div className="tm-stat-item tm-stat-item-kd" style={{ position: 'relative' }}>
-      {/* Filter dropdown trigger */}
-      <button
-        className="tm-kd-filter-btn"
-        onClick={(e) => {
-          e.stopPropagation();
-          setDropOpen((v) => !v);
-        }}
-        title="Filter KD"
-      >
-        {activeLabel} <ChevronDown size={10} />
-      </button>
-
-      {dropOpen && (
-        <div className="tm-kd-dropdown" onClick={(e) => e.stopPropagation()}>
-          {KD_FILTER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              className={`tm-kd-drop-item${kdFilter === opt.value ? ' selected' : ''}`}
-              onClick={() => {
-                setKdFilter(opt.value);
-                setDropOpen(false);
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="tm-stat-value tm-stat-orange">{computeKD()}</div>
-      <div className="tm-stat-label">{is5v5 ? 'Pts/Match' : 'KD Ratio'}</div>
-    </div>
-  );
-};
-
 const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => {
   const { user } = useContext(AuthContext);
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedGame, setSelectedGame] = useState(GAME_OPTIONS[0]); // game-based switcher
+  const [selectedGame, setSelectedGame] = useState(() => {
+    const g = searchParams.get('game');
+    return GAME_OPTIONS.includes(g) ? g : GAME_OPTIONS[0];
+  });
+
+  // Persist selectedGame to URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('game') !== selectedGame) {
+      params.set('game', selectedGame);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState(window.history.state, '', newUrl);
+    }
+  }, [selectedGame]);
   const [activeTab, setActiveTab] = useState('members');
   const [teamHistory, setTeamHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -1887,7 +1824,15 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
 
       {/* ── Team Photo + Temp Team Banner (side by side when temp view) ── */}
       {team && (
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'stretch',
+            flexWrap: 'wrap',
+            marginBottom: '4px',
+          }}
+        >
           {/* Photo card — half width when temp banner visible, full width otherwise */}
           <div
             className="tm-photo-card"
@@ -2221,42 +2166,40 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
           </button>
         </div>
       )}
-
       {/* ── Quick Stats ───────────────────────────────────────────── */}
       {team && (
         <div className="tm-stats-grid">
-          {[
-            {
-              label: 'Wins',
-              value: team?.overall_stats?.tournament_wins || team?.wins || 0,
-              color: 'tm-stat-yellow',
-            },
-            {
-              label: 'Matches',
-              value: team?.total_matches || 0,
-              color: 'tm-stat-white',
-            },
-            {
-              label: 'Win %',
-              value:
-                team?.total_matches > 0
-                  ? `${Math.round(((team?.overall_stats?.tournament_wins || team?.wins || 0) / team.total_matches) * 100)}%`
-                  : '0%',
-              color: 'tm-stat-green',
-            },
-            {
-              label: 'Ranking',
-              value: team?.overall_stats?.rank > 0 ? `#${team.overall_stats.rank}` : 'N/A',
-              color: 'tm-stat-purple',
-            },
-          ].map((stat) => (
-            <div key={stat.label} className="tm-stat-item">
-              <div className={`tm-stat-value ${stat.color}`}>{stat.value}</div>
-              <div className="tm-stat-label">{stat.label}</div>
-            </div>
-          ))}
-          {/* KD Ratio card with Tournament/Scrim filter */}
-          <KDStatCard team={team} />
+          {(() => {
+            const os = team?.overall_stats;
+            const wins = os?.total_wins || os?.matches_won || team?.wins || 0;
+            const matches = os?.matches_played || os?.total_matches || team?.total_matches || 0;
+            const winRate = matches > 0 ? Math.round((wins / matches) * 100) : 0;
+            const kd =
+              matches > 0
+                ? (['Valorant', 'COD'].includes(team?.game)
+                    ? (os?.total_points || 0) / matches
+                    : (os?.total_kills || 0) / matches
+                  ).toFixed(2)
+                : '0.00';
+            const rank = os?.rank > 0 ? `#${os.rank}` : 'N/A';
+
+            return [
+              { label: 'Wins', value: wins, color: 'tm-stat-yellow' },
+              { label: 'Matches', value: matches, color: 'tm-stat-white' },
+              { label: 'Win %', value: `${winRate}%`, color: 'tm-stat-green' },
+              { label: 'Ranking', value: rank, color: 'tm-stat-purple' },
+              {
+                label: ['Valorant', 'COD'].includes(team?.game) ? 'Pts/Match' : 'KD Ratio',
+                value: kd,
+                color: 'tm-stat-orange',
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="tm-stat-item">
+                <div className={`tm-stat-value ${stat.color}`}>{stat.value}</div>
+                <div className="tm-stat-label">{stat.label}</div>
+              </div>
+            ));
+          })()}
         </div>
       )}
 

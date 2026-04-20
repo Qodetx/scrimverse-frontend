@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ListOrdered,
   Gamepad2,
@@ -53,9 +53,12 @@ const SkeletonRows = ({ count = 3 }) => (
 const HostSlotListView = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [tournaments, setTournaments] = useState([]);
-  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [selectedTournamentId, setSelectedTournamentId] = useState(() =>
+    searchParams.get('tournament_id')
+  );
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -92,7 +95,18 @@ const HostSlotListView = () => {
         const all = res.data?.results || res.data || [];
         const filtered = Array.isArray(all) ? all.filter((t) => t.status !== 'upcoming') : [];
         setTournaments(filtered);
-        setSelectedIdx(0);
+
+        // If no ID in URL, or ID not in filtered list, pick the first one
+        const urlId = searchParams.get('tournament_id');
+        if (!urlId && filtered.length > 0) {
+          setSelectedTournamentId(filtered[0].id);
+        } else if (
+          urlId &&
+          !filtered.find((t) => String(t.id) === String(urlId)) &&
+          filtered.length > 0
+        ) {
+          setSelectedTournamentId(filtered[0].id);
+        }
       } catch (err) {
         console.error('Error fetching host tournaments for slot list:', err);
         setTournaments([]);
@@ -104,9 +118,22 @@ const HostSlotListView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sync selectedTournamentId to URL
+  useEffect(() => {
+    if (selectedTournamentId) {
+      const currentId = searchParams.get('tournament_id');
+      if (currentId !== String(selectedTournamentId)) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('tournament_id', selectedTournamentId);
+        setSearchParams(newParams, { replace: true });
+      }
+    }
+  }, [selectedTournamentId, searchParams, setSearchParams]);
+
   // ── derived values ────────────────────────────────────────────────────────
 
-  const tournament = tournaments[selectedIdx] || null;
+  const selectedIdx = tournaments.findIndex((t) => String(t.id) === String(selectedTournamentId));
+  const tournament = selectedIdx !== -1 ? tournaments[selectedIdx] : null;
   const tournamentName = tournament?.title || tournament?.name || '';
   const roundNumber = tournament?.current_round || 1;
 
@@ -114,13 +141,10 @@ const HostSlotListView = () => {
   // Host always sees slot list — no countdown gate
 
   useEffect(() => {
-    if (tournaments.length === 0) return;
-    const t = tournaments[selectedIdx];
-    if (!t) return;
+    if (tournaments.length === 0 || !selectedTournamentId) return;
 
-    const tournamentId = t.id;
-    const round = t.current_round || 1;
-    if (!tournamentId) return;
+    const tournamentId = selectedTournamentId;
+    const round = tournament?.current_round || 1;
 
     const fetchGroups = async () => {
       setSlotsLoading(true);
@@ -141,7 +165,7 @@ const HostSlotListView = () => {
     };
 
     fetchGroups();
-  }, [tournaments, selectedIdx]);
+  }, [tournaments, selectedTournamentId, tournament?.current_round]);
 
   // ── download slot list as PNG ─────────────────────────────────────────────
 
@@ -269,7 +293,7 @@ const HostSlotListView = () => {
                     key={t.id || i}
                     className={`hsl-filter-option${i === selectedIdx ? ' selected' : ''}`}
                     onClick={() => {
-                      setSelectedIdx(i);
+                      setSelectedTournamentId(t.id);
                       setShowDropdown(false);
                     }}
                   >

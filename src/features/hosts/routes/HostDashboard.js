@@ -523,12 +523,16 @@ const HostDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState(() => {
-    const tab = searchParams.get('tab');
+    const view = searchParams.get('view');
     const validTabs = NAV_ITEMS.map((n) => n.id);
-    return validTabs.includes(tab) ? tab : 'overview';
+    return validTabs.includes(view) ? view : 'overview';
   });
-  const [managingTournamentId, setManagingTournamentId] = useState(null);
-  const [managingType, setManagingType] = useState('tournament');
+  const [managingTournamentId, setManagingTournamentId] = useState(() =>
+    searchParams.get('manage_id')
+  );
+  const [managingType, setManagingType] = useState(
+    () => searchParams.get('manage_type') || 'tournament'
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -541,6 +545,42 @@ const HostDashboard = () => {
   const [searchTab, setSearchTab] = useState('players');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Sync activeView and managing state to URL query parameter for persistence
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    let changed = false;
+
+    if (params.get('view') !== activeView) {
+      params.set('view', activeView);
+      changed = true;
+    }
+
+    if (managingTournamentId) {
+      if (params.get('manage_id') !== managingTournamentId) {
+        params.set('manage_id', managingTournamentId);
+        changed = true;
+      }
+      if (params.get('manage_type') !== managingType) {
+        params.set('manage_type', managingType);
+        changed = true;
+      }
+    } else {
+      if (params.has('manage_id')) {
+        params.delete('manage_id');
+        changed = true;
+      }
+      if (params.has('manage_type')) {
+        params.delete('manage_type');
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState(window.history.state, '', newUrl);
+    }
+  }, [activeView, managingTournamentId, managingType]);
 
   useEffect(() => {
     document.documentElement.classList.add('dashboard-active');
@@ -710,7 +750,6 @@ const HostDashboard = () => {
   const handleSetActiveView = (view) => {
     setManagingTournamentId(null);
     setActiveView(view);
-    setSearchParams(view === 'overview' ? {} : { tab: view }, { replace: true });
   };
 
   const sidebarProps = {
