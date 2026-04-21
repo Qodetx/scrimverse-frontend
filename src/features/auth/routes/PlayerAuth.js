@@ -197,11 +197,13 @@ const PlayerAuth = () => {
         const response = await authAPI.googleAuth({
           token: tokenResponse.access_token,
           user_type: 'player',
+          is_signup: !isLogin,
         });
         login(response.data.user, response.data.tokens);
         navigate(nextPath, { replace: true });
       } catch (err) {
-        setError(err.response?.data?.error || 'Google login failed. Please try again.');
+        const data = err.response?.data;
+        setError(data?.message || data?.error || 'Google login failed. Please try again.');
       } finally {
         setLoading(false);
       }
