@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import { Users, Mail, Lock, ArrowLeft, Gamepad2 } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
@@ -189,48 +190,26 @@ const PlayerAuth = () => {
     }
   };
 
-  const handleGoogleClick = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      const { google } = window;
-      if (!google) {
-        setError('Google Sign-In not available. Please try again.');
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        const response = await authAPI.googleAuth({
+          token: tokenResponse.access_token,
+          user_type: 'player',
+        });
+        login(response.data.user, response.data.tokens);
+        navigate(nextPath, { replace: true });
+      } catch (err) {
+        setError(err.response?.data?.error || 'Google login failed. Please try again.');
+      } finally {
         setLoading(false);
-        return;
       }
-
-      google.accounts.id.initialize({
-        client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-      });
-
-      google.accounts.id.renderButton(document.getElementById('google-button'), {
-        type: 'standard',
-        size: 'large',
-        text: isLogin ? 'continue_with' : 'signup_with',
-        logo_alignment: 'left',
-      });
-
-      google.accounts.id.prompt(async (notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          try {
-            await new Promise((resolve, reject) => {
-              google.accounts.id.renderButton(document.getElementById('google-button-fallback'), {
-                type: 'standard',
-                size: 'large',
-                text: isLogin ? 'continue_with' : 'signup_with',
-              });
-            });
-          } catch (err) {
-            setError('Google login not available. Please use email and password.');
-          }
-        }
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onError: () => {
+      setError('Google login failed. Please try again.');
+    },
+  });
 
   return (
     <>
@@ -267,7 +246,7 @@ const PlayerAuth = () => {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={handleGoogleClick}
+                    onClick={() => googleLogin()}
                     className="w-full py-3 px-4 border border-border rounded-lg font-medium text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-center gap-3"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -290,8 +269,6 @@ const PlayerAuth = () => {
                     </svg>
                     {isLogin ? 'Continue with Google' : 'Sign up with Google'}
                   </button>
-                  <div id="google-button" style={{ display: 'none' }}></div>
-                  <div id="google-button-fallback" style={{ display: 'none' }}></div>
                 </div>
 
                 {/* Divider */}

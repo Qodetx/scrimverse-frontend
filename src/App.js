@@ -41,38 +41,13 @@ import CheckEmail from './features/auth/routes/CheckEmail';
 import HostVerificationPending from './features/auth/routes/HostVerificationPending';
 import MyDataPage from './pages/MyDataPage';
 
-// Guard: only allows access to host login/register via the secret link
-const HostAccessGuard = ({ children }) => {
-  const { isAuthenticated, isHost } = useContext(AuthContext);
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const keyFromUrl = params.get('access');
-  const hostKey = process.env.REACT_APP_HOST_ACCESS_KEY;
-
-  // Already logged in as host → go straight to dashboard
-  if (isAuthenticated() && isHost()) {
-    return <Navigate to="/host/dashboard" replace />;
-  }
-
-  if (keyFromUrl && keyFromUrl === hostKey) {
-    sessionStorage.setItem('host_access_granted', 'true');
-  }
-
-  if (sessionStorage.getItem('host_access_granted') !== 'true') {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
-
 // Protects host-only pages: redirects unauthenticated users to host login,
 // non-host users to home, and unapproved hosts to verification-pending
 const HostOnlyRoute = ({ children }) => {
   const { isAuthenticated, isHost, user } = useContext(AuthContext);
-  const hostKey = process.env.REACT_APP_HOST_ACCESS_KEY;
 
   if (!isAuthenticated()) {
-    return <Navigate to={`/host/login?access=${hostKey}`} replace />;
+    return <Navigate to="/host/login" replace />;
   }
   if (!isHost()) {
     return <Navigate to="/" replace />;
@@ -86,6 +61,7 @@ const HostOnlyRoute = ({ children }) => {
 // Inner shell — rendered inside <Router> so useLocation is available
 function AppShell() {
   const location = useLocation();
+  const isHostPortal = window.location.hostname.startsWith('host.');
 
   const hideNavbar =
     location.pathname === '/player/dashboard' ||
@@ -139,22 +115,8 @@ function AppShell() {
         <Route path="/player-auth" element={<PlayerAuth />} />
         <Route path="/player/login" element={<PlayerAuth />} />
         <Route path="/player/register" element={<PlayerAuth />} />
-        <Route
-          path="/host/login"
-          element={
-            <HostAccessGuard>
-              <HostLogin />
-            </HostAccessGuard>
-          }
-        />
-        <Route
-          path="/host/register"
-          element={
-            <HostAccessGuard>
-              <HostRegister />
-            </HostAccessGuard>
-          }
-        />
+        <Route path="/host/login" element={<HostLogin />} />
+        <Route path="/host/register" element={<HostRegister />} />
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
         {/* Support legacy/malformed links that include the API prefix */}
         <Route path="/api/accounts/verify-email/:token" element={<VerifyEmail />} />

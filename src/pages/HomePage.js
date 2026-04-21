@@ -155,7 +155,8 @@ const HomePage = () => {
       if (isHost()) navigate('/host/dashboard');
       else navigate('/player/dashboard');
     } else {
-      navigate('/player-auth');
+      const isHostPortal = window.location.hostname.startsWith('host.');
+      navigate(isHostPortal ? '/host/login' : '/player-auth');
     }
   };
 

@@ -202,6 +202,8 @@ const PublicNavbar = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isActive = (path) => location.pathname === path;
+  const isHostPortal = window.location.hostname.startsWith('host.');
+  const enterArenaPath = isHostPortal ? '/host/login' : '/player-auth';
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-lg border-b border-border">
@@ -224,7 +226,7 @@ const PublicNavbar = () => {
             >
               About Us
             </Link>
-            <Link to="/player-auth">
+            <Link to={enterArenaPath}>
               <button className="px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 transition-all inline-flex items-center">
                 Enter The Arena
               </button>
@@ -257,7 +259,7 @@ const PublicNavbar = () => {
                 About Us
               </Link>
               <Link
-                to="/player-auth"
+                to={enterArenaPath}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-secondary/50"
               >
