@@ -62,10 +62,12 @@ const EditPlayerProfileModal = ({
   player,
   onSuccess,
   requirePhone = false,
+  onPhoneVerified,
   onViewAllTransactions,
   initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState(initialTab || 'profile');
+  const [phoneVerifiedLocally, setPhoneVerifiedLocally] = useState(false);
 
   useEffect(() => {
     if (isOpen && initialTab) setActiveTab(initialTab);
@@ -150,6 +152,7 @@ const EditPlayerProfileModal = ({
       setError('');
       setSuccess('');
       setActiveTab('profile');
+      setPhoneVerifiedLocally(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -242,8 +245,8 @@ const EditPlayerProfileModal = ({
   };
 
   const handleClose = () => {
-    if (requirePhone && (!formData.phone_number || formData.phone_number.length < 10)) {
-      setError('Phone number is required before closing this form');
+    if (requirePhone && !player?.phone_verified && !phoneVerifiedLocally) {
+      setError('Please verify your phone number to continue');
       return;
     }
     onClose();
@@ -619,10 +622,12 @@ const EditPlayerProfileModal = ({
                           setError('');
                           try {
                             await authAPI.updatePhone(formData.phone_number, phoneOtp);
-                            setSuccess('Phone number updated successfully!');
+                            setSuccess('Phone number verified successfully!');
                             setPhoneOtpSent(false);
                             setPhoneOtp('');
                             setIsChangingPhone(false);
+                            setPhoneVerifiedLocally(true);
+                            onPhoneVerified?.();
                           } catch (err) {
                             setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
                           } finally {

@@ -40,6 +40,8 @@ import ResetPassword from './features/auth/routes/ResetPassword';
 import CheckEmail from './features/auth/routes/CheckEmail';
 import HostVerificationPending from './features/auth/routes/HostVerificationPending';
 import MyDataPage from './pages/MyDataPage';
+import PlayerSetup from './features/auth/routes/PlayerSetup';
+import PhoneSetupGuard from './features/auth/ui/PhoneSetupGuard';
 
 // Protects host-only pages: redirects unauthenticated users to host login,
 // non-host users to home, and unapproved hosts to verification-pending
@@ -65,6 +67,7 @@ function AppShell() {
 
   const hideNavbar =
     location.pathname === '/player/dashboard' ||
+    location.pathname === '/player/setup' ||
     location.pathname === '/host/dashboard' ||
     location.pathname.startsWith('/player/profile/') ||
     location.pathname.startsWith('/team/') ||
@@ -162,11 +165,42 @@ function AppShell() {
         <Route path="/host/profile/:id" element={<HostProfile />} />
         <Route path="/host/verification-pending" element={<HostVerificationPending />} />
 
-        {/* Player Routes */}
-        <Route path="/player/dashboard" element={<PlayerDashboard />} />
-        <Route path="/player/create-team" element={<CreateTeam />} />
-        <Route path="/player/team/dashboard" element={<TeamDashboard />} />
-        <Route path="/player/team/dashboard/:teamId" element={<TeamDashboard />} />
+        {/* Phone setup — must be outside PhoneSetupGuard so the redirect target is reachable */}
+        <Route path="/player/setup" element={<PlayerSetup />} />
+
+        {/* Player Routes — guarded: redirects to /player/setup if phone not verified */}
+        <Route
+          path="/player/dashboard"
+          element={
+            <PhoneSetupGuard>
+              <PlayerDashboard />
+            </PhoneSetupGuard>
+          }
+        />
+        <Route
+          path="/player/create-team"
+          element={
+            <PhoneSetupGuard>
+              <CreateTeam />
+            </PhoneSetupGuard>
+          }
+        />
+        <Route
+          path="/player/team/dashboard"
+          element={
+            <PhoneSetupGuard>
+              <TeamDashboard />
+            </PhoneSetupGuard>
+          }
+        />
+        <Route
+          path="/player/team/dashboard/:teamId"
+          element={
+            <PhoneSetupGuard>
+              <TeamDashboard />
+            </PhoneSetupGuard>
+          }
+        />
         <Route path="/player/profile/:id" element={<PlayerProfile />} />
         <Route path="/teams" element={<TeamsBrowsePage />} />
         <Route path="/team/:id" element={<TeamProfile />} />

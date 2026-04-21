@@ -112,8 +112,10 @@ const PlayerAuth = () => {
         });
 
         login(response.data.user, response.data.tokens);
-        // replace:true removes auth page from history so back from destination goes to dashboard, not here
-        navigate(nextPath, { replace: true });
+        // If phone not verified redirect to setup; replace:true removes auth page from history
+        const destination =
+          response.data.user?.user?.phone_verified === false ? '/player/setup' : nextPath;
+        navigate(destination, { replace: true });
       } catch (err) {
         setError(err.response?.data?.error || 'Login failed. Please try again.');
       } finally {
@@ -200,7 +202,11 @@ const PlayerAuth = () => {
           is_signup: !isLogin,
         });
         login(response.data.user, response.data.tokens);
-        navigate(nextPath, { replace: true });
+        // If phone not verified (new Google signup or existing user without phone),
+        // redirect to setup page before allowing dashboard access.
+        const destination =
+          response.data.user?.user?.phone_verified === false ? '/player/setup' : nextPath;
+        navigate(destination, { replace: true });
       } catch (err) {
         const data = err.response?.data;
         setError(data?.message || data?.error || 'Google login failed. Please try again.');
