@@ -1,358 +1,246 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Search, Users, Shield, Gamepad2 } from 'lucide-react';
 import { authAPI, teamAPI } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
-import './SearchPage.css';
 
-const VerifiedIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-500">
-    <path
-      d="M12 2L15.09 5.26L19.47 6.11L20 10.5L23 13.5L20 16.5L19.47 20.89L15.09 21.74L12 25L8.91 21.74L4.53 20.89L4 16.5L1 13.5L4 10.5L4.53 6.11L8.91 5.26L12 2Z"
-      fill="currentColor"
-    />
-    <path
-      d="M9 12L11 14L15 10"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-// Helper function to get the full image URL
 const getImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return imageUrl;
-  }
-  const backendUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8000';
-  return `${backendUrl}${imageUrl}`;
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl;
+  const base =
+    process.env.REACT_APP_MEDIA_URL ||
+    process.env.REACT_APP_API_URL?.replace('/api', '') ||
+    'http://localhost:8000';
+  return `${base}${imageUrl}`;
 };
+
+const TABS = [
+  { key: 'players', label: 'Players', icon: Gamepad2 },
+  { key: 'teams', label: 'Teams', icon: Users },
+  { key: 'hosts', label: 'Hosts', icon: Shield },
+];
 
 const SearchPage = () => {
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user, isAuthenticated } = useContext(AuthContext);
+  const [activeTab, setActiveTab] = useState('players');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState('all'); // 'all', 'players', 'hosts', 'teams'
-  const [playerResults, setPlayerResults] = useState([]);
-  const [hostResults, setHostResults] = useState([]);
-  const [teamResults, setTeamResults] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = useCallback(async () => {
-    if (!searchQuery.trim()) return;
-
+  const runSearch = useCallback(async (query, tab) => {
+    if (!query.trim() || query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
     setLoading(true);
     try {
-      let newPlayerResults = [];
-      let newHostResults = [];
-      let newTeamResults = [];
-
-      if (filter === 'all' || filter === 'players') {
-        const playersRes = await authAPI.searchPlayerUsernames(searchQuery);
-        newPlayerResults = playersRes.data.results || [];
-        setPlayerResults(newPlayerResults);
-      } else {
-        setPlayerResults([]);
+      let results = [];
+      if (tab === 'players') {
+        const res = await authAPI.searchPlayerUsernames(query);
+        results = res.data.results || [];
+      } else if (tab === 'teams') {
+        const res = await teamAPI.getTeams({ search: query });
+        const all = res.data.results || res.data || [];
+        results = all.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()));
+      } else if (tab === 'hosts') {
+        const res = await authAPI.searchHosts(query);
+        results = res.data.results || [];
       }
-
-      if (filter === 'all' || filter === 'hosts') {
-        const hostsRes = await authAPI.searchHosts(searchQuery);
-        newHostResults = hostsRes.data.results || [];
-        setHostResults(newHostResults);
-      } else {
-        setHostResults([]);
-      }
-
-      if (filter === 'all' || filter === 'teams') {
-        const teamsRes = await teamAPI.getTeams({ search: searchQuery });
-        newTeamResults = teamsRes.data.results || teamsRes.data || [];
-        newTeamResults = newTeamResults.filter((team) =>
-          team.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setTeamResults(newTeamResults);
-      } else {
-        setTeamResults([]);
-      }
-    } catch (error) {
-      console.error('Search error:', error);
+      setSearchResults(results);
+    } catch (err) {
+      console.error('Search error:', err);
+      setSearchResults([]);
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, filter]);
+  }, []);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchQuery.trim().length >= 2) {
-        handleSearch();
-      } else if (searchQuery.trim().length === 0) {
-        setPlayerResults([]);
-        setHostResults([]);
-        setTeamResults([]);
-      }
+    setSearchResults([]);
+    if (searchQuery.trim().length >= 2) {
+      runSearch(searchQuery, activeTab);
+    }
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      runSearch(searchQuery, activeTab);
     }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeTab, runSearch]);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, filter, handleSearch]);
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  const handleResultClick = (result) => {
+    if (activeTab === 'players') {
+      if (!isAuthenticated()) {
+        navigate('/player-auth');
+        return;
+      }
+      if (user?.user?.id === result.id) navigate('/player/dashboard');
+      else navigate(`/player/profile/${result.id}`);
+    } else if (activeTab === 'teams') {
+      if (!isAuthenticated()) {
+        navigate('/player-auth');
+        return;
+      }
+      if (result.id === user?.profile?.current_team?.id) navigate('/player/team/dashboard');
+      else navigate(`/teams/${result.id}`);
+    } else if (activeTab === 'hosts') {
+      navigate(`/host/profile/${result.id}`);
     }
   };
 
-  const handlePlayerClick = (playerId) => {
-    if (user?.user?.id === playerId) {
-      navigate('/player/dashboard');
-    } else {
-      navigate(`/player/profile/${playerId}`);
-    }
-  };
+  const getDisplayName = (r) => r.username || r.name || r.email || 'Unknown';
 
-  const handleHostClick = (hostId) => {
-    if (user?.user?.user_type === 'host' && user?.profile?.id === hostId) {
-      navigate('/host/dashboard');
-    } else {
-      navigate(`/host/profile/${hostId}`);
-    }
+  const getSubtitle = (r) => {
+    if (activeTab === 'teams') return `${r.members?.length || 0} members`;
+    if (activeTab === 'hosts') return r.game_titles?.join(', ') || 'Host';
+    return r.player_profile?.in_game_name ? `IGN: ${r.player_profile.in_game_name}` : 'Player';
   };
 
   return (
-    <div className="search-page">
-      <div className="search-container">
-        <h1 className="search-hero-title">Search</h1>
-
-        {/* Search Bar Wrapper */}
-        <div className="search-bar-wrapper">
-          <div className="search-input-group">
-            <svg
-              className="search-icon-fixed"
-              width="20"
-              height="20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
+    <div className="min-h-screen bg-background pt-16">
+      {/* Top search bar strip */}
+      <div className="border-b border-border/30 bg-card/60 backdrop-blur-sm sticky top-16 z-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          {/* Search input */}
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
-              placeholder="Search for players, hosts or teams"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="search-main-input"
+              placeholder={`Search ${activeTab}...`}
+              autoFocus
+              className="w-full pl-11 pr-4 h-10 bg-secondary/40 border border-border/40 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple/50 focus:border-purple/50 transition-all text-sm"
             />
           </div>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="search-select"
-          >
-            <option value="all">All</option>
-            <option value="players">Players</option>
-            <option value="hosts">Hosts</option>
-            <option value="teams">Teams</option>
-          </select>
-          <button onClick={handleSearch} className="search-btn">
-            Search
-          </button>
-        </div>
 
-        {/* Loading State */}
+          {/* Tabs */}
+          <div className="flex border border-border/40 rounded-lg overflow-hidden shrink-0">
+            {TABS.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setActiveTab(key);
+                  setSearchResults([]);
+                }}
+                className={`flex items-center justify-center gap-1.5 px-4 h-10 text-xs font-medium transition-all whitespace-nowrap ${
+                  activeTab === key
+                    ? 'bg-foreground text-background'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/30 bg-secondary/10'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Results area */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-purple" />
           </div>
         )}
 
-        {/* Results */}
-        {!loading &&
-          (playerResults.length > 0 || hostResults.length > 0 || teamResults.length > 0) && (
-            <div className="space-y-8">
-              {/* Player Results */}
-              {playerResults.length > 0 && (
-                <div>
-                  <h2 className="section-results-title">Players ({playerResults.length})</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 results-grid">
-                    {playerResults.map((player) => (
-                      <div
-                        key={player.id}
-                        onClick={() => handlePlayerClick(player.id)}
-                        className="cyber-card hover-lift rounded-xl p-6 cursor-pointer transition-all duration-300"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white overflow-hidden shadow-lg border-2 border-white/5 flex-shrink-0">
-                            {player.profile_picture ? (
-                              <img
-                                src={getImageUrl(player.profile_picture)}
-                                alt={player.username}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.parentElement.textContent = player.username
-                                    .charAt(0)
-                                    .toUpperCase();
-                                }}
-                              />
-                            ) : (
-                              player.username.charAt(0).toUpperCase()
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-white font-bold text-lg truncate">
-                              {player.username}
-                            </h3>
-                            <p className="text-gray-400 text-sm">Player</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Host Results */}
-              {hostResults.length > 0 && (
-                <div>
-                  <h2 className="section-results-title">Hosts ({hostResults.length})</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 results-grid">
-                    {hostResults.map((host) => (
-                      <div
-                        key={host.id}
-                        onClick={() => handleHostClick(host.id)}
-                        className="cyber-card hover-lift rounded-xl p-6 cursor-pointer transition-all duration-300"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center text-2xl font-bold text-white overflow-hidden shadow-lg border-2 border-white/5 flex-shrink-0">
-                            {host.profile_picture ? (
-                              <img
-                                src={getImageUrl(host.profile_picture)}
-                                alt={host.username}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.parentElement.textContent = host.username
-                                    .charAt(0)
-                                    .toUpperCase();
-                                }}
-                              />
-                            ) : (
-                              host.username.charAt(0).toUpperCase()
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-white font-bold text-lg truncate">
-                                {host.username}
-                              </h3>
-                              {host.verified && <VerifiedIcon />}
-                            </div>
-                            <p className="text-gray-400 text-sm">
-                              {host.verified ? 'Verified Host' : 'Host'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Team Results */}
-              {teamResults.length > 0 && (
-                <div>
-                  <h2 className="section-results-title">Teams ({teamResults.length})</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 results-grid">
-                    {teamResults.map((team) => (
-                      <div
-                        key={team.id}
-                        onClick={() => {
-                          if (team.id === user?.profile?.current_team?.id) {
-                            navigate('/player/team/dashboard');
-                          } else {
-                            navigate(`/teams/${team.id}`);
-                          }
-                        }}
-                        className="bg-[#1a1f35] border border-white/10 rounded-xl p-6 hover:border-primary-500 transition-all cursor-pointer cyber-card"
-                      >
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white overflow-hidden shadow-lg border-2 border-white/5 flex-shrink-0">
-                            {team.profile_picture ? (
-                              <img
-                                src={getImageUrl(team.profile_picture)}
-                                alt={team.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.parentElement.textContent = team.name.charAt(0);
-                                }}
-                              />
-                            ) : (
-                              team.name.charAt(0)
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-white font-bold text-lg truncate">{team.name}</h3>
-                            <p className="text-gray-400 text-sm">
-                              {team.members?.length || 0}/15 members
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400">{team.wins || 0} wins</span>
-                          {(team.members?.length || 0) < 15 && (
-                            <span className="px-3 py-1 bg-primary-600/20 text-primary-400 rounded-full font-semibold">
-                              Open
-                            </span>
+        {/* Results grid */}
+        {!loading && searchResults.length > 0 && (
+          <>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">
+              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &ldquo;
+              {searchQuery}&rdquo;
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {searchResults.map((result, idx) => {
+                const displayName = getDisplayName(result);
+                const subtitle = getSubtitle(result);
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => handleResultClick(result)}
+                    className="flex items-center justify-between p-4 rounded-xl border border-border/30 bg-card hover:border-purple/30 hover:bg-secondary/20 transition-all cursor-pointer gap-3"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {activeTab === 'players' ? (
+                        <div className="w-10 h-10 rounded-full bg-secondary border border-border/30 flex items-center justify-center text-foreground text-sm font-bold shrink-0 overflow-hidden">
+                          {result.profile_picture ? (
+                            <img
+                              src={getImageUrl(result.profile_picture)}
+                              alt={displayName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            displayName.charAt(0).toUpperCase()
                           )}
                         </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-purple/15 flex items-center justify-center shrink-0">
+                          {activeTab === 'teams' ? (
+                            <Users className="h-5 w-5 text-purple" />
+                          ) : (
+                            <Shield className="h-5 w-5 text-purple" />
+                          )}
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <span className="text-sm font-semibold truncate block">{displayName}</span>
+                        <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
                       </div>
-                    ))}
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleResultClick(result);
+                      }}
+                      className="text-[10px] h-7 px-2.5 border border-border/40 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors shrink-0"
+                    >
+                      View
+                    </button>
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
-          )}
+          </>
+        )}
 
-        {/* No Results */}
-        {!loading &&
-          searchQuery &&
-          playerResults.length === 0 &&
-          hostResults.length === 0 &&
-          teamResults.length === 0 && (
-            <div className="text-center py-12">
-              <svg
-                className="w-16 h-16 mx-auto mb-4 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
+        {/* No results */}
+        {!loading && searchResults.length === 0 && searchQuery.trim().length >= 2 && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-14 h-14 rounded-full bg-secondary border border-border/30 flex items-center justify-center mb-4">
+              <Search className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="text-foreground font-semibold mb-1">No {activeTab} found</p>
+            <p className="text-sm text-muted-foreground">
+              No results matching &ldquo;{searchQuery}&rdquo;
+            </p>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && searchQuery.trim().length < 2 && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-14 h-14 rounded-full bg-secondary border border-border/30 flex items-center justify-center mb-4">
+              <Search className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="text-foreground font-semibold mb-1">Search ScrimVerse</p>
+            <p className="text-sm text-muted-foreground">
+              Type at least 2 characters to find {activeTab}
+            </p>
+            {!isAuthenticated() && (
+              <button
+                onClick={() => navigate('/player-auth')}
+                className="mt-5 px-5 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-purple to-purple-dark text-white hover:opacity-90 transition-all"
               >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              <p className="text-gray-400 text-lg">No results found for "{searchQuery}"</p>
-            </div>
-          )}
-
-        {/* Empty State */}
-        {!loading && !searchQuery && (
-          <div className="text-center py-12">
-            <svg
-              className="w-16 h-16 mx-auto mb-4 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <p className="text-gray-400 text-lg">Search for players, hosts, or teams</p>
+                Sign in to interact
+              </button>
+            )}
           </div>
         )}
       </div>

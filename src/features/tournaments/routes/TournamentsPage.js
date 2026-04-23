@@ -27,6 +27,12 @@ const TournamentsPage = () => {
     if (gameParam) {
       setFilters((prev) => ({ ...prev, game: gameParam }));
     }
+
+    // Strip body gradient for this page to match lovable design
+    document.documentElement.classList.add('no-body-gradient');
+    return () => {
+      document.documentElement.classList.remove('no-body-gradient');
+    };
   }, [searchParams]);
 
   const fetchTournaments = useCallback(async () => {
@@ -149,12 +155,21 @@ const TournamentsPage = () => {
   };
 
   return (
-    <div className="tournaments-page">
+    <div className="tournaments-page relative overflow-hidden pt-24 md:pt-32">
+      {/* Background Effects */}
+      <div className="enhanced-particles">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="particle" />
+        ))}
+      </div>
+
       {/* Hero Section */}
-      <div className="tournaments-hero">
-        <div className="hero-content">
-          <h1 className="hero-title">Tournaments</h1>
-          <p className="hero-subtitle">
+      <div className="tournaments-hero relative z-10">
+        <div className="hero-content text-center mb-12">
+          <h1 className="hero-title text-4xl md:text-5xl font-bold mb-4">
+            <span className="gradient-text">Tournaments</span>
+          </h1>
+          <p className="hero-subtitle text-xl text-muted-foreground max-w-3xl mx-auto">
             Join epic battles, compete for prizes, and prove your gaming skills in ScrimVerse
           </p>
         </div>

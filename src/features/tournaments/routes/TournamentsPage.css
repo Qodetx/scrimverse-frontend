@@ -1,10 +1,8 @@
-/* Tournaments Page */
 .tournaments-page {
   min-height: 100vh;
-  background: transparent;
-  /* Use global background */
+  background: #0a0a0a !important;
   color: #ffffff;
-  padding-top: 20px;
+  position: relative;
 }
 
 /* Hero Section */
@@ -22,16 +20,16 @@
 }
 
 .tournaments-hero .hero-title {
-  font-size: 48px;
-  font-weight: 950;
-  margin-bottom: 12px;
-  background: linear-gradient(135deg, #ffffff 0%, #a855f7 100%);
+  font-size: 3rem; /* text-4xl to 5xl equivalent */
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.hero-title .gradient-text {
+  background: linear-gradient(135deg, hsl(265 85% 75%), hsl(265 80% 65%));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: -1.5px;
-  text-transform: uppercase;
-  line-height: 1.1;
 }
 
 .hero-subtitle {
@@ -79,10 +77,10 @@
 .search-input {
   width: 100%;
   padding: 10px 16px 10px 42px;
-  background: hsl(var(--background));
-  border: 1px solid hsl(var(--border) / 0.5);
+  background: #111111;
+  border: 1px solid #1f1f1f;
   border-radius: 8px;
-  color: hsl(var(--foreground));
+  color: #ffffff;
   font-size: 14px;
   transition: all 0.2s ease;
   height: 42px;
@@ -103,10 +101,10 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: hsl(var(--background));
-  border: 1px solid hsl(var(--border) / 0.5);
+  background: #111111;
+  border: 1px solid #1f1f1f;
   border-radius: 8px;
-  color: hsl(var(--foreground));
+  color: #ffffff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -196,39 +194,37 @@
 /* Tabs */
 .tournaments-tabs {
   display: flex;
-  gap: 2px;
-  background: hsl(var(--secondary) / 0.3);
-  padding: 3px;
-  border-radius: 8px;
-  margin: 0 auto 24px;
+  background: #111111;
+  padding: 6px;
+  border-radius: 12px;
+  margin: 0 auto 32px;
   width: 100%;
+  border: 1px solid #1f1f1f;
+  max-width: 800px;
 }
 
 .tab-button {
   flex: 1;
-  padding: 8px 16px;
+  padding: 12px 24px;
   background: transparent;
   border: none;
-  border-radius: 6px;
-  color: hsl(var(--muted-foreground));
-  font-size: 13px;
+  border-radius: 8px;
+  color: #9ca3af;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .tab-button:hover {
-  color: hsl(var(--foreground));
-  background: hsl(var(--secondary) / 0.4);
+  color: #ffffff;
 }
 
 .tab-button.active {
-  background: hsl(var(--foreground));
-  color: hsl(var(--background));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
 /* Tournaments Grid */

@@ -11,11 +11,13 @@ import {
   Instagram,
   Linkedin,
   Youtube,
+  Trophy,
+  Settings,
+  UserCheck,
+  Users,
 } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
-import Navbar from '../../../components/Navbar';
-import Footer from '../../../components/Footer';
 
 const TOTAL_STEPS = 3;
 
@@ -143,35 +145,91 @@ const HostRegister = () => {
     }
   };
 
+  const hostFeatures = [
+    {
+      icon: <Trophy className="w-5 h-5 text-accent" />,
+      title: 'Create & manage tournaments',
+      sub: 'Full control over your events',
+    },
+    {
+      icon: <Settings className="w-5 h-5 text-accent" />,
+      title: 'Configure match rules',
+      sub: 'Custom formats and brackets',
+    },
+    {
+      icon: <UserCheck className="w-5 h-5 text-accent" />,
+      title: 'Manage registrations',
+      sub: 'Easy team and player management',
+    },
+    {
+      icon: <Users className="w-5 h-5 text-accent" />,
+      title: 'Declare winners & results',
+      sub: 'Publish standings and prize info',
+    },
+  ];
+
   return (
-    <>
-      <Navbar />
-      <main className="pt-24 pb-16 px-4">
-        <div className="max-w-md mx-auto">
+    <div className="fixed top-14 inset-x-0 bottom-0 flex overflow-hidden z-10">
+      {/* Left panel — hidden on mobile, sticky */}
+      <div
+        className="hidden lg:flex flex-col justify-center px-14 py-16 flex-1 h-full overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, hsl(265 60% 8%) 0%, hsl(265 40% 14%) 100%)' }}
+      >
+        <span className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-accent/80 border border-accent/30 rounded-full px-4 py-1.5 w-fit mb-8 uppercase">
+          🛡 Host Portal
+        </span>
+        <h1 className="text-5xl font-black text-white leading-tight mb-4">
+          Organize &amp;
+          <br />
+          <span className="text-accent">Dominate</span>
+        </h1>
+        <p className="text-gray-400 text-base mb-10 max-w-xs leading-relaxed">
+          Create and manage professional esports tournaments with complete control.
+        </p>
+        <div className="space-y-3">
+          {hostFeatures.map((f, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-4 bg-white/5 border border-white/8 rounded-xl px-4 py-3"
+            >
+              <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                {f.icon}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{f.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{f.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right panel — scrollable only if needed */}
+      <div className="flex flex-col flex-1 h-full overflow-y-auto overscroll-y-contain bg-background">
+        <div className="px-8 pt-5 pb-2 shrink-0">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Home
           </Link>
+        </div>
 
-          <div className="cyber-card border border-accent/30 p-8">
-            {/* Header */}
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mb-6">
-                <Shield className="h-8 w-8 text-accent" />
-              </div>
+        <div className="flex-1 flex flex-col justify-center px-8 pb-4 max-w-xl mx-auto w-full">
+          <div className="cyber-card border border-accent/30 p-6">
+            {/* Header — no icon */}
+            <div className="flex flex-col items-center mb-4">
               <h1 className="text-2xl font-bold text-foreground tracking-tight">
                 Create Host Account
               </h1>
-              <p className="text-muted-foreground mt-2 text-center text-sm">
+              <p className="text-muted-foreground mt-1 text-center text-sm">
                 Start hosting and organizing tournaments
               </p>
             </div>
 
             {/* Step indicators */}
-            <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="flex items-center justify-center gap-2 mb-5">
               {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div
@@ -214,7 +272,7 @@ const HostRegister = () => {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="host@example.com"
-                          className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                          className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                         />
                       </div>
                     </div>
@@ -229,7 +287,7 @@ const HostRegister = () => {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                          className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                         />
                       </div>
                     </div>
@@ -246,7 +304,7 @@ const HostRegister = () => {
                           value={password2}
                           onChange={(e) => setPassword2(e.target.value)}
                           placeholder="••••••••"
-                          className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                          className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                         />
                       </div>
                     </div>
@@ -285,7 +343,7 @@ const HostRegister = () => {
                         value={orgName}
                         onChange={(e) => setOrgName(e.target.value)}
                         placeholder="Your Esports Org"
-                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                        className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                       />
                     </div>
                   </div>
@@ -301,7 +359,7 @@ const HostRegister = () => {
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+919876543210"
                         maxLength="15"
-                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                        className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                       />
                     </div>
                   </div>
@@ -348,7 +406,7 @@ const HostRegister = () => {
                         value={website}
                         onChange={(e) => setWebsite(e.target.value)}
                         placeholder="https://yoursite.com"
-                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                        className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                       />
                     </div>
                   </div>
@@ -362,7 +420,7 @@ const HostRegister = () => {
                         value={instagram}
                         onChange={(e) => setInstagram(e.target.value)}
                         placeholder="https://instagram.com/yourhandle"
-                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                        className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                       />
                     </div>
                   </div>
@@ -376,7 +434,7 @@ const HostRegister = () => {
                         value={linkedin}
                         onChange={(e) => setLinkedin(e.target.value)}
                         placeholder="https://linkedin.com/in/yourprofile"
-                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                        className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                       />
                     </div>
                   </div>
@@ -390,7 +448,7 @@ const HostRegister = () => {
                         value={youtube}
                         onChange={(e) => setYoutube(e.target.value)}
                         placeholder="https://youtube.com/@yourchannel"
-                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
+                        className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                       />
                     </div>
                   </div>
@@ -453,9 +511,8 @@ const HostRegister = () => {
             </div>
           </div>
         </div>
-      </main>
-      <Footer />
-    </>
+      </div>
+    </div>
   );
 };
 

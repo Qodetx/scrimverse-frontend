@@ -1,11 +1,9 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Users, Mail, Lock, ArrowLeft, Gamepad2 } from 'lucide-react';
+import { Users, Mail, Lock, ArrowLeft, Gamepad2, Trophy, Swords, BarChart3 } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
-import Navbar from '../../../components/Navbar';
-import Footer from '../../../components/Footer';
 
 const PlayerAuth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -219,43 +217,100 @@ const PlayerAuth = () => {
     },
   });
 
+  const playerFeatures = [
+    {
+      icon: <Trophy className="w-5 h-5 text-primary" />,
+      title: 'Compete in verified tournaments',
+      sub: 'Join professionally organized events',
+    },
+    {
+      icon: <Swords className="w-5 h-5 text-primary" />,
+      title: 'Join scrims & practice lobbies',
+      sub: 'Sharpen your skills daily',
+    },
+    {
+      icon: <BarChart3 className="w-5 h-5 text-primary" />,
+      title: 'Track your stats & rankings',
+      sub: 'Detailed performance analytics',
+    },
+    {
+      icon: <Users className="w-5 h-5 text-primary" />,
+      title: 'Build & manage your squad',
+      sub: 'Team up with the best players',
+    },
+  ];
+
   return (
-    <>
-      <Navbar />
-      <main className="pt-24 pb-16 px-4">
-        <div className="max-w-md mx-auto">
+    <div className="fixed top-14 inset-x-0 bottom-0 flex overflow-hidden z-10">
+      {/* Left panel — hidden on mobile, sticky */}
+      <div
+        className="hidden lg:flex flex-col justify-center px-14 py-16 flex-1 h-full overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, hsl(265 60% 8%) 0%, hsl(265 40% 14%) 100%)' }}
+      >
+        <span className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-primary/80 border border-primary/30 rounded-full px-4 py-1.5 w-fit mb-8 uppercase">
+          ⚡ Player Portal
+        </span>
+        <h1 className="text-5xl font-black text-white leading-tight mb-4">
+          Enter The
+          <br />
+          <span className="text-primary">Arena</span>
+        </h1>
+        <p className="text-gray-400 text-base mb-10 max-w-xs leading-relaxed">
+          Join thousands of competitive gamers. Your journey to the top starts here.
+        </p>
+        <div className="space-y-3">
+          {playerFeatures.map((f, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-4 bg-white/5 border border-white/8 rounded-xl px-4 py-3"
+            >
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                {f.icon}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{f.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{f.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right panel — scrollable only if needed */}
+      <div className="flex flex-col flex-1 h-full overflow-y-auto overscroll-y-contain bg-background">
+        {/* Back to Home — fixed at top */}
+        <div className="px-8 pt-5 pb-2 shrink-0">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Home
           </Link>
+        </div>
 
+        <div className="flex-1 flex flex-col justify-center px-8 pb-4 max-w-xl mx-auto w-full">
           <div className="w-full">
-            <div className="cyber-card border border-primary/30 p-8">
-              {/* Header with icon */}
-              <div className="flex flex-col items-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-6">
-                  <Users className="h-8 w-8 text-primary" />
-                </div>
+            <div className="cyber-card border border-primary/30 p-6">
+              {/* Header — no icon */}
+              <div className="flex flex-col items-center mb-5">
                 <h1 className="text-2xl font-bold text-foreground tracking-tight">
                   {isLogin ? 'Player Sign In' : 'Create Player Account'}
                 </h1>
-                <p className="text-muted-foreground mt-2 text-center text-sm">
+                <p className="text-muted-foreground mt-1 text-center text-sm">
                   {isLogin
                     ? 'Welcome back! Sign in to access your tournaments'
                     : 'Join ScrimVerse to compete in tournaments'}
                 </p>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Google Sign In Button */}
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => googleLogin()}
-                    className="w-full py-3 px-4 border border-border rounded-lg font-medium text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-center gap-3"
+                    className="w-full py-2.5 px-4 border border-border rounded-lg font-medium text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-center gap-3"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                       <path
@@ -280,7 +335,7 @@ const PlayerAuth = () => {
                 </div>
 
                 {/* Divider */}
-                <div className="relative flex items-center py-2">
+                <div className="relative flex items-center py-1">
                   <div className="flex-grow border-t border-border"></div>
                   <span className="flex-shrink mx-4 text-muted-foreground text-xs uppercase tracking-widest font-bold">
                     or continue with email
@@ -296,7 +351,7 @@ const PlayerAuth = () => {
                 )}
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-3">
                   {/* Username field (register only) */}
                   {!isLogin && (
                     <div className="space-y-2">
@@ -310,7 +365,7 @@ const PlayerAuth = () => {
                           value={formData.username}
                           onChange={handleChange}
                           placeholder="Choose a username"
-                          className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                          className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                         />
                       </div>
                     </div>
@@ -328,7 +383,7 @@ const PlayerAuth = () => {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="you@example.com"
-                        className="block w-full pl-10 pr-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                        className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                       />
                     </div>
                   </div>
@@ -349,7 +404,7 @@ const PlayerAuth = () => {
                             maxLength="10"
                             disabled={otpVerified}
                             ref={!otpSent ? otpInputRef : null}
-                            className={`block w-full px-4 py-3 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all disabled:opacity-50 ${otpHighlight && !otpSent ? 'border-destructive ring-2 ring-destructive/30' : 'border-border'}`}
+                            className={`block w-full px-4 py-2.5 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all disabled:opacity-50 ${otpHighlight && !otpSent ? 'border-destructive ring-2 ring-destructive/30' : 'border-border'}`}
                           />
                         </div>
                         {!otpVerified && (
@@ -361,7 +416,7 @@ const PlayerAuth = () => {
                               otpCountdown > 0 ||
                               formData.phone_number.trim().length !== 10
                             }
-                            className="px-4 py-3 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            className="px-4 py-2.5 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                           >
                             {otpLoading
                               ? '...'
@@ -403,7 +458,7 @@ const PlayerAuth = () => {
                           type="button"
                           onClick={handleVerifyOTP}
                           disabled={otpLoading || otpCode.length !== 6}
-                          className="px-4 py-3 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          className="px-4 py-2.5 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
                           {otpLoading ? '...' : 'Verify'}
                         </button>
@@ -474,7 +529,7 @@ const PlayerAuth = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="gaming-button w-full py-3 px-4 rounded-lg font-bold text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="gaming-button w-full py-2.5 px-4 rounded-lg font-bold text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading
                       ? isLogin
@@ -487,7 +542,7 @@ const PlayerAuth = () => {
                 </form>
 
                 {/* Sign up/in link */}
-                <div className="text-center pt-2">
+                <div className="text-center pt-1">
                   <p className="text-sm text-muted-foreground">
                     {isLogin ? "Don't have an account? " : 'Already have an account? '}
                     <button
@@ -509,9 +564,8 @@ const PlayerAuth = () => {
             </div>
           </div>
         </div>
-      </main>
-      <Footer />
-    </>
+      </div>
+    </div>
   );
 };
 

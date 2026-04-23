@@ -68,6 +68,7 @@ const Footer = () => {
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Support</h3>
             <ul className="space-y-2.5">
               {[
+                { to: '/about', label: 'About Us' },
                 { to: '/help', label: 'Help Center' },
                 { to: '/contact', label: 'Contact Us' },
                 { to: '/report-issue', label: 'Report Issue' },

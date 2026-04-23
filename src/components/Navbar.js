@@ -16,6 +16,7 @@ import {
   Table2,
   DollarSign,
   Settings,
+  Search,
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import './Navbar.css';
@@ -208,23 +209,62 @@ const PublicNavbar = () => {
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-lg border-b border-border">
       <div className="w-full px-4 sm:px-6 lg:px-12">
-        <div className="flex justify-between items-center h-16">
-          <Link to="/" className="h-12 flex items-center -ml-16 overflow-visible">
-            <img
-              src={logo}
-              alt="ScrimVerse"
-              className="h-48 w-auto object-contain pointer-events-none"
-            />
-          </Link>
+        <div className="flex items-center h-16">
+          {/* Logo — left */}
+          <div className="flex-none">
+            <Link to="/" className="h-12 flex items-center -ml-16 overflow-visible">
+              <img
+                src={logo}
+                alt="ScrimVerse"
+                className="h-48 w-auto object-contain pointer-events-none"
+              />
+            </Link>
+          </div>
 
-          <div className="hidden md:flex items-center space-x-6">
+          {/* Center nav links */}
+          <div className="hidden md:flex flex-1 justify-center">
+            <div className="flex items-center gap-2">
+              <Link
+                to="/tournaments"
+                className={`text-sm font-semibold px-4 py-1.5 rounded-full border transition-all ${
+                  isActive('/tournaments')
+                    ? 'bg-purple text-white border-purple'
+                    : 'bg-purple/15 text-purple border-purple/40 hover:bg-purple/25'
+                }`}
+              >
+                Tournaments
+              </Link>
+              <Link
+                to="/scrims"
+                className={`text-sm font-semibold px-4 py-1.5 rounded-full border transition-all ${
+                  isActive('/scrims')
+                    ? 'bg-purple text-white border-purple'
+                    : 'bg-purple/15 text-purple border-purple/40 hover:bg-purple/25'
+                }`}
+              >
+                Scrims
+              </Link>
+              <Link
+                to="/leaderboard"
+                className={`text-sm font-semibold px-4 py-1.5 rounded-full border transition-all ${
+                  isActive('/leaderboard')
+                    ? 'bg-purple text-white border-purple'
+                    : 'bg-purple/15 text-purple border-purple/40 hover:bg-purple/25'
+                }`}
+              >
+                Leaderboard
+              </Link>
+            </div>
+          </div>
+
+          {/* Right actions */}
+          <div className="hidden md:flex flex-none items-center gap-3">
             <Link
-              to="/about"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/about') ? 'text-purple' : 'text-muted-foreground hover:text-foreground'
-              }`}
+              to="/search"
+              className="flex items-center gap-2 pl-3 pr-5 py-1.5 rounded-full bg-secondary/60 border border-border/40 text-muted-foreground hover:text-foreground hover:border-border/70 transition-all w-48"
             >
-              About Us
+              <Search className="h-4 w-4 shrink-0" />
+              <span className="text-xs">Search players, teams...</span>
             </Link>
             <Link to={enterArenaPath}>
               <button className="px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 transition-all inline-flex items-center">
@@ -248,15 +288,48 @@ const PublicNavbar = () => {
           <div className="md:hidden border-t border-border bg-background/50 backdrop-blur-sm">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               <Link
-                to="/about"
+                to="/tournaments"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
-                  isActive('/about')
+                  isActive('/tournaments')
                     ? 'bg-primary/10 text-purple'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}
               >
-                About Us
+                Tournaments
+              </Link>
+              <Link
+                to="/scrims"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
+                  isActive('/scrims')
+                    ? 'bg-primary/10 text-purple'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                Scrims
+              </Link>
+              <Link
+                to="/leaderboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
+                  isActive('/leaderboard')
+                    ? 'bg-primary/10 text-purple'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                Leaderboard
+              </Link>
+              <Link
+                to="/search"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
+                  isActive('/search')
+                    ? 'bg-primary/10 text-purple'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                Search
               </Link>
               <Link
                 to={enterArenaPath}
