@@ -8,7 +8,7 @@ export default function JoinTeam() {
   const [searchParams] = useSearchParams();
   const autoDecline = searchParams.get('action') === 'decline';
   const navigate = useNavigate();
-  const { isAuthenticated, loading } = useContext(AuthContext);
+  const { isAuthenticated, loading, user } = useContext(AuthContext);
 
   const [invite, setInvite] = useState(null);
   const [loadingInvite, setLoadingInvite] = useState(true);
@@ -60,6 +60,11 @@ export default function JoinTeam() {
   const handleAccept = async () => {
     if (!isAuthenticated()) {
       navigate('/player/login', { state: { next: `/join-team/${token}` } });
+      return;
+    }
+
+    if (!user?.user?.phone_verified) {
+      navigate('/player/setup', { state: { next: `/join-team/${token}` } });
       return;
     }
 

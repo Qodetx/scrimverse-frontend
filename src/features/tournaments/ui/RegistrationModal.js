@@ -42,6 +42,7 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
   const [suggestions, setSuggestions] = useState({});
   const [showSuggestions, setShowSuggestions] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const searchCounter = useRef(0);
   const inputRefs = useRef({});
   const focusedIndex = useRef(null);
@@ -250,6 +251,7 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
 
   // ── Submit ──
   const handleSubmit = async () => {
+    setFormError('');
     if (screen === 'new-team' || screen === 'br-flow') {
       if (!validateForm()) return;
       setSubmitting(true);
@@ -306,7 +308,9 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
           errData?.teammate_phones?.[0] ||
           errData?.message ||
           'Registration failed';
-        showToast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error');
+        const msgStr = typeof msg === 'string' ? msg : JSON.stringify(msg);
+        setFormError(msgStr);
+        showToast(msgStr, 'error');
         setSubmitting(false);
       }
       return;
@@ -718,6 +722,22 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
       <EntryFeeRow />
       <NoCancelWarning />
 
+      {formError && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '8px',
+            background: 'rgba(239,68,68,0.1)',
+            border: '1px solid rgba(239,68,68,0.35)',
+            color: '#f87171',
+            fontSize: '13px',
+            fontWeight: 500,
+          }}
+        >
+          {formError}
+        </div>
+      )}
+
       <div className="jt-footer-row">
         <button
           onClick={handleSubmit}
@@ -781,6 +801,22 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
 
       <EntryFeeRow />
       <NoCancelWarning />
+
+      {formError && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '8px',
+            background: 'rgba(239,68,68,0.1)',
+            border: '1px solid rgba(239,68,68,0.35)',
+            color: '#f87171',
+            fontSize: '13px',
+            fontWeight: 500,
+          }}
+        >
+          {formError}
+        </div>
+      )}
 
       <div className="jt-footer-row">
         <button

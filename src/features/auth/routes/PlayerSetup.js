@@ -1,11 +1,13 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
 
 const PlayerSetup = () => {
   const { fetchUserData } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+  const nextPath = location.state?.next || '/player/dashboard';
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -52,7 +54,7 @@ const PlayerSetup = () => {
     try {
       await authAPI.updatePhone(phoneNumber, otp);
       await fetchUserData();
-      navigate('/player/dashboard', { replace: true });
+      navigate(nextPath, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
     } finally {

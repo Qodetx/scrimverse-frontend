@@ -258,10 +258,10 @@ const PublicNavbar = () => {
           </div>
 
           {/* Right actions */}
-          <div className="hidden md:flex flex-none items-center gap-3">
+          <div className="hidden md:flex flex-none items-center gap-3 ml-auto">
             <Link
               to="/search"
-              className="flex items-center gap-2 pl-3 pr-5 py-1.5 rounded-full bg-secondary/60 border border-border/40 text-muted-foreground hover:text-foreground hover:border-border/70 transition-all w-48"
+              className="flex items-center gap-2 pl-3 pr-5 py-1.5 rounded-full bg-purple/20 border border-purple/30 text-purple/80 hover:text-purple hover:bg-purple/30 hover:border-purple/50 transition-all w-72 mr-2"
             >
               <Search className="h-4 w-4 shrink-0" />
               <span className="text-xs">Search players, teams...</span>
@@ -273,7 +273,7 @@ const PublicNavbar = () => {
             </Link>
           </div>
 
-          <div className="md:hidden">
+          <div className="md:hidden ml-auto">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground transition-colors"

@@ -379,28 +379,30 @@ const HomePage = () => {
                 <p className="text-[11px] sm:text-sm text-foreground/70 max-w-lg mb-3 md:mb-4 line-clamp-2">
                   {slide.description}
                 </p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-3 text-xs text-foreground/60">
-                    {slide.max_participants > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {slide.current_participants}/{slide.max_participants}
-                      </span>
-                    )}
-                    {slide.prize_pool && (
-                      <span className="flex items-center gap-1 text-foreground font-semibold">
-                        <Trophy className="h-3 w-3" />
-                        {slide.prize_pool}
-                      </span>
-                    )}
+                {slide.id !== null && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 text-xs text-foreground/60">
+                      {slide.max_participants > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {slide.current_participants}/{slide.max_participants}
+                        </span>
+                      )}
+                      {slide.prize_pool && (
+                        <span className="flex items-center gap-1 text-foreground font-semibold">
+                          <Trophy className="h-3 w-3" />
+                          {slide.prize_pool}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleViewTournament(slide)}
+                      className="text-xs bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 font-semibold px-3 py-1.5 rounded"
+                    >
+                      View Tournament
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleViewTournament(slide)}
-                    className="text-xs bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 font-semibold px-3 py-1.5 rounded"
-                  >
-                    View Tournament
-                  </button>
-                </div>
+                )}
               </div>
 
               <button
