@@ -16,6 +16,14 @@ export default function JoinTeam() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // If authenticated but phone not verified, redirect to setup first then come back
+  useEffect(() => {
+    if (loading) return;
+    if (isAuthenticated() && !user?.user?.phone_verified) {
+      navigate('/player/setup', { state: { next: `/join-team/${token}` }, replace: true });
+    }
+  }, [loading, token]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Re-fetch invite whenever the token changes OR auth loading settles
   // This fixes the bug where the accept/decline form disappears after login redirect:
   // after redirect, AuthContext briefly sets loading=true while restoring auth from
