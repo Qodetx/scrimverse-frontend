@@ -21,6 +21,8 @@ import {
   User,
   X,
   Loader2,
+  AtSign,
+  RefreshCw,
 } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import { teamAPI, leaderboardAPI, authAPI } from '../../../utils/api';
@@ -566,6 +568,9 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
   // Role picker sub-menu (stores member idx)
   const [rolePickerOpen, setRolePickerOpen] = useState(null);
 
+  // Per-invite resend state: { [inviteId]: 'sending' | 'sent' | 'rate_limited' }
+  const [resendingInvites, setResendingInvites] = useState({});
+
   // Photo upload
   const fileInputRef = useRef(null);
 
@@ -657,20 +662,25 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Derive current team from selectedGame (map display label to backend game value)
+  // Derive current team from selectedGame (map display label to backend game value).
+  // Per per-member temp logic: a team is "temporary" for the *current user* if either
+  // the team itself is legacy-temp OR their membership in it is temporary
+  // (`is_temporary_for_me` is computed server-side and falls back to the team-level flag).
   const gameValue = GAME_API_VALUE[selectedGame] || selectedGame;
+  const isTempForMe = (t) =>
+    t?.is_temporary_for_me !== undefined ? t.is_temporary_for_me : !!t?.is_temporary;
   const permanentTeam =
-    teams.find((t) => normalizeGameValue(t.game) === gameValue && !t.is_temporary) || null;
+    teams.find((t) => normalizeGameValue(t.game) === gameValue && !isTempForMe(t)) || null;
   const tempTeamForGame =
-    teams.find((t) => normalizeGameValue(t.game) === gameValue && t.is_temporary) || null;
+    teams.find((t) => normalizeGameValue(t.game) === gameValue && isTempForMe(t)) || null;
 
-  // Auto-set teamMode when game changes: default to perm if it exists, else temp
+  // Auto-set teamMode when game changes or teams first load
   useEffect(() => {
     if (permanentTeam) setTeamMode('perm');
     else if (tempTeamForGame) setTeamMode('temp');
     setConversionResult(null);
     setConversionConflict(null);
-  }, [selectedGame]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedGame, teams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Active team is determined by teamMode
   const team = teamMode === 'temp' ? tempTeamForGame : permanentTeam;
@@ -957,6 +967,49 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
       refreshTeam();
     } catch (err) {
       showToast(err.response?.data?.error || 'Failed to set role', 'error');
+    }
+  };
+
+  // Re-send a pending / declined / expired invite using the same method
+  // it was originally sent with. Captain-only on the backend; the button is
+  // hidden in the UI for non-captains.
+  const handleResendInvite = async (inviteId) => {
+    if (!team || !inviteId) return;
+    setResendingInvites((prev) => ({ ...prev, [inviteId]: 'sending' }));
+    try {
+      const res = await teamAPI.resendInvite(team.id, inviteId);
+      showToast(res.data?.message || 'Invite re-sent', 'success');
+      setResendingInvites((prev) => ({ ...prev, [inviteId]: 'sent' }));
+      // Reset the button label after a short delay
+      setTimeout(() => {
+        setResendingInvites((prev) => {
+          const next = { ...prev };
+          delete next[inviteId];
+          return next;
+        });
+      }, 2500);
+      // Refresh team so backend status (e.g. rejected → pending) reflects in UI
+      refreshTeam();
+    } catch (err) {
+      const data = err.response?.data;
+      if (err.response?.status === 429) {
+        showToast(data?.message || 'Too many resends. Please wait before sending again.', 'error');
+        setResendingInvites((prev) => ({ ...prev, [inviteId]: 'rate_limited' }));
+        setTimeout(() => {
+          setResendingInvites((prev) => {
+            const next = { ...prev };
+            delete next[inviteId];
+            return next;
+          });
+        }, 4000);
+      } else {
+        showToast(data?.error || 'Failed to resend invite', 'error');
+        setResendingInvites((prev) => {
+          const next = { ...prev };
+          delete next[inviteId];
+          return next;
+        });
+      }
     }
   };
 
@@ -1838,7 +1891,9 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
             className="tm-photo-card"
             style={{
               flex:
-                isTempView && user?.user?.id === tempTeamForGame?.captain
+                isTempView &&
+                (tempTeamForGame?.my_conversion_deadline ||
+                  user?.user?.id === tempTeamForGame?.captain)
                   ? '1 1 240px'
                   : '1 1 auto',
             }}
@@ -1868,10 +1923,14 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
             </div>
           </div>
 
-          {/* ── Temp Team Keep/Discard Banner (captain only, temp view, only after tournament ends) ── */}
+          {/* ── Temp Team Keep/Discard Banner ─────────────────────────────────
+              Shows for any user whose membership is temporary on this team
+              (per-member temp logic). Captain still sees it for legacy
+              team-level temp teams via my_conversion_deadline fallback. */}
           {isTempView &&
-            user?.user?.id === tempTeamForGame?.captain &&
-            tempTeamForGame?.conversion_deadline && (
+            (tempTeamForGame?.my_conversion_deadline ||
+              (user?.user?.id === tempTeamForGame?.captain &&
+                tempTeamForGame?.conversion_deadline)) && (
               <div
                 style={{
                   flex: '1 1 240px',
@@ -2416,6 +2475,145 @@ const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => 
                           )}
                         </div>
                       )}
+                  </div>
+                );
+              })}
+
+              {/* Invited members (pending / declined / expired). Shown inline
+                  with accepted members so the captain can see who they invited
+                  and resend if needed. Hidden once the invitee accepts (they
+                  become a real TeamMember in the list above). */}
+              {(team?.invited_members || []).map((inv) => {
+                const idLabel = inv.identifier || inv.display_name || 'Invitee';
+                const initials = (idLabel.replace(/^[@+]/, '').slice(0, 2) || '??').toUpperCase();
+
+                let methodIcon;
+                let methodLabel;
+                if (inv.invite_type === 'email') {
+                  methodIcon = <Mail size={11} />;
+                  methodLabel = 'Invited via Email';
+                } else if (inv.invite_type === 'phone') {
+                  methodIcon = <Phone size={11} />;
+                  methodLabel = 'Invited via SMS';
+                } else if (inv.invite_type === 'username') {
+                  methodIcon = <AtSign size={11} />;
+                  methodLabel = 'Invited via Username';
+                } else {
+                  methodIcon = <User size={11} />;
+                  methodLabel = 'Invited';
+                }
+
+                const statusColors = {
+                  pending: { bg: 'rgba(251, 191, 36, 0.15)', fg: '#fbbf24', label: 'Pending' },
+                  rejected: { bg: 'rgba(239, 68, 68, 0.15)', fg: '#f87171', label: 'Declined' },
+                  expired: { bg: 'rgba(148, 163, 184, 0.15)', fg: '#94a3b8', label: 'Expired' },
+                };
+                const sty = statusColors[inv.status] || statusColors.pending;
+
+                const resendState = resendingInvites[inv.id];
+                const isSending = resendState === 'sending';
+                const isSent = resendState === 'sent';
+                const isRateLimited = resendState === 'rate_limited';
+
+                return (
+                  <div
+                    key={`invite-${inv.id}`}
+                    className="tm-member-card"
+                    style={{ opacity: 0.85 }}
+                  >
+                    <div
+                      className="tm-member-avatar"
+                      style={{ background: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8' }}
+                    >
+                      {initials}
+                    </div>
+                    <div className="tm-member-info" style={{ minWidth: 0, flex: 1 }}>
+                      <div className="tm-member-name-row">
+                        <p
+                          className="tm-member-name"
+                          style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={idLabel}
+                        >
+                          {idLabel}
+                        </p>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            background: sty.bg,
+                            color: sty.fg,
+                            fontSize: 9,
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: 999,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          {sty.label}
+                        </span>
+                      </div>
+                      <p
+                        className="tm-member-role"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      >
+                        {methodIcon} {methodLabel}
+                      </p>
+                    </div>
+
+                    {isCaptain && inv.status !== 'accepted' && (
+                      <button
+                        onClick={() => handleResendInvite(inv.id)}
+                        disabled={isSending || isSent || isRateLimited}
+                        title="Resend invite"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '5px 10px',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          borderRadius: 6,
+                          border: '1px solid rgba(167, 139, 250, 0.3)',
+                          background: isSent
+                            ? 'rgba(34, 197, 94, 0.15)'
+                            : isRateLimited
+                              ? 'rgba(239, 68, 68, 0.15)'
+                              : 'rgba(167, 139, 250, 0.1)',
+                          color: isSent
+                            ? '#4ade80'
+                            : isRateLimited
+                              ? '#f87171'
+                              : 'hsl(var(--accent))',
+                          cursor: isSending || isSent || isRateLimited ? 'default' : 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {isSending ? (
+                          <>
+                            <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                            Sending
+                          </>
+                        ) : isSent ? (
+                          <>
+                            <Check size={11} /> Sent
+                          </>
+                        ) : isRateLimited ? (
+                          <>
+                            <Clock size={11} /> Wait
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw size={11} /> Resend
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 );
               })}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, ChevronRight, ChevronLeft, Filter, ChevronDown, Users, Trophy } from 'lucide-react';
 import { tournamentAPI } from '../../../utils/api';
 import TournamentCard from '../../tournaments/ui/TournamentCard';
+import { resolveBannerImage } from '../../../utils/tournamentBanner';
 
 // Reuse the same CSS as PlayerOverviewView — identical visual language
 import '../../players/ui/PlayerOverviewView.css';
@@ -45,17 +46,13 @@ const GAME_HERO_IMAGES = {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const getHeroImage = (tournament) => {
-  if (tournament.poster_image) {
-    if (tournament.poster_image.startsWith('http')) return tournament.poster_image;
-    const base = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8000';
-    return `${base}${tournament.poster_image}`;
-  }
-  if (tournament.banner_image) {
-    if (tournament.banner_image.startsWith('http')) return tournament.banner_image;
-    const base = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8000';
-    return `${base}${tournament.banner_image}`;
-  }
-  return GAME_HERO_IMAGES[tournament.game_name || tournament.game] || heroBgmi;
+  // Same shared resolver used by PlayerOverviewView and TournamentCard so the
+  // host carousel and tournament cards match for the same tournament.
+  return (
+    resolveBannerImage(tournament) ||
+    GAME_HERO_IMAGES[tournament.game_name || tournament.game] ||
+    heroBgmi
+  );
 };
 
 const formatParticipants = (tournament) => {
@@ -153,6 +150,27 @@ const HeroCarousel = ({ slides }) => {
             style={{ background: 'rgba(239,68,68,0.5)', borderColor: 'rgba(239,68,68,0.5)' }}
           >
             LIVE
+          </span>
+        )}
+        {slide.plan_type === 'premium' && (
+          <span
+            className="overview-game-tag"
+            style={{
+              background: '#fbbf24',
+              borderColor: '#fbbf24',
+              color: '#000',
+              fontWeight: 700,
+            }}
+          >
+            PREMIUM
+          </span>
+        )}
+        {slide.plan_type === 'featured' && (
+          <span
+            className="overview-game-tag"
+            style={{ background: '#10b981', borderColor: '#10b981', fontWeight: 700 }}
+          >
+            FEATURED
           </span>
         )}
       </div>

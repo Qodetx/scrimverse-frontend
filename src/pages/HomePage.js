@@ -21,6 +21,7 @@ import heroCodm from '../assets/hero-codm.png';
 import heroFreefire from '../assets/hero-freefire.jpeg';
 import heroPubg from '../assets/hero-pubg-mobile.png';
 import { tournamentAPI } from '../utils/api';
+import { resolveBannerImage } from '../utils/tournamentBanner';
 import { AuthContext } from '../context/AuthContext';
 import './HomePage.css';
 
@@ -124,16 +125,7 @@ const HomePage = () => {
               id: t.id,
               name: t.title || t.name,
               game_name: t.game_name || t.game,
-              image: (() => {
-                const mediaBase = (
-                  process.env.REACT_APP_MEDIA_URL ||
-                  process.env.REACT_APP_API_URL?.replace('/api', '') ||
-                  'http://localhost:8000'
-                ).replace(/\/media\/?$/, '');
-                const raw = t.banner_image || t.poster_image;
-                if (raw) return raw.startsWith('http') ? raw : `${mediaBase}${raw}`;
-                return getFallbackImage(t.game_name || t.game);
-              })(),
+              image: resolveBannerImage(t) || getFallbackImage(t.game_name || t.game),
               description: t.description || `${t.game_name || t.game} tournament.`,
               current_participants: t.current_participants || 0,
               max_participants: t.max_participants || 0,

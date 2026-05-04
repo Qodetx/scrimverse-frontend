@@ -4,33 +4,12 @@ import { Trophy, Clock, Gamepad2, ChevronDown, Check, Table2, ArrowRight } from 
 import { tournamentAPI } from '../../../utils/api';
 import { useToast } from '../../../hooks/useToast';
 import PointsTableModal from '../../tournaments/ui/PointsTableModal';
-import posterBgmi from '../../../assets/poster-bgmi.png';
-import posterFreefire from '../../../assets/poster-freefire.jpg';
-import posterScarfall from '../../../assets/poster-scarfall.png';
-import posterValorant from '../../../assets/poster-valorant.jpg';
-import posterCodm from '../../../assets/poster-codm.jpg';
+import { resolveBannerImage } from '../../../utils/tournamentBanner';
 import './PlayerTournamentsView.css';
 
-const MEDIA_URL = (process.env.REACT_APP_MEDIA_URL || 'http://localhost:8000').replace(
-  /\/media\/?$/,
-  ''
-);
-
-const GAME_POSTERS = {
-  BGMI: posterBgmi,
-  Freefire: posterFreefire,
-  Scarfall: posterScarfall,
-  Valorant: posterValorant,
-  COD: posterCodm,
-};
-
-// Helper: resolve poster image
-const getPoster = (t) => {
-  if (t.banner_image) {
-    return t.banner_image.startsWith('http') ? t.banner_image : `${MEDIA_URL}${t.banner_image}`;
-  }
-  return GAME_POSTERS[t.game_name] || posterBgmi;
-};
+// Single source of truth for tournament banner image. Same helper used across
+// HomePage, TournamentCard, etc. — keeps poster crops consistent.
+const getPoster = (t) => resolveBannerImage(t);
 
 // Helper: common card fields
 const getCardData = (t) => {
@@ -187,11 +166,7 @@ const RegisteredTournamentCard = ({ registration }) => {
   if (!t) return null;
 
   const gameName = t.game_name || '';
-  const poster = t.banner_image
-    ? t.banner_image.startsWith('http')
-      ? t.banner_image
-      : `${MEDIA_URL}${t.banner_image}`
-    : GAME_POSTERS[gameName] || posterBgmi;
+  const poster = getPoster(t);
 
   const registered = t.current_participants || 0;
   const total = t.max_participants || 100;

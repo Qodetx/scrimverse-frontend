@@ -5,23 +5,8 @@ import { AuthContext } from '../../../context/AuthContext';
 import PointsTableModal from './PointsTableModal';
 import ScrimPointsTableModal from './ScrimPointsTableModal';
 import RegistrationModal from './RegistrationModal';
+import { resolveBannerImage } from '../../../utils/tournamentBanner';
 import './TournamentCard.css';
-
-import posterBgmi from '../../../assets/poster-bgmi.png';
-import posterFreefire from '../../../assets/poster-freefire.jpg';
-import posterScarfall from '../../../assets/poster-scarfall.png';
-import posterValorant from '../../../assets/poster-valorant.jpg';
-import posterCodm from '../../../assets/poster-codm.jpg';
-
-const GAME_POSTERS = {
-  BGMI: posterBgmi,
-  Freefire: posterFreefire,
-  'Free Fire': posterFreefire,
-  Scarfall: posterScarfall,
-  Valorant: posterValorant,
-  COD: posterCodm,
-  'COD Mobile': posterCodm,
-};
 
 const TournamentCard = ({ tournament, activeTab }) => {
   const { isHost, user, isAuthenticated } = useContext(AuthContext);
@@ -86,25 +71,9 @@ const TournamentCard = ({ tournament, activeTab }) => {
         return isPlayer || isTeamMember;
       }));
 
-  // Poster image — use tournament image or fall back to game poster
-  const getPosterImage = () => {
-    const mediaBase = (
-      process.env.REACT_APP_MEDIA_URL ||
-      process.env.REACT_APP_API_URL?.replace('/api', '') ||
-      'http://localhost:8000'
-    ).replace(/\/media\/?$/, '');
-
-    if (tournament.poster_image) {
-      if (tournament.poster_image.startsWith('http')) return tournament.poster_image;
-      return `${mediaBase}${tournament.poster_image}`;
-    }
-    if (tournament.banner_image) {
-      if (tournament.banner_image.startsWith('http')) return tournament.banner_image;
-      return `${mediaBase}${tournament.banner_image}`;
-    }
-    const game = tournament.game_name || tournament.game || '';
-    return GAME_POSTERS[game] || GAME_POSTERS[game.split(' ')[0]] || posterBgmi;
-  };
+  // Poster image — delegated to shared resolver so all surfaces use the same
+  // field-priority order (banner > poster > hero > image > game-fallback).
+  const getPosterImage = () => resolveBannerImage(tournament);
 
   // Progress bar stats
   const registered = tournament.registration_count || tournament.current_participants || 0;

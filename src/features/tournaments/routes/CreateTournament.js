@@ -1,6 +1,7 @@
 import React, { useState, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { tournamentAPI } from '../../../utils/api';
+import { tournamentAPI, sponsorAPI } from '../../../utils/api';
+import { getMapsForGame, OTHER_OPTION } from '../../../utils/gameMaps';
 import { AuthContext } from '../../../context/AuthContext';
 import PremiumDropdown from '../../../components/PremiumDropdown';
 import useToast from '../../../hooks/useToast';
@@ -97,6 +98,17 @@ const CreateTournament = () => {
   const [tournamentFile, setTournamentFile] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Sponsors collected during creation
+  const [sponsors, setSponsors] = useState([]);
+  const [sponsorDraft, setSponsorDraft] = useState({
+    name: '',
+    sponsor_type: '',
+    website_url: '',
+    logo: null,
+  });
+  const [sponsorLogoPreview, setSponsorLogoPreview] = useState(null);
+  const [sponsorError, setSponsorError] = useState('');
   const [error, setError] = useState('');
   const [scheduleError, setScheduleError] = useState('');
   const [prizeError, setPrizeError] = useState('');
@@ -145,27 +157,11 @@ const CreateTournament = () => {
   const gameOptions = ['BGMI', 'Valorant', 'COD', 'Freefire', 'Scarfall'];
   const gameFormatOptions = ['Squad', 'Duo', 'Solo', '5v5'];
 
-  const gameMaps = {
-    BGMI: ['Erangel', 'Miramar', 'Sanhok', 'Vikendi', 'Livik', 'Karakin', 'Nusa'],
-    Freefire: ['Bermuda', 'Purgatory', 'Kalahari', 'Alpine', 'Nexterra'],
-    COD: ['Isolated', 'Alcatraz', 'Blackout', 'Rebirth Island', "Fortune's Keep"],
-    Valorant: [
-      'Bind',
-      'Haven',
-      'Split',
-      'Ascent',
-      'Icebox',
-      'Breeze',
-      'Fracture',
-      'Pearl',
-      'Lotus',
-      'Sunset',
-    ],
-    Scarfall: ['Valley', 'Seaview', 'Graveyard', 'Desert'],
-  };
-
   const [matchCount, setMatchCount] = useState(4);
   const [matchMaps, setMatchMaps] = useState({});
+  // Tracks per-match index whether the host has chosen "Other" so we can render
+  // a free-text input instead of the dropdown. Keyed by match index (1-based).
+  const [customMapMode, setCustomMapMode] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -443,6 +439,7 @@ const CreateTournament = () => {
                     statusResponse.data.status === 'completed' &&
                     statusResponse.data.tournament_id
                   ) {
+                    await saveSponsorsToDb(statusResponse.data.tournament_id);
                     showToast('Tournament created successfully!', 'success');
                     setLoading(false);
                     setTimeout(() => {
@@ -468,6 +465,7 @@ const CreateTournament = () => {
           },
         });
       } else {
+        await saveSponsorsToDb(tournamentData.tournament_id);
         showToast('Tournament created successfully!', 'success');
         setTimeout(() => {
           navigate('/host/dashboard');
@@ -478,6 +476,64 @@ const CreateTournament = () => {
       setError(err.response?.data?.error || err.message || 'Failed to create tournament');
       setLoading(false);
     }
+  };
+
+  const saveSponsorsToDb = async (tournamentId) => {
+    for (const sp of sponsors) {
+      try {
+        const fd = new FormData();
+        fd.append('name', sp.name);
+        fd.append('sponsor_type', sp.sponsor_type);
+        if (sp.website_url) {
+          const url = /^https?:\/\//i.test(sp.website_url)
+            ? sp.website_url
+            : `https://${sp.website_url}`;
+          fd.append('website_url', url);
+        }
+        fd.append('display_order', sp.display_order);
+        if (sp.logo) fd.append('logo', sp.logo);
+        await sponsorAPI.add(tournamentId, fd);
+      } catch (err) {
+        console.error('Failed to save sponsor:', sp.name, err);
+      }
+    }
+  };
+
+  const handleAddSponsorDraft = (e) => {
+    e.preventDefault();
+    if (!sponsorDraft.name.trim()) {
+      setSponsorError('Sponsor name is required.');
+      return;
+    }
+    setSponsorError('');
+    setSponsors((prev) => [
+      ...prev,
+      { ...sponsorDraft, id: Date.now(), display_order: prev.length + 1 },
+    ]);
+    setSponsorDraft({ name: '', sponsor_type: '', website_url: '', logo: null });
+    setSponsorLogoPreview(null);
+  };
+
+  const handleRemoveSponsorDraft = (id) => {
+    setSponsors((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleSponsorDraftLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSponsorDraft((d) => ({ ...d, logo: file }));
+    setSponsorLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleMoveSponsorDraft = (id, direction) => {
+    setSponsors((prev) => {
+      const idx = prev.findIndex((s) => s.id === id);
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= prev.length) return prev;
+      const updated = [...prev];
+      [updated[idx], updated[swapIdx]] = [updated[swapIdx], updated[idx]];
+      return updated.map((s, i) => ({ ...s, display_order: i + 1 }));
+    });
   };
 
   const totalDistributed = getTotalPrizeDistributed();
@@ -1215,7 +1271,7 @@ const CreateTournament = () => {
                 </select>
               </div>
 
-              {formData.game_name && gameMaps[formData.game_name] && (
+              {formData.game_name && (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-[hsl(var(--foreground))]">
                     Map per Match
@@ -1223,25 +1279,62 @@ const CreateTournament = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {Array.from({ length: matchCount }, (_, i) => {
                       const mn = i + 1;
+                      const mapList = getMapsForGame(formData.game_name);
+                      const isCustom = !!customMapMode[mn];
                       return (
                         <div key={mn}>
                           <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium uppercase tracking-wider mb-1">
                             Match {mn}
                           </label>
-                          <select
-                            value={matchMaps[mn] || ''}
-                            onChange={(e) => setMatchMaps({ ...matchMaps, [mn]: e.target.value })}
-                            className="w-full px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
-                          >
-                            <option value="" className="bg-gray-900">
-                              Select map
-                            </option>
-                            {gameMaps[formData.game_name].map((map) => (
-                              <option key={map} value={map} className="bg-gray-900">
-                                {map}
+                          {isCustom ? (
+                            <div className="flex gap-1">
+                              <input
+                                type="text"
+                                value={matchMaps[mn] || ''}
+                                onChange={(e) =>
+                                  setMatchMaps({ ...matchMaps, [mn]: e.target.value })
+                                }
+                                placeholder="Custom map name"
+                                className="flex-1 px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCustomMapMode((p) => ({ ...p, [mn]: false }));
+                                  setMatchMaps({ ...matchMaps, [mn]: '' });
+                                }}
+                                className="px-2 py-1.5 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-md text-[10px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                                title="Pick from list instead"
+                              >
+                                ⌫
+                              </button>
+                            </div>
+                          ) : (
+                            <select
+                              value={matchMaps[mn] || ''}
+                              onChange={(e) => {
+                                if (e.target.value === OTHER_OPTION) {
+                                  setCustomMapMode((p) => ({ ...p, [mn]: true }));
+                                  setMatchMaps({ ...matchMaps, [mn]: '' });
+                                } else {
+                                  setMatchMaps({ ...matchMaps, [mn]: e.target.value });
+                                }
+                              }}
+                              className="w-full px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
+                            >
+                              <option value="" className="bg-gray-900">
+                                Select map
                               </option>
-                            ))}
-                          </select>
+                              {mapList.map((map) => (
+                                <option key={map} value={map} className="bg-gray-900">
+                                  {map}
+                                </option>
+                              ))}
+                              <option value={OTHER_OPTION} className="bg-gray-900">
+                                Other…
+                              </option>
+                            </select>
+                          )}
                         </div>
                       );
                     })}
@@ -1399,6 +1492,155 @@ const CreateTournament = () => {
                 )}
               </label>
             </div>
+          </div>
+
+          {/* Sponsors */}
+          <div className="cyber-card bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-[hsl(var(--accent)/0.15)] flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-[hsl(var(--accent))]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[hsl(var(--foreground))]">Sponsors</h3>
+                <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                  Add sponsors for this tournament (optional)
+                </p>
+              </div>
+            </div>
+
+            {/* Draft form */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                  Sponsor Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={sponsorDraft.name}
+                  onChange={(e) => setSponsorDraft((d) => ({ ...d, name: e.target.value }))}
+                  placeholder="e.g. Red Bull"
+                  className="w-full px-3 py-2.5 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                  Sponsor Type
+                </label>
+                <input
+                  type="text"
+                  value={sponsorDraft.sponsor_type}
+                  onChange={(e) => setSponsorDraft((d) => ({ ...d, sponsor_type: e.target.value }))}
+                  placeholder="e.g. Food Partner, Title Sponsor"
+                  className="w-full px-3 py-2.5 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                  Website URL
+                </label>
+                <input
+                  type="url"
+                  value={sponsorDraft.website_url}
+                  onChange={(e) => setSponsorDraft((d) => ({ ...d, website_url: e.target.value }))}
+                  placeholder="https://example.com"
+                  className="w-full px-3 py-2.5 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                  Logo (optional)
+                </label>
+                <div className="flex items-center gap-2">
+                  {sponsorLogoPreview && (
+                    <img
+                      src={sponsorLogoPreview}
+                      alt="preview"
+                      className="w-10 h-10 rounded-lg object-cover border border-[hsl(var(--border)/0.3)] shrink-0"
+                    />
+                  )}
+                  <label className="flex-1 cursor-pointer px-3 py-2.5 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] border-dashed rounded-lg text-[hsl(var(--muted-foreground))] text-xs text-center hover:border-[hsl(var(--accent)/0.4)] transition-colors">
+                    {sponsorDraft.logo ? sponsorDraft.logo.name : 'Click to upload logo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleSponsorDraftLogoChange}
+                    />
+                  </label>
+                </div>
+              </div>
+              {sponsorError && (
+                <p className="sm:col-span-2 text-red-400 text-xs font-medium">{sponsorError}</p>
+              )}
+              <div className="sm:col-span-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleAddSponsorDraft}
+                  className="px-5 py-2 bg-[hsl(var(--accent)/0.15)] hover:bg-[hsl(var(--accent)/0.25)] text-[hsl(var(--accent))] border border-[hsl(var(--accent)/0.3)] rounded-lg text-sm font-semibold transition-colors"
+                >
+                  + Add Sponsor
+                </button>
+              </div>
+            </div>
+
+            {/* Sponsors added so far */}
+            {sponsors.length > 0 && (
+              <div className="space-y-2 mt-2">
+                {sponsors.map((sp, idx) => (
+                  <div
+                    key={sp.id}
+                    className="flex items-center gap-3 p-3 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.2)] rounded-xl"
+                  >
+                    {sp.logo ? (
+                      <img
+                        src={URL.createObjectURL(sp.logo)}
+                        alt={sp.name}
+                        className="w-10 h-10 rounded-lg object-cover border border-[hsl(var(--border)/0.3)] shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-[hsl(var(--secondary))] flex items-center justify-center shrink-0 text-[hsl(var(--foreground))] text-lg font-bold">
+                        {sp.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[hsl(var(--foreground))] truncate">
+                        {sp.name}
+                      </p>
+                      {sp.sponsor_type && (
+                        <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">
+                          {sp.sponsor_type}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveSponsorDraft(sp.id, 'up')}
+                        disabled={idx === 0}
+                        className="p-1 rounded hover:bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] disabled:opacity-30 text-xs transition-colors"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveSponsorDraft(sp.id, 'down')}
+                        disabled={idx === sponsors.length - 1}
+                        className="p-1 rounded hover:bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] disabled:opacity-30 text-xs transition-colors"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSponsorDraft(sp.id)}
+                      className="p-1.5 rounded-lg hover:bg-red-500/15 text-red-400 transition-colors shrink-0"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

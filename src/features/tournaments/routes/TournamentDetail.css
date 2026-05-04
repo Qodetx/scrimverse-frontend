@@ -548,8 +548,8 @@
 }
 
 .td-tab-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 6px;
   background: hsl(220 10% 10% / 0.6);
@@ -575,6 +575,8 @@
   letter-spacing: 0.05em;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex: 1;
+  min-width: 0;
 }
 
 @media (min-width: 640px) {
@@ -1361,4 +1363,285 @@
   background: hsl(220 10% 14% / 0.6);
   border: 1px solid hsl(0 0% 100% / 0.04);
   color: #d1d5db;
+}
+
+/* ---- Hero Sponsors Strip (inside hero, below action buttons) ---- */
+.td-hero-sponsors {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: hsl(0 0% 0% / 0.35);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  border-radius: 12px;
+  max-width: fit-content;
+}
+.td-hero-sponsors-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #e8b84b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.td-hero-sponsors-divider {
+  width: 1px;
+  height: 18px;
+  background: hsl(0 0% 100% / 0.18);
+  flex-shrink: 0;
+}
+.td-hero-sponsors-items {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.td-hero-sponsor-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  padding: 4px 10px 4px 5px;
+  border-radius: 20px;
+  border: 1px solid hsl(0 0% 100% / 0.12);
+  background: hsl(0 0% 100% / 0.07);
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  white-space: nowrap;
+}
+.td-hero-sponsor-chip:hover {
+  background: hsl(0 0% 100% / 0.14);
+  border-color: hsl(0 0% 100% / 0.22);
+}
+.td-hero-sponsor-chip-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+.td-hero-sponsor-chip-initial {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: hsl(270 60% 45%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+.td-hero-sponsor-chip-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: hsl(0 0% 90%);
+}
+
+/* ---- Sponsored By Bar ---- */
+.td-sponsored-bar {
+  background: hsl(220 10% 8%);
+  border-top: 1px solid hsl(270 60% 50% / 0.2);
+  border-bottom: 1px solid hsl(0 0% 100% / 0.06);
+  overflow: hidden;
+  position: relative;
+  z-index: 5;
+}
+.td-sponsored-bar-inner {
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.td-sponsored-bar-inner::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 480px) {
+  .td-sponsored-bar-inner {
+    padding: 12px 40px;
+  }
+}
+@media (min-width: 640px) {
+  .td-sponsored-bar-inner {
+    padding: 12px 48px;
+  }
+}
+@media (min-width: 768px) {
+  .td-sponsored-bar-inner {
+    padding: 12px 56px;
+  }
+}
+@media (min-width: 1024px) {
+  .td-sponsored-bar-inner {
+    padding: 12px 72px;
+  }
+}
+.td-sponsored-bar-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: hsl(270 55% 70%);
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: hsl(270 60% 50% / 0.14);
+  border: 1px solid hsl(270 60% 50% / 0.28);
+  border-radius: 5px;
+  padding: 4px 9px;
+}
+.td-sponsored-bar-divider {
+  width: 1px;
+  height: 20px;
+  background: hsl(0 0% 100% / 0.1);
+  flex-shrink: 0;
+}
+.td-sponsored-bar-items {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.td-sponsored-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  padding: 5px 11px 5px 7px;
+  border-radius: 20px;
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  background: hsl(220 10% 14%);
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.td-sponsored-bar-item:hover {
+  border-color: hsl(270 60% 55% / 0.4);
+  background: hsl(220 10% 18%);
+}
+.td-sponsored-bar-item-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: hsl(220 10% 20%);
+}
+.td-sponsored-bar-item-initial {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: hsl(270 60% 42%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+.td-sponsored-bar-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(220 5% 88%);
+}
+
+/* ---- Sponsor Tab Cards ---- */
+.td-sponsor-group {
+  margin-bottom: 28px;
+}
+.td-sponsor-group:last-child {
+  margin-bottom: 0;
+}
+.td-sponsor-group-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: hsl(270 60% 65%);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid hsl(270 60% 50% / 0.15);
+}
+.td-sponsor-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.td-sponsor-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  background: hsl(220 10% 14%);
+  border: 1px solid hsl(0 0% 100% / 0.09);
+  border-radius: 14px;
+  text-decoration: none;
+  cursor: default;
+  overflow: hidden;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.15s;
+  min-width: 220px;
+}
+.td-sponsor-card.clickable {
+  cursor: pointer;
+}
+.td-sponsor-card.clickable:hover {
+  border-color: hsl(270 60% 55% / 0.45);
+  box-shadow: 0 4px 20px hsl(270 60% 55% / 0.1);
+  transform: translateY(-2px);
+}
+.td-sponsor-card-logo {
+  width: 76px;
+  align-self: stretch;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+.td-sponsor-card-initial {
+  width: 76px;
+  align-self: stretch;
+  background: linear-gradient(160deg, hsl(270 60% 48%), hsl(270 50% 32%));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+.td-sponsor-card-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 18px;
+  overflow: hidden;
+}
+.td-sponsor-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: hsl(220 5% 94%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.td-sponsor-card-type {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(270 60% 60%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

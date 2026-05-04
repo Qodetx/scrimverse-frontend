@@ -92,16 +92,22 @@ const PlayerSlotListView = ({ focusTournamentId: externalFocusId } = {}) => {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  // Open/closed state for the Download split-menu (PNG / CSV).
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const downloadMenuRef = useRef(null);
 
   const dropdownRef = useRef(null);
   const slotCardRef = useRef(null);
 
-  // ── close dropdown on outside click ──────────────────────────────────────
+  // ── close dropdowns on outside click ──────────────────────────────────────
 
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowDropdown(false);
+      }
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target)) {
+        setDownloadMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -135,6 +141,7 @@ const PlayerSlotListView = ({ focusTournamentId: externalFocusId } = {}) => {
         console.error('Error fetching registrations for slot list:', err);
         setRegistrations([]);
       } finally {
+        setLoading(false);
       }
     };
     fetchRegistrations();
@@ -265,6 +272,32 @@ const PlayerSlotListView = ({ focusTournamentId: externalFocusId } = {}) => {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error('Slot list download error:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // CSV download — backed by a server-side streaming endpoint so the data
+  // matches what a host's spreadsheet would expect (slot/group/team/captain/players).
+  const handleDownloadCSV = async () => {
+    const tournamentId = selectedReg?.tournament?.id || selectedReg?.tournament_id;
+    if (!tournamentId) return;
+    setDownloading(true);
+    setDownloadMenuOpen(false);
+    try {
+      const res = await tournamentAPI.downloadSlotListCSV(tournamentId, roundNumber);
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const fileName = `slot-list-${(tournamentName || 'tournament').replace(/\s+/g, '-').replace(/[^a-z0-9_.-]/gi, '_')}-round-${roundNumber}.csv`;
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error('Slot list CSV download error:', err);
     } finally {
       setDownloading(false);
     }
@@ -504,26 +537,108 @@ const PlayerSlotListView = ({ focusTournamentId: externalFocusId } = {}) => {
         )}
       </div>
 
-      {/* Download button — outside capture area */}
+      {/* Download split-button — outside capture area.
+          Made prominent (purple primary style) per client feedback that the
+          original button was easy to miss. PNG is the default action; the
+          dropdown adds CSV (server-side streaming export). */}
       {slots.length > 0 && (
-        <div className="flex justify-between items-center mt-2 px-1">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center mt-3 px-1 gap-2">
           <span className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
             Round {roundNumber} · {slots.length} Teams
           </span>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{
-              background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border) / 0.5)',
-              color: 'hsl(var(--foreground))',
-              opacity: downloading ? 0.6 : 1,
-            }}
-          >
-            <Download size={12} />
-            {downloading ? 'Saving...' : 'Download'}
-          </button>
+          <div ref={downloadMenuRef} style={{ position: 'relative' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                width: '100%',
+                borderRadius: 8,
+                overflow: 'hidden',
+                opacity: downloading ? 0.6 : 1,
+                boxShadow: '0 2px 8px hsl(var(--accent) / 0.25)',
+              }}
+            >
+              <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className="flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold transition-colors"
+                style={{
+                  flex: '1 1 auto',
+                  background: 'hsl(var(--accent))',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: downloading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <Download size={14} />
+                {downloading ? 'Saving…' : 'Download Slot List'}
+              </button>
+              <button
+                onClick={() => setDownloadMenuOpen((v) => !v)}
+                disabled={downloading}
+                aria-label="Choose download format"
+                className="flex items-center justify-center transition-colors"
+                style={{
+                  width: 36,
+                  background: 'hsl(var(--accent))',
+                  borderLeft: '1px solid rgba(255,255,255,0.2)',
+                  color: '#fff',
+                  cursor: downloading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <span
+                  style={{
+                    transform: downloadMenuOpen ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.15s',
+                  }}
+                >
+                  ▾
+                </span>
+              </button>
+            </div>
+            {downloadMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '100%',
+                  marginTop: 4,
+                  background: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border) / 0.5)',
+                  borderRadius: 8,
+                  minWidth: 180,
+                  zIndex: 50,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setDownloadMenuOpen(false);
+                    handleDownload();
+                  }}
+                  className="block w-full text-left px-3 py-2 text-xs font-medium hover:bg-[hsl(var(--secondary)/0.4)]"
+                  style={{
+                    color: 'hsl(var(--foreground))',
+                    background: 'transparent',
+                    border: 'none',
+                  }}
+                >
+                  Image (PNG)
+                </button>
+                <button
+                  onClick={handleDownloadCSV}
+                  className="block w-full text-left px-3 py-2 text-xs font-medium hover:bg-[hsl(var(--secondary)/0.4)]"
+                  style={{
+                    color: 'hsl(var(--foreground))',
+                    background: 'transparent',
+                    border: 'none',
+                    borderTop: '1px solid hsl(var(--border) / 0.3)',
+                  }}
+                >
+                  Spreadsheet (CSV)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

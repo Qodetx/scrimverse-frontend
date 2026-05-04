@@ -1,5 +1,6 @@
 import { useContext, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import ReactGA from 'react-ga4';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 
 // Components
@@ -64,6 +65,18 @@ const HostOnlyRoute = ({ children }) => {
 function AppShell() {
   const location = useLocation();
   const isHostPortal = window.location.hostname.startsWith('host.');
+
+  // Send a pageview to GA4 on every route change. No-op if GA wasn't
+  // initialised (env var not set), so dev environments don't make network
+  // calls. Path includes search params so funnel tracking works for
+  // dashboard tab links like ?view=tournaments.
+  useEffect(() => {
+    if (!process.env.REACT_APP_GA_MEASUREMENT_ID) return;
+    ReactGA.send({
+      hitType: 'pageview',
+      page: location.pathname + location.search,
+    });
+  }, [location.pathname, location.search]);
 
   const hideNavbar =
     location.pathname === '/player/dashboard' ||

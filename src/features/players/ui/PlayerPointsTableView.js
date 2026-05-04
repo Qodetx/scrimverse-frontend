@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Check,
   Trophy,
-  Medal,
   Star,
   Download,
 } from 'lucide-react';
@@ -37,11 +36,21 @@ const getRoundCount = (tournament) => {
   return 1;
 };
 
+// Rank display: explicit number for ALL ranks. Top-3 get a colored accent
+// via inline style; rank 4+ uses default white. Per client request, no medal
+// icons or emoji — just clear "1, 2, 3..." labels.
 const getRankIcon = (rank) => {
-  if (rank === 1) return <Trophy size={16} style={{ color: 'rgb(234 179 8)' }} />;
-  if (rank === 2) return <Medal size={16} style={{ color: 'rgb(156 163 175)' }} />;
-  if (rank === 3) return <Medal size={16} style={{ color: 'rgb(180 83 9)' }} />;
-  return <span className="pt-rank-num">{rank}</span>;
+  let color;
+  if (rank === 1)
+    color = 'rgb(234 179 8)'; // gold
+  else if (rank === 2)
+    color = 'rgb(192 192 192)'; // silver
+  else if (rank === 3) color = 'rgb(205 127 50)'; // bronze
+  return (
+    <span className="pt-rank-num" style={color ? { color, fontWeight: 800 } : undefined}>
+      {rank}
+    </span>
+  );
 };
 
 // ─── Custom dropdown ──────────────────────────────────────────────────────────

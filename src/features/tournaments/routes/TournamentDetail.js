@@ -11,56 +11,29 @@ import './TournamentDetail.css';
 // Fallbacks are handled in getHeroImage below.
 
 /* ─── Map pool data ──────────────────────────────────────── */
-const gameMaps = {
-  BGMI: {
-    maps: ['Erangel', 'Miramar', 'Rondo'],
-    matchCount: 4,
-    boInfo: '',
-  },
-  'Free Fire': {
-    maps: ['Bermuda', 'Purgatory', 'Kalahari', 'Alpine'],
-    matchCount: 3,
-    boInfo: '',
-  },
-  Scarfall: {
-    maps: ['Norvania', 'Gorge', 'Tropicana', 'Bayfront'],
-    matchCount: 3,
-    boInfo: '',
-  },
-  Valorant: {
-    maps: ['Split', 'Breeze', 'Pearl', 'Bind', 'Abyss', 'Corrode', 'Haven'],
-    matchCount: 0,
-    boInfo: 'BO3',
-  },
-  'COD Mobile': {
-    maps: [],
-    matchCount: 0,
-    boInfo: 'BO5',
-  },
+// Map names come from the shared util `src/utils/gameMaps.js` so all surfaces
+// (CreateTournament, TournamentDetail, etc.) stay in sync. The extra metadata
+// (matchCount, boInfo) is tournament-display-specific and stays here.
+import { getMapsForGame } from '../../../utils/gameMaps';
+
+const GAME_DISPLAY_INFO = {
+  BGMI: { matchCount: 4, boInfo: '' },
+  'Free Fire': { matchCount: 3, boInfo: '' },
+  Scarfall: { matchCount: 3, boInfo: '' },
+  Valorant: { matchCount: 0, boInfo: 'BO3' },
+  'COD Mobile': { matchCount: 0, boInfo: 'BO5' },
 };
 
-const getGameMaps = (gameName = '') => {
-  const exact = gameMaps[gameName];
-  if (exact) return exact.maps;
-  const lc = gameName.toLowerCase();
-  if (lc.includes('bgmi') || lc.includes('pubg')) return gameMaps['BGMI'].maps;
-  if (lc.includes('free fire') || lc.includes('freefire')) return gameMaps['Free Fire'].maps;
-  if (lc.includes('scar')) return gameMaps['Scarfall'].maps;
-  if (lc.includes('valorant')) return gameMaps['Valorant'].maps;
-  if (lc.includes('cod')) return gameMaps['COD Mobile'].maps;
-  return gameMaps['BGMI'].maps;
-};
+const getGameMaps = (gameName = '') => getMapsForGame(gameName);
 
 const getGameMapInfo = (gameName = '') => {
-  const exact = gameMaps[gameName];
-  if (exact) return exact;
-  const lc = gameName.toLowerCase();
-  if (lc.includes('bgmi') || lc.includes('pubg')) return gameMaps['BGMI'];
-  if (lc.includes('free fire') || lc.includes('freefire')) return gameMaps['Free Fire'];
-  if (lc.includes('scar')) return gameMaps['Scarfall'];
-  if (lc.includes('valorant')) return gameMaps['Valorant'];
-  if (lc.includes('cod')) return gameMaps['COD Mobile'];
-  return gameMaps['BGMI'];
+  const lc = (gameName || '').toLowerCase();
+  let key = 'BGMI';
+  if (lc.includes('free fire') || lc.includes('freefire')) key = 'Free Fire';
+  else if (lc.includes('scar')) key = 'Scarfall';
+  else if (lc.includes('valorant')) key = 'Valorant';
+  else if (lc.includes('cod')) key = 'COD Mobile';
+  return { maps: getMapsForGame(gameName), ...(GAME_DISPLAY_INFO[key] || GAME_DISPLAY_INFO.BGMI) };
 };
 
 /* ─── Is 5v5 game ────────────────────────────────────────── */
@@ -906,6 +879,35 @@ const TournamentDetail = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Sponsors strip — inside hero below action buttons */}
+              {tournament.sponsors && tournament.sponsors.length > 0 && (
+                <div className="td-hero-sponsors">
+                  <span className="td-hero-sponsors-label">✦ Sponsored by</span>
+                  <div className="td-hero-sponsors-divider" />
+                  <div className="td-hero-sponsors-items">
+                    {tournament.sponsors.map((sp) => (
+                      <a
+                        key={sp.id}
+                        href={sp.website_url || undefined}
+                        target={sp.website_url ? '_blank' : undefined}
+                        rel="noopener noreferrer"
+                        className="td-hero-sponsor-chip"
+                        style={{ cursor: sp.website_url ? 'pointer' : 'default' }}
+                      >
+                        {sp.logo ? (
+                          <img src={sp.logo} alt={sp.name} className="td-hero-sponsor-chip-logo" />
+                        ) : (
+                          <div className="td-hero-sponsor-chip-initial">
+                            {sp.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="td-hero-sponsor-chip-name">{sp.name}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right: stat boxes + watch live */}
@@ -974,6 +976,15 @@ const TournamentDetail = () => {
             >
               <IconUsers /> Host Details
             </button>
+            {tournament.sponsors && tournament.sponsors.length > 0 && (
+              <button
+                role="tab"
+                className={`td-tab-btn${activeTab === 'sponsors' ? ' active' : ''}`}
+                onClick={() => setActiveTab('sponsors')}
+              >
+                ✦ Sponsors
+              </button>
+            )}
           </div>
 
           {/* ── Tab: Schedule & Prizes ── */}
@@ -1565,9 +1576,57 @@ const TournamentDetail = () => {
               </div>
             </div>
           )}
+
+          {/* ── Tab: Sponsors ── */}
+          {activeTab === 'sponsors' && (
+            <div className="td-tab-panel" role="tabpanel">
+              <p className="td-section-heading" style={{ marginBottom: 20 }}>
+                Our Sponsors
+              </p>
+              {(() => {
+                const groups = {};
+                (tournament.sponsors || []).forEach((sp) => {
+                  const key = sp.sponsor_type || 'Official Sponsors';
+                  if (!groups[key]) groups[key] = [];
+                  groups[key].push(sp);
+                });
+                return Object.entries(groups).map(([type, items]) => (
+                  <div key={type} className="td-sponsor-group">
+                    <div className="td-sponsor-group-label">{type}</div>
+                    <div className="td-sponsor-cards">
+                      {items.map((sp) => (
+                        <a
+                          key={sp.id}
+                          href={sp.website_url || undefined}
+                          target={sp.website_url ? '_blank' : undefined}
+                          rel="noopener noreferrer"
+                          className={`td-sponsor-card${sp.website_url ? ' clickable' : ''}`}
+                        >
+                          {sp.logo ? (
+                            <img src={sp.logo} alt={sp.name} className="td-sponsor-card-logo" />
+                          ) : (
+                            <div className="td-sponsor-card-initial">
+                              {sp.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="td-sponsor-card-info">
+                            <span className="td-sponsor-card-name">{sp.name}</span>
+                            {sp.sponsor_type && (
+                              <span className="td-sponsor-card-type">{sp.sponsor_type}</span>
+                            )}
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
         </div>
         {/* end td-tabs-section */}
       </div>
+
       {/* end content section */}
 
       {/* ══════════════════════════════════════

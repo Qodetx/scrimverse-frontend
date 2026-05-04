@@ -1305,27 +1305,31 @@ const PlayerDashboard = () => {
             </p>
             {rightPanelMembers.length > 0 ? (
               <div className="space-y-2">
-                {rightPanelMembers.map((member, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-1.5">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0 overflow-hidden">
-                      {member.user?.profile_picture ? (
-                        <img
-                          src={member.user.profile_picture}
-                          alt={member.username}
-                          className="w-full h-full object-cover rounded-full"
-                        />
-                      ) : (
-                        (member.username || 'U').charAt(0).toUpperCase()
+                {rightPanelMembers.map((member, idx) => {
+                  const displayName = member.username || member.user?.username || 'Unknown';
+                  const picture = member.user?.profile_picture;
+                  return (
+                    <div key={idx} className="flex items-center gap-3 py-1.5">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0 overflow-hidden">
+                        {picture ? (
+                          <img
+                            src={picture}
+                            alt={displayName}
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          displayName.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <span className="text-xs text-foreground truncate">{displayName}</span>
+                      {member.is_captain && (
+                        <span className="ml-auto text-[9px] text-amber-400 font-semibold shrink-0">
+                          CAP
+                        </span>
                       )}
                     </div>
-                    <span className="text-xs text-foreground truncate">{member.username}</span>
-                    {member.is_captain && (
-                      <span className="ml-auto text-[9px] text-amber-400 font-semibold shrink-0">
-                        CAP
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="space-y-2">

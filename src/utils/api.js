@@ -175,6 +175,12 @@ export const tournamentAPI = {
   // Round groups with matches (includes scheduled_date, scheduled_time, map_name)
   getRoundGroups: (tournamentId, roundNumber) =>
     api.get(`/tournaments/${tournamentId}/rounds/${roundNumber}/groups/`),
+  // Stream the slot list as a CSV — used by the slot-list page Download menu
+  // and by the host's ManageTournament round view.
+  downloadSlotListCSV: (tournamentId, roundNumber) =>
+    api.get(`/tournaments/${tournamentId}/rounds/${roundNumber}/slots/export/`, {
+      responseType: 'blob',
+    }),
   // Fetch players for a team registration within a tournament
   getTeamPlayers: (tournamentId, registrationId) =>
     api.get(`/tournaments/${tournamentId}/teams/${registrationId}/players/`),
@@ -250,6 +256,21 @@ const publicApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Sponsor APIs
+export const sponsorAPI = {
+  list: (tournamentId) => api.get(`/tournaments/${tournamentId}/sponsors/`),
+  add: (tournamentId, formData) =>
+    api.post(`/tournaments/${tournamentId}/sponsors/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  update: (tournamentId, sponsorId, formData) =>
+    api.patch(`/tournaments/${tournamentId}/sponsors/${sponsorId}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  remove: (tournamentId, sponsorId) =>
+    api.delete(`/tournaments/${tournamentId}/sponsors/${sponsorId}/`),
+};
+
 // Invite APIs
 export const inviteAPI = {
   getInviteDetails: (token) => publicApi.get(`/accounts/invites/${token}/`),
@@ -289,6 +310,8 @@ export const teamAPI = {
   getMyTournamentInvites: () => api.get('/accounts/teams/my_tournament_invites/'),
   sendInvites: (teamId, invites) =>
     api.post(`/accounts/teams/${teamId}/send_invites/`, { invites }),
+  resendInvite: (teamId, inviteId) =>
+    api.post(`/accounts/teams/${teamId}/resend_invite/`, { invite_id: inviteId }),
   generateInviteLink: (teamId) => api.post(`/accounts/teams/${teamId}/generate-invite-link/`),
   searchPlayers: (query, game = null) =>
     api.get('/accounts/players/search/', { params: { q: query, for_team: true, game } }),

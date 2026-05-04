@@ -19,6 +19,7 @@ import {
   Info,
 } from 'lucide-react';
 import './RegistrationModal.css';
+import RegistrationConfirmationModal from './RegistrationConfirmationModal';
 
 const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) => {
   const { user } = useContext(AuthContext);
@@ -30,6 +31,9 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [noCancelAgreed, setNoCancelAgreed] = useState(false);
+
+  // ── Confirmation modal state (shown after successful registration) ──
+  const [confirmation, setConfirmation] = useState(null);
 
   // ── Existing team: select players via dropdowns ──
   const [selectedPlayers, setSelectedPlayers] = useState([]);
@@ -249,6 +253,41 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
     return true;
   };
 
+  // ── Build confirmation payload after successful registration ──
+  const buildNewTeamConfirmation = () => {
+    const validInvitees =
+      inviteMode === 'username'
+        ? selectedUsernames.map((s) => s?.username || '').filter(Boolean)
+        : teammates.filter((t) => t && t.trim());
+    return {
+      tournament: event,
+      teamName: newTeamName.trim(),
+      isNewTeam: true,
+      inviteMode,
+      invitees: validInvitees,
+      leader: {
+        username: user?.user?.username || 'You',
+        displayName: user?.user?.username || 'You',
+      },
+      teamSize: requiredPlayers,
+    };
+  };
+
+  const buildExistingTeamConfirmation = () => {
+    const picked = selectedPlayers.filter(Boolean);
+    return {
+      tournament: event,
+      teamName: selectedTeam?.name || 'Your Team',
+      isNewTeam: false,
+      leader: {
+        username: user?.user?.username || 'You',
+        displayName: user?.user?.username || 'You',
+      },
+      existingMembers: picked.map((u) => ({ username: u, displayName: u })),
+      teamSize: requiredPlayers,
+    };
+  };
+
   // ── Submit ──
   const handleSubmit = async () => {
     setFormError('');
@@ -294,9 +333,8 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
           setSubmitting(false);
           onSuccess();
         } else {
-          showToast('Registration successful!', 'success');
           setSubmitting(false);
-          setTimeout(() => onSuccess(), 1500);
+          setConfirmation(buildNewTeamConfirmation());
         }
       } catch (err) {
         const errData = err.response?.data;
@@ -354,9 +392,8 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
                       merchant_order_id: regResp.data.merchant_order_id,
                     });
                     if (statusResp.data.status === 'completed' && statusResp.data.registration_id) {
-                      showToast('Registration successful!', 'success');
                       setSubmitting(false);
-                      setTimeout(() => onSuccess(), 1500);
+                      setConfirmation(buildExistingTeamConfirmation());
                     } else if (statusResp.data.status === 'failed') {
                       showToast('Payment failed. Please try again.', 'error');
                       setSubmitting(false);
@@ -373,8 +410,8 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
             type: 'IFRAME',
           });
         } else {
-          showToast('Registration successful!', 'success');
-          setTimeout(() => onSuccess(), 1500);
+          setSubmitting(false);
+          setConfirmation(buildExistingTeamConfirmation());
         }
       } catch (err) {
         const errData = err.response?.data;
@@ -512,6 +549,19 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
       )}
     </div>
   );
+
+  // ── Confirmation modal: shown after a successful registration ──
+  if (confirmation) {
+    return (
+      <RegistrationConfirmationModal
+        {...confirmation}
+        onClose={() => {
+          setConfirmation(null);
+          if (onSuccess) onSuccess();
+        }}
+      />
+    );
+  }
 
   // ── Loading ──
   if (screen === 'loading')

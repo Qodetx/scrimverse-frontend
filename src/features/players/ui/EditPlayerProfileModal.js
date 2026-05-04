@@ -240,6 +240,21 @@ const EditPlayerProfileModal = ({
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      setError('Only JPG and PNG images are allowed.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError(
+        'Image is too large (' +
+          (file.size / 1024 / 1024).toFixed(1) +
+          'MB). Maximum allowed size is 5MB.'
+      );
+      e.target.value = '';
+      return;
+    }
+    setError('');
     setProfilePicture(file);
     setProfilePicturePreview(URL.createObjectURL(file));
   };

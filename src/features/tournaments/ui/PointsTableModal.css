@@ -341,9 +341,20 @@
 }
 
 .rank-num {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Top-3 ranks get a colored badge using existing gold/silver/bronze row classes */
+.compact-standings-table tbody tr.gold .rank-num {
+  color: #ffd700;
+}
+.compact-standings-table tbody tr.silver .rank-num {
+  color: #c0c0c0;
+}
+.compact-standings-table tbody tr.bronze .rank-num {
+  color: #cd7f32;
 }
 
 /* Team Column */

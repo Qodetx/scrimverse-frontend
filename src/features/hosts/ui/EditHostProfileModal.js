@@ -376,12 +376,16 @@ const EditHostProfileModal = ({ isOpen, onClose, host, onSuccess }) => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      setError('Only JPG and PNG images are allowed.');
+      e.target.value = '';
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError('Image size must be less than 5MB');
+      setError(
+        `Image is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum allowed size is 5MB.`
+      );
+      e.target.value = '';
       return;
     }
     setProfilePicture(file);

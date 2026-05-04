@@ -27,7 +27,7 @@ import {
   X,
   RotateCcw,
 } from 'lucide-react';
-import { tournamentAPI } from '../../../utils/api';
+import { tournamentAPI, sponsorAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
 import RoundConfigModal from '../ui/RoundConfigModal';
 import GroupConfirmModal from '../ui/GroupConfirmModal';
@@ -162,6 +162,18 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
   const [showLiveUrlDialog, setShowLiveUrlDialog] = useState(false);
   const [tempLiveUrl, setTempLiveUrl] = useState('');
   const [showOverviewDialog, setShowOverviewDialog] = useState(false);
+
+  // Sponsors
+  const [sponsors, setSponsors] = useState([]);
+  const [sponsorForm, setSponsorForm] = useState({
+    name: '',
+    sponsor_type: '',
+    website_url: '',
+    logo: null,
+  });
+  const [sponsorLogoPreview, setSponsorLogoPreview] = useState(null);
+  const [sponsorSaving, setSponsorSaving] = useState(false);
+  const [sponsorError, setSponsorError] = useState('');
 
   // 5v5 lobby preview (inline, not a modal)
   const [lobbyPreview, setLobbyPreview] = useState(null); // { lobbies, bestOf, qualifyingPerGroup, roundNumber }
@@ -503,6 +515,91 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
     [id, fetchRoundGroups, fetchFinalStandings, showToast]
   );
 
+  const fetchSponsors = useCallback(async () => {
+    try {
+      const res = await sponsorAPI.list(id);
+      setSponsors(res.data);
+    } catch {
+      // non-critical, silently ignore
+    }
+  }, [id]);
+
+  const handleSponsorLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSponsorForm((f) => ({ ...f, logo: file }));
+    setSponsorLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleAddSponsor = async (e) => {
+    e.preventDefault();
+    if (!sponsorForm.name.trim()) {
+      setSponsorError('Sponsor name is required.');
+      return;
+    }
+    setSponsorError('');
+    setSponsorSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('name', sponsorForm.name.trim());
+      fd.append('sponsor_type', sponsorForm.sponsor_type.trim());
+      if (sponsorForm.website_url.trim()) {
+        const rawUrl = sponsorForm.website_url.trim();
+        const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+        fd.append('website_url', url);
+      }
+      if (sponsorForm.logo) fd.append('logo', sponsorForm.logo);
+      await sponsorAPI.add(id, fd);
+      setSponsorForm({ name: '', sponsor_type: '', website_url: '', logo: null });
+      setSponsorLogoPreview(null);
+      await fetchSponsors();
+      showToast('Sponsor added', 'success');
+    } catch {
+      setSponsorError('Failed to add sponsor. Please try again.');
+    } finally {
+      setSponsorSaving(false);
+    }
+  };
+
+  const handleRemoveSponsor = async (sponsorId) => {
+    try {
+      await sponsorAPI.remove(id, sponsorId);
+      setSponsors((prev) => prev.filter((s) => s.id !== sponsorId));
+    } catch {
+      showToast('Failed to remove sponsor', 'error');
+    }
+  };
+
+  const handleMoveOrder = async (sponsorId, direction) => {
+    const idx = sponsors.findIndex((s) => s.id === sponsorId);
+    if (idx < 0) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sponsors.length) return;
+
+    const updated = [...sponsors];
+    const temp = updated[idx].display_order;
+    updated[idx] = { ...updated[idx], display_order: updated[swapIdx].display_order };
+    updated[swapIdx] = { ...updated[swapIdx], display_order: temp };
+    // Swap in local state immediately for snappy UI
+    [updated[idx], updated[swapIdx]] = [updated[swapIdx], updated[idx]];
+    setSponsors(updated);
+
+    try {
+      const fdA = new FormData();
+      fdA.append('display_order', updated[idx].display_order);
+      const fdB = new FormData();
+      fdB.append('display_order', updated[swapIdx].display_order);
+      await Promise.all([
+        sponsorAPI.update(id, updated[idx].id, fdA),
+        sponsorAPI.update(id, updated[swapIdx].id, fdB),
+      ]);
+    } catch {
+      // Revert on failure
+      await fetchSponsors();
+      showToast('Failed to reorder sponsors', 'error');
+    }
+  };
+
   useEffect(() => {
     // Wait for auth to load before checking
     if (authLoading) return;
@@ -512,7 +609,8 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       return;
     }
     fetchTournamentData();
-  }, [id, authLoading, isHost, navigate, fetchTournamentData]);
+    fetchSponsors();
+  }, [id, authLoading, isHost, navigate, fetchTournamentData, fetchSponsors]);
 
   const handleEditToggle = () => {
     if (isEditing) {
@@ -1226,6 +1324,32 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
     }
   };
 
+  // Slot list CSV — same backend endpoint the player slot list page uses,
+  // but exposed here so hosts can download from their management view too.
+  const handleDownloadSlotListCSV = async (roundNumber) => {
+    if (!roundNumber) return;
+    try {
+      showToast('Downloading slot list...');
+      const response = await tournamentAPI.downloadSlotListCSV(id, roundNumber);
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const safeTitle = (tournament?.title || 'tournament')
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9_.-]/gi, '_');
+      link.setAttribute('download', `${safeTitle}-round-${roundNumber}-slots.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      showToast('Slot list downloaded');
+    } catch (error) {
+      console.error('Error downloading slot list:', error);
+      showToast(error.response?.data?.error || 'Failed to download slot list', 'error');
+    }
+  };
+
   const handleSaveLiveUrl = async () => {
     try {
       await tournamentAPI.updateTournamentFields(id, { live_link: tempLiveUrl || '' });
@@ -1407,6 +1531,19 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
               <Calendar className="h-3.5 w-3.5" />
               Bulk Schedule
             </button>
+            {/* Quick CSV download for the current round's slot list — uses the
+                same backend endpoint as the player slot list page. Disabled
+                when no groups exist for the current round yet. */}
+            {roundGroups.length > 0 && (
+              <button
+                onClick={() => handleDownloadSlotListCSV(tournament?.current_round || 1)}
+                className="mt-action-btn"
+                title="Download current round's slot list as CSV"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Slot List CSV
+              </button>
+            )}
             <button
               onClick={() => {
                 setTempLiveUrl(tournament.live_link || '');
@@ -1689,8 +1826,8 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                     />
                   </div>
 
-                  {/* Banner Image Upload - Premium only */}
-                  {tournament.plan_type === 'premium' && (
+                  {/* Banner Image Upload */}
+                  {true && (
                     <div>
                       <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1.5">
                         Banner Image
@@ -2020,6 +2157,191 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                   tournament starts.
                 </p>
               )}
+
+              {/* ── Sponsors ── */}
+              <hr className="border-[hsl(var(--border)/0.2)] my-6" />
+              <div className="info-grid-card rounded-xl p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <h2 className="text-lg font-bold text-[hsl(var(--foreground))]">Sponsors</h2>
+                  {sponsors.length > 0 && (
+                    <span className="text-xs bg-[hsl(var(--accent)/0.15)] text-[hsl(var(--accent))] px-2 py-0.5 rounded-full font-medium">
+                      {sponsors.length}
+                    </span>
+                  )}
+                </div>
+
+                {/* Add sponsor form */}
+                <form
+                  onSubmit={handleAddSponsor}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5"
+                >
+                  <div>
+                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                      Sponsor Name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={sponsorForm.name}
+                      onChange={(e) => setSponsorForm((f) => ({ ...f, name: e.target.value }))}
+                      placeholder="e.g. Red Bull"
+                      className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                      Sponsor Type
+                    </label>
+                    <input
+                      type="text"
+                      value={sponsorForm.sponsor_type}
+                      onChange={(e) =>
+                        setSponsorForm((f) => ({ ...f, sponsor_type: e.target.value }))
+                      }
+                      placeholder="e.g. Food Partner, Title Sponsor"
+                      className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                      Website URL
+                    </label>
+                    <input
+                      type="url"
+                      value={sponsorForm.website_url}
+                      onChange={(e) =>
+                        setSponsorForm((f) => ({ ...f, website_url: e.target.value }))
+                      }
+                      placeholder="https://example.com"
+                      className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                      Logo (optional)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {sponsorLogoPreview && (
+                        <img
+                          src={sponsorLogoPreview}
+                          alt="preview"
+                          className="w-10 h-10 rounded-lg object-cover border border-[hsl(var(--border)/0.3)] shrink-0"
+                        />
+                      )}
+                      <label className="flex-1 cursor-pointer px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] border-dashed rounded-lg text-[hsl(var(--muted-foreground))] text-xs text-center hover:border-[hsl(var(--accent)/0.4)] transition-colors">
+                        {sponsorForm.logo ? sponsorForm.logo.name : 'Click to upload'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleSponsorLogoChange}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  {sponsorError && (
+                    <div className="sm:col-span-2 text-red-400 text-xs font-medium">
+                      {sponsorError}
+                    </div>
+                  )}
+                  <div className="sm:col-span-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={sponsorSaving}
+                      className="px-5 py-2 bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent)/0.85)] text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
+                    >
+                      {sponsorSaving ? 'Adding…' : '+ Add Sponsor'}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Existing sponsors list */}
+                {sponsors.length > 0 && (
+                  <div className="space-y-2">
+                    {sponsors.map((sp, idx) => (
+                      <div
+                        key={sp.id}
+                        className="flex items-center gap-3 p-3 bg-[hsl(var(--card)/0.6)] border border-[hsl(var(--border)/0.25)] rounded-xl"
+                      >
+                        {sp.logo ? (
+                          <img
+                            src={sp.logo}
+                            alt={sp.name}
+                            className="w-12 h-12 rounded-lg object-cover border border-[hsl(var(--border)/0.3)] shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-[hsl(var(--secondary))] flex items-center justify-center shrink-0 text-[hsl(var(--muted-foreground))] text-xl font-bold">
+                            {sp.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[hsl(var(--foreground))] truncate">
+                            {sp.name}
+                          </p>
+                          {sp.sponsor_type && (
+                            <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">
+                              {sp.sponsor_type}
+                            </p>
+                          )}
+                          {sp.website_url && (
+                            <a
+                              href={sp.website_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-[hsl(var(--accent))] truncate hover:underline"
+                            >
+                              {sp.website_url}
+                            </a>
+                          )}
+                        </div>
+                        {/* Reorder buttons */}
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            onClick={() => handleMoveOrder(sp.id, 'up')}
+                            disabled={idx === 0}
+                            className="p-1 rounded hover:bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] disabled:opacity-30 transition-colors"
+                            title="Move up"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            onClick={() => handleMoveOrder(sp.id, 'down')}
+                            disabled={idx === sponsors.length - 1}
+                            className="p-1 rounded hover:bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] disabled:opacity-30 transition-colors"
+                            title="Move down"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveSponsor(sp.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-500/15 text-red-400 transition-colors shrink-0"
+                          title="Remove sponsor"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4h6v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {sponsors.length === 0 && (
+                  <p className="text-xs text-[hsl(var(--muted-foreground))] text-center py-3">
+                    No sponsors added yet.
+                  </p>
+                )}
+              </div>
             </div>
           )}
 

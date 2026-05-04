@@ -18,17 +18,27 @@
 }
 
 /* ── Poster ─────────────────────────────────────────────────────────────── */
+/* Responsive aspect ratio matching the Home/Overview hero carousel so the
+   same uploaded poster looks identical across all surfaces.
+   Mobile: 4:5 portrait → Tablet: 16:9 → Desktop: 21:8 wide */
 
 .tc-poster-wrap {
   position: relative;
-  height: 160px;
+  width: 100%;
+  aspect-ratio: 4 / 5;
   overflow: hidden;
   background: hsl(var(--secondary) / 0.2);
 }
 
 @media (min-width: 640px) {
   .tc-poster-wrap {
-    height: 192px;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tc-poster-wrap {
+    aspect-ratio: 21 / 8;
   }
 }
 

@@ -365,13 +365,7 @@ const ScrimPointsTableModal = ({
                   return (
                     <tr key={team.team_id} className={medalClass}>
                       <td className="rank-col">
-                        {rank <= 3 ? (
-                          <div className="medal-badge">
-                            {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
-                          </div>
-                        ) : (
-                          <span className="rank-num">{rank}</span>
-                        )}
+                        <span className="rank-num">{rank}</span>
                       </td>
                       <td className="team-col">
                         <div className="team-info">

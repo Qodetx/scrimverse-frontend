@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Filter, ChevronDown, Users, Trophy } from 'lucide-react';
 import { tournamentAPI } from '../../../utils/api';
 import TournamentCard from '../../tournaments/ui/TournamentCard';
+import { resolveBannerImage } from '../../../utils/tournamentBanner';
 import './PlayerOverviewView.css';
 
-// Game hero images
+// Game hero images (used as carousel backgrounds when no tournament uploaded one)
 import heroBgmi from '../../../assets/hero-bgmi.webp';
 import heroBgmiAction from '../../../assets/hero-bgmi-action.jpg';
 import heroValorant from '../../../assets/hero-valorant.jpg';
@@ -40,17 +41,15 @@ const GAME_HERO_IMAGES = {
 };
 
 const getHeroImage = (tournament) => {
-  if (tournament.poster_image) {
-    if (tournament.poster_image.startsWith('http')) return tournament.poster_image;
-    const base = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8000';
-    return `${base}${tournament.poster_image}`;
-  }
-  if (tournament.banner_image) {
-    if (tournament.banner_image.startsWith('http')) return tournament.banner_image;
-    const base = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8000';
-    return `${base}${tournament.banner_image}`;
-  }
-  return GAME_HERO_IMAGES[tournament.game_name || tournament.game] || heroBgmi;
+  // Delegate banner resolution to the shared util so this carousel and the
+  // tournament cards always pick the same image for the same tournament.
+  // The shared util already falls back to a generic game poster; we still
+  // honor PlayerOverviewView's hero-style fallback here when nothing else fits.
+  return (
+    resolveBannerImage(tournament) ||
+    GAME_HERO_IMAGES[tournament.game_name || tournament.game] ||
+    heroBgmi
+  );
 };
 
 const formatParticipants = (tournament) => {
@@ -168,6 +167,27 @@ const HeroCarousel = ({ slides }) => {
             style={{ background: 'rgba(239,68,68,0.5)', borderColor: 'rgba(239,68,68,0.5)' }}
           >
             LIVE
+          </span>
+        )}
+        {slide.plan_type === 'premium' && (
+          <span
+            className="overview-game-tag"
+            style={{
+              background: '#fbbf24',
+              borderColor: '#fbbf24',
+              color: '#000',
+              fontWeight: 700,
+            }}
+          >
+            PREMIUM
+          </span>
+        )}
+        {slide.plan_type === 'featured' && (
+          <span
+            className="overview-game-tag"
+            style={{ background: '#10b981', borderColor: '#10b981', fontWeight: 700 }}
+          >
+            FEATURED
           </span>
         )}
       </div>
@@ -304,10 +324,10 @@ const PlayerOverviewView = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Carousel: first 5 upcoming/active non-scrim tournaments
-  const heroSlides = tournaments
-    .filter((t) => (t.event_mode || '').toUpperCase() !== 'SCRIM' && t.status !== 'completed')
-    .slice(0, 5);
+  // Carousel: first 5 upcoming/active non-scrim tournaments, fall back to completed if none
+  const nonScrims = tournaments.filter((t) => (t.event_mode || '').toUpperCase() !== 'SCRIM');
+  const activeSlides = nonScrims.filter((t) => t.status !== 'completed').slice(0, 5);
+  const heroSlides = activeSlides.length > 0 ? activeSlides : nonScrims.slice(0, 5);
 
   // Filtered grid (game + status)
   // API returns game_name (not game) per TournamentListSerializer
