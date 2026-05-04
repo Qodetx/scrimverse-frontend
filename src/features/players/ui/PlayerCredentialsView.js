@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../../context/AuthContext';
+import GuestLockedState from '../../../components/GuestLockedState';
 import {
   Key,
   Copy,
@@ -667,7 +669,23 @@ const STATUS_FILTER_OPTIONS = [
   { label: 'Past', value: 'completed' },
 ];
 
+// Wrapper splits guest vs authenticated rendering into separate components so
+// the authenticated view's hook list isn't gated by the isGuest() check
+// (which would violate Rules of Hooks).
 const PlayerCredentialsView = () => {
+  const { isGuest } = useContext(AuthContext);
+  if (isGuest()) {
+    return (
+      <GuestLockedState
+        title="Match IDs & Passwords"
+        description="Once you register for a tournament, the room ID and password for each match appear here at the scheduled release time."
+      />
+    );
+  }
+  return <PlayerCredentialsViewAuthenticated />;
+};
+
+const PlayerCredentialsViewAuthenticated = () => {
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [gameFilter, setGameFilter] = useState('All');

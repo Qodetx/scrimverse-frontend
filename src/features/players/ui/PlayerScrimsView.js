@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../../context/AuthContext';
 import {
   Swords,
   Trophy,
@@ -239,6 +240,8 @@ const GAME_FILTER_OPTIONS = [
 
 const PlayerScrimsView = () => {
   const { showToast } = useToast();
+  const { isGuest } = useContext(AuthContext);
+  const guest = isGuest();
 
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -273,8 +276,14 @@ const PlayerScrimsView = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Guests skip the auth-only my-registrations call; the public scrim
+        // list still loads, and the "My Registrations" tab will be empty
+        // with its standard empty state until they sign in.
+        const regPromise = guest
+          ? Promise.resolve({ data: [] })
+          : tournamentAPI.getMyRegistrations().catch(() => ({ data: [] }));
         const [regRes, scrimRes] = await Promise.all([
-          tournamentAPI.getMyRegistrations().catch(() => ({ data: [] })),
+          regPromise,
           tournamentAPI
             .getTournaments({ event_mode: 'SCRIM', page_size: 50 })
             .catch(() => ({ data: [] })),

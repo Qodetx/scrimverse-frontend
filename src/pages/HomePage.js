@@ -142,14 +142,26 @@ const HomePage = () => {
       .finally(() => setLoadingTournaments(false));
   }, []);
 
+  // "Explore ScrimVerse" — sends guests straight into the player dashboard's
+  // browse-as-guest mode (Tournaments / Scrims / Leaderboard publicly visible
+  // there, authenticated tabs show a Sign-In placeholder). Authenticated
+  // users go to their respective dashboards as before.
   const handleExploreClick = () => {
     if (isAuthenticated()) {
       if (isHost()) navigate('/host/dashboard');
       else navigate('/player/dashboard');
     } else {
       const isHostPortal = window.location.hostname.startsWith('host.');
-      navigate(isHostPortal ? '/host/login' : '/player-auth');
+      // Hosts still need an account to do anything meaningful; players get
+      // the public guest dashboard.
+      navigate(isHostPortal ? '/host/login' : '/player/dashboard');
     }
+  };
+
+  // Direct path to auth for returning users — bypasses guest dashboard.
+  const handleLoginClick = () => {
+    const isHostPortal = window.location.hostname.startsWith('host.');
+    navigate(isHostPortal ? '/host/login' : '/player-auth');
   };
 
   const handleViewTournament = (slide) => {
@@ -223,6 +235,16 @@ const HomePage = () => {
                 Explore ScrimVerse
                 <ChevronRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </button>
+              {/* Returning users get a direct path to auth so the new
+                  guest-dashboard flow doesn't add friction for them. */}
+              {!isAuthenticated() && (
+                <button
+                  onClick={handleLoginClick}
+                  className="px-6 py-5 text-sm font-bold rounded-full bg-transparent hover:bg-white/5 text-foreground border border-foreground/20 hover:border-foreground/40 transition-all inline-flex items-center"
+                >
+                  Login
+                </button>
+              )}
             </div>
             <div className="relative mx-auto w-full max-w-sm pt-1 pointer-events-none">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-light/20 via-purple/10 to-transparent rounded-2xl blur-3xl" />
@@ -258,6 +280,15 @@ const HomePage = () => {
                   Explore ScrimVerse
                   <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </button>
+                {/* Login fast-path for returning users (desktop). */}
+                {!isAuthenticated() && (
+                  <button
+                    onClick={handleLoginClick}
+                    className="px-6 py-3 text-sm font-bold rounded-full bg-transparent hover:bg-white/5 text-foreground border border-foreground/20 hover:border-foreground/40 transition-all inline-flex items-center"
+                  >
+                    Login
+                  </button>
+                )}
               </div>
             </div>
 

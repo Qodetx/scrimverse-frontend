@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Menu,
   X,
@@ -16,7 +16,6 @@ import {
   Table2,
   DollarSign,
   Settings,
-  Search,
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import './Navbar.css';
@@ -199,12 +198,15 @@ const AuthNavbar = () => {
 };
 
 // ── Public top bar (unauthenticated) ─────────────────────────────────────────
+// Note: Tournaments / Scrims / Leaderboard / Search nav links were removed from
+// this navbar as part of the guest-mode refactor. Guests now access those
+// pages via the dashboard sidebar (Explore ScrimVerse → /player/dashboard).
+// The routes themselves remain accessible at their direct URLs.
 const PublicNavbar = () => {
-  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isActive = (path) => location.pathname === path;
   const isHostPortal = window.location.hostname.startsWith('host.');
   const enterArenaPath = isHostPortal ? '/host/login' : '/player-auth';
+  const explorePath = isHostPortal ? '/host/login' : '/player/dashboard';
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-lg border-b border-border">
@@ -221,52 +223,15 @@ const PublicNavbar = () => {
             </Link>
           </div>
 
-          {/* Center nav links */}
-          <div className="hidden md:flex flex-1 justify-center">
-            <div className="flex items-center gap-2">
-              <Link
-                to="/tournaments"
-                className={`text-sm font-semibold px-4 py-1.5 rounded-full border transition-all ${
-                  isActive('/tournaments')
-                    ? 'bg-purple text-white border-purple'
-                    : 'bg-purple/15 text-purple border-purple/40 hover:bg-purple/25'
-                }`}
-              >
-                Tournaments
-              </Link>
-              <Link
-                to="/scrims"
-                className={`text-sm font-semibold px-4 py-1.5 rounded-full border transition-all ${
-                  isActive('/scrims')
-                    ? 'bg-purple text-white border-purple'
-                    : 'bg-purple/15 text-purple border-purple/40 hover:bg-purple/25'
-                }`}
-              >
-                Scrims
-              </Link>
-              <Link
-                to="/leaderboard"
-                className={`text-sm font-semibold px-4 py-1.5 rounded-full border transition-all ${
-                  isActive('/leaderboard')
-                    ? 'bg-purple text-white border-purple'
-                    : 'bg-purple/15 text-purple border-purple/40 hover:bg-purple/25'
-                }`}
-              >
-                Leaderboard
-              </Link>
-            </div>
-          </div>
-
-          {/* Right actions */}
+          {/* Right actions — Login + Enter The Arena */}
           <div className="hidden md:flex flex-none items-center gap-3 ml-auto">
             <Link
-              to="/search"
-              className="flex items-center gap-2 pl-3 pr-5 py-1.5 rounded-full bg-purple/20 border border-purple/30 text-purple/80 hover:text-purple hover:bg-purple/30 hover:border-purple/50 transition-all w-72 mr-2"
+              to={enterArenaPath}
+              className="px-5 py-2 text-sm font-bold rounded-full bg-transparent hover:bg-white/5 text-foreground border border-foreground/20 hover:border-foreground/40 transition-all inline-flex items-center"
             >
-              <Search className="h-4 w-4 shrink-0" />
-              <span className="text-xs">Search players, teams...</span>
+              Login
             </Link>
-            <Link to={enterArenaPath}>
+            <Link to={explorePath}>
               <button className="px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 transition-all inline-flex items-center">
                 Enter The Arena
               </button>
@@ -288,53 +253,16 @@ const PublicNavbar = () => {
           <div className="md:hidden border-t border-border bg-background/50 backdrop-blur-sm">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               <Link
-                to="/tournaments"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
-                  isActive('/tournaments')
-                    ? 'bg-primary/10 text-purple'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                }`}
-              >
-                Tournaments
-              </Link>
-              <Link
-                to="/scrims"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
-                  isActive('/scrims')
-                    ? 'bg-primary/10 text-purple'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                }`}
-              >
-                Scrims
-              </Link>
-              <Link
-                to="/leaderboard"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
-                  isActive('/leaderboard')
-                    ? 'bg-primary/10 text-purple'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                }`}
-              >
-                Leaderboard
-              </Link>
-              <Link
-                to="/search"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-md text-base font-medium transition-all ${
-                  isActive('/search')
-                    ? 'bg-primary/10 text-purple'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                }`}
-              >
-                Search
-              </Link>
-              <Link
                 to={enterArenaPath}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              >
+                Login
+              </Link>
+              <Link
+                to={explorePath}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium transition-all text-purple hover:text-foreground hover:bg-secondary/50"
               >
                 Enter The Arena
               </Link>

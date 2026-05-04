@@ -28,8 +28,9 @@ const GAME_PARAM_MAP = {
 };
 
 const PlayerLeaderboardsView = () => {
-  const { user } = useContext(AuthContext);
+  const { user, isGuest } = useContext(AuthContext);
   const navigate = useNavigate();
+  const guest = isGuest();
 
   const [activeTab, setActiveTab] = useState('tournaments');
   const [gameFilter, setGameFilter] = useState('All');
@@ -44,7 +45,10 @@ const PlayerLeaderboardsView = () => {
   const [myTeamIds, setMyTeamIds] = useState(new Set());
 
   // ── Fetch player's team IDs ──
+  // Skipped for guests — no auth header means the API would 401 anyway, and
+  // the gold "your team" highlight isn't meaningful when there's no user.
   useEffect(() => {
+    if (guest) return;
     const fetchMyTeams = async () => {
       try {
         const res = await teamAPI.getTeams({ mine: true });
@@ -56,6 +60,7 @@ const PlayerLeaderboardsView = () => {
       }
     };
     fetchMyTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Fetch leaderboard data when game filter changes ──

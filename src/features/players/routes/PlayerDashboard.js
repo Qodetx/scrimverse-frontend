@@ -115,6 +115,8 @@ const SidebarContent = ({
   onClose,
   unreadCount,
   onLogout,
+  guest,
+  onSignIn,
 }) => {
   return (
     <div className="flex flex-col h-full">
@@ -203,40 +205,68 @@ const SidebarContent = ({
           <Settings size={17} />
         </button>
 
-        <button
-          onClick={onLogout}
-          className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent transition-all"
-          title="Sign Out"
-        >
-          <LogOut size={17} />
-        </button>
+        {guest ? (
+          <button
+            onClick={onSignIn}
+            className="p-2 rounded-lg text-purple hover:bg-purple/10 border border-purple/30 transition-all"
+            title="Sign In"
+          >
+            <LogOut size={17} style={{ transform: 'scaleX(-1)' }} />
+          </button>
+        ) : (
+          <button
+            onClick={onLogout}
+            className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent transition-all"
+            title="Sign Out"
+          >
+            <LogOut size={17} />
+          </button>
+        )}
       </div>
 
       {/* User card */}
-      <button
-        onClick={onOpenSettings}
-        className="mx-3 mb-3 flex items-center gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 border border-border/40 transition-all text-left"
-      >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden">
-          {user?.user?.profile_picture ? (
-            <img
-              src={user.user.profile_picture}
-              alt="avatar"
-              className="w-full h-full object-cover rounded-full"
-            />
-          ) : (
-            (user?.user?.username || 'U').slice(0, 2).toUpperCase()
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground truncate">
-            {user?.user?.username || 'Player'}
-          </p>
-          <p className="text-[10px] text-muted-foreground truncate">
-            {user?.user?.email || user?.user?.phone_number || ''}
-          </p>
-        </div>
-      </button>
+      {guest ? (
+        // Guest user card slot — promotes signup directly from the sidebar
+        // so the call to action is always visible without going to the
+        // landing page.
+        <button
+          onClick={onSignIn}
+          className="mx-3 mb-3 flex items-center gap-3 p-3 rounded-lg bg-purple/10 hover:bg-purple/15 border border-purple/30 transition-all text-left"
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            G
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">Sign in</p>
+            <p className="text-[10px] text-muted-foreground truncate">Browsing as guest</p>
+          </div>
+        </button>
+      ) : (
+        <button
+          onClick={onOpenSettings}
+          className="mx-3 mb-3 flex items-center gap-3 p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 border border-border/40 transition-all text-left"
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden">
+            {user?.user?.profile_picture ? (
+              <img
+                src={user.user.profile_picture}
+                alt="avatar"
+                className="w-full h-full object-cover rounded-full"
+              />
+            ) : (
+              (user?.user?.username || 'U').slice(0, 2).toUpperCase()
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">
+              {user?.user?.username || 'Player'}
+            </p>
+            <p className="text-[10px] text-muted-foreground truncate">
+              {user?.user?.email || user?.user?.phone_number || ''}
+            </p>
+          </div>
+        </button>
+      )}
     </div>
   );
 };
@@ -759,7 +789,12 @@ const OnboardingModal = ({ onClose }) => {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const PlayerDashboard = () => {
-  const { user, fetchUserData, logout } = useContext(AuthContext);
+  const { user, fetchUserData, logout, isGuest } = useContext(AuthContext);
+  // Browse-as-guest mode: dashboard layout still renders for unauthenticated
+  // users so they can explore tournaments/scrims/leaderboards without an
+  // account. We skip every authenticated API call here and let
+  // authenticated tabs fall through to <GuestLockedState />.
+  const guest = isGuest();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast, showToast, hideToast } = useToast();
@@ -855,6 +890,14 @@ const PlayerDashboard = () => {
   };
 
   useEffect(() => {
+    if (guest) {
+      // Guests see the dashboard shell only — no API calls fire and
+      // tournaments/registrations/invites/notifications all stay empty.
+      // Public views (Tournaments, Scrims, Leaderboards) load their own
+      // public data independently.
+      setLoading(false);
+      return;
+    }
     fetchDashboardData();
     fetchInvitations();
     fetchNotifications();
@@ -883,7 +926,7 @@ const PlayerDashboard = () => {
   }, [loading, location.state, user]);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !guest) {
       fetchUserData(gameFilter);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1064,6 +1107,25 @@ const PlayerDashboard = () => {
     onOpenSearch: () => setSearchOpen(true),
     unreadCount,
     onLogout: handleLogout,
+    guest,
+    // Sign-in path for guests browsing the dashboard. Stash the current
+    // view in localStorage so the auth flow can return them here after
+    // successful login (handled in PlayerAuth post-login redirect).
+    onSignIn: () => {
+      // Stash the current view (path + ?view=tab query) so the auth flow
+      // can return them to the same tab after a successful login. Uses the
+      // existing `post_verify_redirect` key that PlayerAuth + TournamentDetail
+      // already honor.
+      try {
+        localStorage.setItem(
+          'post_verify_redirect',
+          window.location.pathname + window.location.search
+        );
+      } catch {
+        /* localStorage unavailable — degrade gracefully */
+      }
+      navigate('/player-auth');
+    },
   };
 
   // ── grid-bg pages ────────────────────────────────────────────────────────
@@ -1228,13 +1290,23 @@ const PlayerDashboard = () => {
                 )}
               </div>
 
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/40 transition-all"
-              >
-                <LogOut size={16} />
-                Sign Out
-              </button>
+              {guest ? (
+                <button
+                  onClick={sidebarProps.onSignIn}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-purple hover:bg-purple-light border border-purple transition-all"
+                >
+                  <LogOut size={16} style={{ transform: 'scaleX(-1)' }} />
+                  Sign In
+                </button>
+              ) : (
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/40 transition-all"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              )}
             </div>
           </div>
 

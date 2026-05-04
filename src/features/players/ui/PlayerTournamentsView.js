@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trophy, Clock, Gamepad2, ChevronDown, Check, Table2, ArrowRight } from 'lucide-react';
 import { tournamentAPI } from '../../../utils/api';
 import { useToast } from '../../../hooks/useToast';
+import { AuthContext } from '../../../context/AuthContext';
 import PointsTableModal from '../../tournaments/ui/PointsTableModal';
 import { resolveBannerImage } from '../../../utils/tournamentBanner';
 import './PlayerTournamentsView.css';
@@ -246,6 +247,8 @@ const STATUS_FILTER_OPTIONS = [
 
 const PlayerTournamentsView = () => {
   const { showToast } = useToast();
+  const { isGuest } = useContext(AuthContext);
+  const guest = isGuest();
 
   // ── tab state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState(() => {
@@ -289,14 +292,18 @@ const PlayerTournamentsView = () => {
   const [loading, setLoading] = useState(true);
 
   // ── data fetch ────────────────────────────────────────────────────────────
+  // Guests skip getMyRegistrations (auth-only) but still get the public
+  // tournament list. The "My Registrations" tab will simply show its empty
+  // state with a CTA to sign in.
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [regRes, tourRes] = await Promise.all([
-          tournamentAPI.getMyRegistrations(),
-          tournamentAPI.getTournaments({ is_scrim: false }),
-        ]);
+        const tourPromise = tournamentAPI.getTournaments({ is_scrim: false });
+        const regPromise = guest
+          ? Promise.resolve({ data: { results: [] } })
+          : tournamentAPI.getMyRegistrations();
+        const [regRes, tourRes] = await Promise.all([regPromise, tourPromise]);
 
         // registrations — handle both array and paginated object
         const rawRegs = regRes.data?.results || regRes.data || [];

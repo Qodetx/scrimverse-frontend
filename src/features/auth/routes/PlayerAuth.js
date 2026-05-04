@@ -31,7 +31,17 @@ const PlayerAuth = () => {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
-  const nextPath = location.state?.next || '/player/dashboard';
+  // Resolve the post-login destination, in priority order:
+  //   1. location.state.next  — set by direct navigates that pass it (e.g. TournamentDetail)
+  //   2. post_verify_redirect — localStorage key set by guest-mode Sign In
+  //                              from the dashboard sidebar / GuestLockedState
+  //   3. /player/dashboard    — sensible default
+  // The localStorage key is consumed (cleared) right after we land so a
+  // future fresh login doesn't accidentally redirect somewhere stale.
+  const nextPath =
+    location.state?.next ||
+    (typeof window !== 'undefined' && localStorage.getItem('post_verify_redirect')) ||
+    '/player/dashboard';
 
   // Countdown timer for OTP resend
   React.useEffect(() => {
@@ -113,6 +123,13 @@ const PlayerAuth = () => {
         // If phone not verified redirect to setup; replace:true removes auth page from history
         const destination =
           response.data.user?.user?.phone_verified === false ? '/player/setup' : nextPath;
+        // Consume the post-login redirect key so it doesn't persist into the
+        // next session and bounce the user somewhere stale on a future login.
+        try {
+          localStorage.removeItem('post_verify_redirect');
+        } catch {
+          /* localStorage may be unavailable */
+        }
         navigate(destination, { replace: true });
       } catch (err) {
         setError(err.response?.data?.error || 'Login failed. Please try again.');
@@ -147,6 +164,11 @@ const PlayerAuth = () => {
         if (response.data?.tokens && response.data?.user) {
           // Auto-login on successful registration
           login(response.data.user, response.data.tokens);
+          try {
+            localStorage.removeItem('post_verify_redirect');
+          } catch {
+            /* localStorage may be unavailable */
+          }
           navigate(nextPath, { replace: true });
         } else {
           // Registration successful but email verification required — go to login
@@ -204,6 +226,11 @@ const PlayerAuth = () => {
         // redirect to setup page before allowing dashboard access.
         const destination =
           response.data.user?.user?.phone_verified === false ? '/player/setup' : nextPath;
+        try {
+          localStorage.removeItem('post_verify_redirect');
+        } catch {
+          /* localStorage may be unavailable */
+        }
         navigate(destination, { replace: true });
       } catch (err) {
         const data = err.response?.data;

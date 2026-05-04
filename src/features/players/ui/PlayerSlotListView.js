@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '../../../context/AuthContext';
+import GuestLockedState from '../../../components/GuestLockedState';
 import {
   ListOrdered,
   Gamepad2,
@@ -84,7 +86,25 @@ const SkeletonRows = ({ count = 3 }) => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const PlayerSlotListView = ({ focusTournamentId: externalFocusId } = {}) => {
+// Top-level wrapper picks between the locked-state placeholder for guests
+// and the full authenticated view. Keeping the guest branch as its own
+// component means the authenticated view's hooks list never has to include
+// the guest check (which would violate Rules of Hooks if it short-circuited
+// before the other useState calls below).
+const PlayerSlotListView = (props) => {
+  const { isGuest } = useContext(AuthContext);
+  if (isGuest()) {
+    return (
+      <GuestLockedState
+        title="Slot List"
+        description="See your assigned slot and group for each round of the tournaments you've joined. Your team's slot appears here once the host releases the slot list."
+      />
+    );
+  }
+  return <PlayerSlotListViewAuthenticated {...props} />;
+};
+
+const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } = {}) => {
   const [registrations, setRegistrations] = useState([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [slots, setSlots] = useState([]);

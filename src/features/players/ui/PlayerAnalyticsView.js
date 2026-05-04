@@ -27,6 +27,7 @@ import {
 } from 'recharts';
 import { AuthContext } from '../../../context/AuthContext';
 import { analyticsAPI } from '../../../utils/api';
+import GuestLockedState from '../../../components/GuestLockedState';
 import './PlayerAnalyticsView.css';
 
 const GAME_OPTIONS = ['All Games', 'BGMI', 'Valorant', 'Free Fire', 'Scarfall', 'COD Mobile'];
@@ -55,7 +56,22 @@ const getPlacementClass = (placement) => {
   return 'an-placement-default';
 };
 
+// Wrapper component handles the guest fork so the analytics view's hook list
+// (heavy with charts state and API effects) only runs for authenticated users.
 const PlayerAnalyticsView = () => {
+  const { isGuest } = useContext(AuthContext);
+  if (isGuest()) {
+    return (
+      <GuestLockedState
+        title="Player Analytics"
+        description="Track your performance over time — win rate, kill points, position points, ranking, and more — once you start playing tournaments."
+      />
+    );
+  }
+  return <PlayerAnalyticsViewAuthenticated />;
+};
+
+const PlayerAnalyticsViewAuthenticated = () => {
   const { user } = useContext(AuthContext);
   const [selectedGame, setSelectedGame] = useState('All Games');
   const [activityPeriod, setActivityPeriod] = useState('monthly');

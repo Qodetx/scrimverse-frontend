@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '../../../context/AuthContext';
+import GuestLockedState from '../../../components/GuestLockedState';
 import {
   Table2,
   Gamepad2,
@@ -96,7 +98,22 @@ const SkeletonRows = ({ count = 6 }) => (
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+// Wrapper splits guest vs authenticated rendering — keeps the heavy hook list
+// of the authenticated view from being conditionally invoked.
 const PlayerPointsTableView = () => {
+  const { isGuest } = useContext(AuthContext);
+  if (isGuest()) {
+    return (
+      <GuestLockedState
+        title="Points Table"
+        description="Live standings for your tournaments — kills, position points, and totals per round, updated as scores are submitted."
+      />
+    );
+  }
+  return <PlayerPointsTableViewAuthenticated />;
+};
+
+const PlayerPointsTableViewAuthenticated = () => {
   const { showToast } = useToast();
 
   // ── state ─────────────────────────────────────────────────────────────────

@@ -70,6 +70,12 @@ export const AuthProvider = ({ children }) => {
     return user && user.user && user.user.user_type === 'player';
   };
 
+  // Guest = unauthenticated. Used by the dashboard "browse-as-guest" mode so
+  // views can decide whether to skip authenticated API calls and show a
+  // sign-in placeholder instead. Returns true while AuthContext is still
+  // loading too — that keeps guest fallbacks rendering until tokens resolve.
+  const isGuest = () => !isAuthenticated();
+
   return (
     <AuthContext.Provider
       value={{
@@ -78,6 +84,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         isAuthenticated,
+        isGuest,
         isHost,
         isPlayer,
         loading,

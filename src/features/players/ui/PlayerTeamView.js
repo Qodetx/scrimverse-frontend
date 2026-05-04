@@ -25,6 +25,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
+import GuestLockedState from '../../../components/GuestLockedState';
 import { teamAPI, leaderboardAPI, authAPI } from '../../../utils/api';
 import { useToast } from '../../../hooks/useToast';
 import ConfirmModal from '../../../components/ConfirmModal';
@@ -517,7 +518,23 @@ const TempTeamMiniCard = ({
   );
 };
 
-const PlayerTeamView = ({ conversionNotif, onConversionDone, openRequests }) => {
+// Wrapper handles guest-mode fork — Team management is fully authenticated
+// (create / invite / accept / leave all need a user), so guests get a clear
+// locked-state CTA explaining what's behind the sign-in.
+const PlayerTeamView = (props) => {
+  const { isGuest } = useContext(AuthContext);
+  if (isGuest()) {
+    return (
+      <GuestLockedState
+        title="Your Teams"
+        description="Create or join a team, manage your roster, send invites, and view team stats. Sign in to start building your squad."
+      />
+    );
+  }
+  return <PlayerTeamViewAuthenticated {...props} />;
+};
+
+const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRequests }) => {
   const { user } = useContext(AuthContext);
   const { showToast } = useToast();
   const navigate = useNavigate();
