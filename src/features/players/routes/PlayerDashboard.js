@@ -28,6 +28,7 @@ import { tournamentAPI, teamAPI, notificationAPI, authAPI } from '../../../utils
 import { useToast } from '../../../hooks/useToast';
 import Toast from '../../../components/Toast';
 import TeamManagementModal from '../../teams/ui/TeamManagementModal';
+import RegistrationConfirmationModal from '../../tournaments/ui/RegistrationConfirmationModal';
 import EditPlayerProfileModal from '../ui/EditPlayerProfileModal';
 import PlayerOverviewView from '../ui/PlayerOverviewView';
 import PlayerCredentialsView from '../ui/PlayerCredentialsView';
@@ -817,6 +818,8 @@ const PlayerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  // Registration confirmed modal shown after accepting an invite via the notification bell
+  const [acceptedInviteData, setAcceptedInviteData] = useState(null);
 
   // notifications state
   const [notifications, setNotifications] = useState([]);
@@ -988,12 +991,24 @@ const PlayerDashboard = () => {
           inv.team === teamOrInviteId || inv.team_id === teamOrInviteId || inv.id === teamOrInviteId
       );
       const inviteId = match?.id ?? teamOrInviteId;
-      await teamAPI.handleInvite(inviteId, action);
+      const res = await teamAPI.handleInvite(inviteId, action);
       fetchInvitations();
       if (action === 'accept') {
         fetchUserData();
         fetchDashboardData();
-        setActiveView('team');
+        // Show Registration Confirmed modal — same UX as accepting via email link
+        if (res?.data) {
+          setAcceptedInviteData({
+            teamName: res.data.team_name || '',
+            tournamentName: res.data.tournament_name || '',
+            teamSize: res.data.team_size || 0,
+            joinedCount: res.data.joined_count || 1,
+            captainName: res.data.captain_name || '',
+          });
+          setNotifOpen(false);
+        } else {
+          setActiveView('team');
+        }
       }
     } catch (error) {
       const serverMsg = error?.response?.data?.error || '';
@@ -1454,6 +1469,23 @@ const PlayerDashboard = () => {
       {/* ── MODALS ─────────────────────────────────────────────────────────── */}
 
       {onboardingOpen && <OnboardingModal onClose={() => setOnboardingOpen(false)} />}
+
+      {acceptedInviteData && (
+        <RegistrationConfirmationModal
+          viewerRole="teammate"
+          teamName={acceptedInviteData.teamName}
+          tournament={{ title: acceptedInviteData.tournamentName }}
+          isNewTeam={false}
+          teamSize={acceptedInviteData.teamSize || 1}
+          joinedCount={acceptedInviteData.joinedCount || 2}
+          captainName={acceptedInviteData.captainName}
+          existingMembers={[]}
+          onClose={() => {
+            setAcceptedInviteData(null);
+            setActiveView('team');
+          }}
+        />
+      )}
 
       {manageTeamId && (
         <TeamManagementModal

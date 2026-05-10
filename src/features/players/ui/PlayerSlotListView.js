@@ -14,6 +14,7 @@ import {
   Download,
   Video,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 import { tournamentAPI, communityAPI } from '../../../utils/api';
 import './PlayerSlotListView.css';
@@ -122,6 +123,7 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
     instagram_link: '',
   });
   const [waJoined, setWaJoined] = useState(false);
+  const [igJoined, setIgJoined] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const dropdownRef = useRef(null);
@@ -151,10 +153,13 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
     }
     Promise.all([
       communityAPI.getSettings().catch(() => ({ data: { whatsapp_link: '', instagram_link: '' } })),
-      communityAPI.getStatus().catch(() => ({ data: { whatsapp_joined: false } })),
+      communityAPI
+        .getStatus()
+        .catch(() => ({ data: { whatsapp_joined: false, instagram_joined: false } })),
     ]).then(([settingsRes, statusRes]) => {
       setCommunitySettings(settingsRes.data);
       setWaJoined(statusRes.data.whatsapp_joined);
+      setIgJoined(statusRes.data.instagram_joined);
     });
   }, []);
 
@@ -165,13 +170,23 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
     setWaJoined(true);
   };
 
+  const handleIgBannerJoin = () => {
+    if (!communitySettings.instagram_link) return;
+    window.open(communitySettings.instagram_link, '_blank', 'noopener,noreferrer');
+    communityAPI.recordJoin('instagram').catch(() => {});
+    setIgJoined(true);
+  };
+
   const handleBannerDismiss = () => {
     const dismissUntil = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     localStorage.setItem('community_banner_dismissed_until', String(dismissUntil));
     setBannerDismissed(true);
   };
 
-  const showCommunityBanner = communitySettings.whatsapp_link && !waJoined && !bannerDismissed;
+  // Show banner if at least one community link is set and user hasn't joined that one yet.
+  const showWaBanner = communitySettings.whatsapp_link && !waJoined;
+  const showIgBanner = communitySettings.instagram_link && !igJoined;
+  const showCommunityBanner = (showWaBanner || showIgBanner) && !bannerDismissed;
 
   // ── fetch registrations on mount ─────────────────────────────────────────
 
@@ -516,24 +531,34 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
 
   return (
     <div className="space-y-4">
-      {/* ── WhatsApp Community Banner ───────────────────────────────────────── */}
+      {/* ── Community Banner (WhatsApp + Instagram) ─────────────────────────── */}
       {showCommunityBanner && (
         <div className="sl-community-banner">
           <div className="sl-community-banner-left">
             <div className="sl-community-banner-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-              </svg>
+              <Sparkles size={18} />
             </div>
             <div>
-              <p className="sl-community-banner-title">Get match updates &amp; announcements</p>
-              <p className="sl-community-banner-sub">Join the Scrimverse WhatsApp community</p>
+              <p className="sl-community-banner-title">Join the Scrimverse community</p>
+              <p className="sl-community-banner-sub">
+                Get match updates, announcements &amp; tournament news
+              </p>
             </div>
           </div>
           <div className="sl-community-banner-actions">
-            <button className="sl-community-join-btn" onClick={handleWaBannerJoin}>
-              Join WhatsApp
-            </button>
+            {showWaBanner && (
+              <button className="sl-community-join-btn" onClick={handleWaBannerJoin}>
+                Join WhatsApp
+              </button>
+            )}
+            {showIgBanner && (
+              <button
+                className="sl-community-join-btn sl-community-ig-btn"
+                onClick={handleIgBannerJoin}
+              >
+                Join Instagram
+              </button>
+            )}
             <button className="sl-community-later-btn" onClick={handleBannerDismiss}>
               Later
             </button>
