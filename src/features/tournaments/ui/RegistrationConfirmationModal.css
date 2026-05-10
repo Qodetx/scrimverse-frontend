@@ -464,3 +464,102 @@
     padding: 14px 24px;
   }
 }
+
+/* ── Community Card ──────────────────────────────────────────────────────── */
+.rcm-community-card {
+  background: linear-gradient(135deg, #16a34a 0%, #7c3aed 60%, #db2777 100%);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rcm-community-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rcm-community-icon {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.rcm-community-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+}
+
+.rcm-community-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.rcm-community-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.rcm-community-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.rcm-community-btn {
+  flex: 1;
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    transform 0.1s;
+}
+
+.rcm-community-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.rcm-community-btn.whatsapp {
+  background: #25d366;
+  color: #fff;
+}
+
+.rcm-community-btn.whatsapp.joined {
+  background: rgba(37, 211, 102, 0.3);
+  color: #25d366;
+  border: 1px solid rgba(37, 211, 102, 0.4);
+  cursor: default;
+}
+
+.rcm-community-btn.instagram {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.rcm-community-btn.instagram.joined {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: default;
+}

@@ -82,14 +82,26 @@
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  min-width: 160px;
+  min-width: 180px;
+  max-height: 240px;
+  overflow-y: auto;
   background: hsl(var(--card, 0 0% 8%));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   z-index: 50;
-  overflow: hidden;
   animation: anDropFade 0.12s ease-out;
+}
+
+.an-dropdown-menu::-webkit-scrollbar {
+  width: 4px;
+}
+.an-dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+.an-dropdown-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
 }
 
 @keyframes anDropFade {
@@ -456,4 +468,77 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ── Tab Switcher (Player / Team) ────────────────────────────────────────── */
+.an-tab-switcher {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.an-tab-btn {
+  padding: 5px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  transition: all 0.15s ease;
+}
+
+.an-tab-btn:hover {
+  color: #fff;
+}
+
+.an-tab-btn.active {
+  background: #8b5cf6;
+  color: #fff;
+}
+
+/* ── Team Tab — Section Labels ───────────────────────────────────────────── */
+.an-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: -4px;
+}
+
+/* ── Team Tab — Team Header ──────────────────────────────────────────────── */
+.an-team-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.an-team-header-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.an-member-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+.an-member-badge.current {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.an-member-badge.past {
+  background: rgba(139, 92, 246, 0.1);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }

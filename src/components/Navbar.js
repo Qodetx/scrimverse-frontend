@@ -203,7 +203,6 @@ const AuthNavbar = () => {
 // pages via the dashboard sidebar (Explore ScrimVerse → /player/dashboard).
 // The routes themselves remain accessible at their direct URLs.
 const PublicNavbar = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isHostPortal = window.location.hostname.startsWith('host.');
   const enterArenaPath = isHostPortal ? '/host/login' : '/player-auth';
   const explorePath = isHostPortal ? '/host/login' : '/player/dashboard';
@@ -223,52 +222,23 @@ const PublicNavbar = () => {
             </Link>
           </div>
 
-          {/* Right actions — Login + Enter The Arena */}
-          <div className="hidden md:flex flex-none items-center gap-3 ml-auto">
+          {/* Right actions */}
+          <div className="flex flex-none items-center gap-2 sm:gap-3 ml-auto">
+            {/* Login — desktop only */}
             <Link
               to={enterArenaPath}
-              className="px-5 py-2 text-sm font-bold rounded-full bg-transparent hover:bg-white/5 text-foreground border border-foreground/20 hover:border-foreground/40 transition-all inline-flex items-center"
+              className="hidden md:inline-flex px-5 py-2 text-sm font-bold rounded-full bg-transparent hover:bg-white/5 text-foreground border border-foreground/20 hover:border-foreground/40 transition-all items-center"
             >
               Login
             </Link>
+            {/* Enter The Arena — visible on all screen sizes */}
             <Link to={explorePath}>
-              <button className="px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 transition-all inline-flex items-center">
+              <button className="px-4 sm:px-5 py-2 text-xs sm:text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 transition-all inline-flex items-center whitespace-nowrap">
                 Enter The Arena
               </button>
             </Link>
           </div>
-
-          <div className="md:hidden ml-auto">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
         </div>
-
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-border bg-background/50 backdrop-blur-sm">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <Link
-                to={enterArenaPath}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-md text-base font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-              >
-                Login
-              </Link>
-              <Link
-                to={explorePath}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-md text-base font-medium transition-all text-purple hover:text-foreground hover:bg-secondary/50"
-              >
-                Enter The Arena
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );

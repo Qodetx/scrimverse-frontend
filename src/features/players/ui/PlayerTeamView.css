@@ -928,6 +928,48 @@
   }
 }
 
+@keyframes tm-tab-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--accent) / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px hsl(var(--accent) / 0);
+  }
+}
+
+@keyframes tm-tab-pulse-yellow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(234, 179, 8, 0);
+  }
+}
+
+.tm-tab-info-wrap .tm-tab-tooltip {
+  display: none;
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 10px;
+  padding: 12px 14px;
+  width: 260px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: hsl(var(--muted-foreground));
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.tm-tab-info-wrap:hover .tm-tab-tooltip {
+  display: block;
+}
+
 /* ── Create Team Dialog ──────────────────────────────────────────────────── */
 .tm-create-dialog {
   background: hsl(var(--card, 0 0% 11%));

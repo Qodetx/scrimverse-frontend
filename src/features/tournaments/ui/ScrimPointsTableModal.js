@@ -318,7 +318,7 @@ const ScrimPointsTableModal = ({
               }}
               disabled={!isScrimResultsUnlocked()}
             >
-              Results
+              Final Round Results
             </button>
           </div>
 
@@ -398,7 +398,9 @@ const ScrimPointsTableModal = ({
         {/* Footer */}
         {groupsData.length > 0 && selectedGroup && (
           <div className="compact-table-footer">
-            <span>Scrim • {viewMode === 'match' ? `M${selectedMatch}` : 'Results'}</span>
+            <span>
+              Scrim • {viewMode === 'match' ? `M${selectedMatch}` : 'Final Round Results'}
+            </span>
             <span>{getTotalTeams()} Teams</span>
           </div>
         )}

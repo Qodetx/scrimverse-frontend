@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { inviteAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
+import RegistrationConfirmationModal from '../../tournaments/ui/RegistrationConfirmationModal';
 
 export default function JoinTeam() {
   const { token } = useParams();
@@ -15,6 +16,8 @@ export default function JoinTeam() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
+  // Set after successful accept — triggers the confirmation modal
+  const [joined, setJoined] = useState(null); // { teamName, tournamentName }
 
   // If authenticated but phone not verified, redirect to setup first then come back
   useEffect(() => {
@@ -79,9 +82,13 @@ export default function JoinTeam() {
     setBusy(true);
     try {
       const res = await inviteAPI.acceptInvite(token);
-      setMessage(res.data.message || 'Invite accepted');
-      // Optionally redirect to team or dashboard
-      setTimeout(() => navigate('/player/dashboard'), 1200);
+      setJoined({
+        teamName: res.data.team_name || invite?.team_name || '',
+        tournamentName: invite?.tournament_name || '',
+        teamSize: res.data.team_size || invite?.team_size || 0,
+        joinedCount: res.data.joined_count || res.data.member_count || 0,
+        captainName: res.data.captain_name || invite?.captain_name || '',
+      });
     } catch (e) {
       setError(e.response?.data?.error || e.response?.data?.message || 'Failed to accept invite');
     } finally {
@@ -101,6 +108,21 @@ export default function JoinTeam() {
       setBusy(false);
     }
   };
+
+  if (joined)
+    return (
+      <RegistrationConfirmationModal
+        viewerRole="teammate"
+        teamName={joined.teamName}
+        tournament={{ title: joined.tournamentName }}
+        isNewTeam={false}
+        teamSize={joined.teamSize || 1}
+        joinedCount={joined.joinedCount || 2}
+        captainName={joined.captainName}
+        existingMembers={[]}
+        onClose={() => navigate('/player/dashboard')}
+      />
+    );
 
   if (loadingInvite || (autoDecline && !message && !error))
     return (

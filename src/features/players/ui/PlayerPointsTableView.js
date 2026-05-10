@@ -12,6 +12,8 @@ import {
   Trophy,
   Star,
   Download,
+  Video,
+  ExternalLink,
 } from 'lucide-react';
 import { tournamentAPI } from '../../../utils/api';
 import { useToast } from '../../../hooks/useToast';
@@ -497,6 +499,20 @@ const PlayerPointsTableViewAuthenticated = () => {
               })
             }
           </CustomDropdown>
+
+          {/* Watch Live button */}
+          {tournament?.live_link && (
+            <a
+              href={tournament.live_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pt-live-btn"
+            >
+              <Video size={13} />
+              Watch Live
+              <ExternalLink size={11} style={{ opacity: 0.7 }} />
+            </a>
+          )}
         </div>
       </div>
 
@@ -597,7 +613,7 @@ const PlayerPointsTableViewAuthenticated = () => {
               onClick={() => setViewMode(viewMode === 'results' ? 'match' : 'results')}
             >
               <Trophy size={11} />
-              Results
+              Final Round Results
             </button>
           </div>
         )}
@@ -702,7 +718,7 @@ const PlayerPointsTableViewAuthenticated = () => {
         <div className="pt-footer" data-html2canvas-ignore="true">
           <span className="pt-footer-info">
             {getRoundLabel(tournament, selectedRound)} &middot;{' '}
-            {viewMode === 'results' ? 'Results' : `M${selectedMatchNum}`} &middot;{' '}
+            {viewMode === 'results' ? 'Final Round Results' : `M${selectedMatchNum}`} &middot;{' '}
             {groupName || 'Group'}
           </span>
           <div className="pt-footer-actions">

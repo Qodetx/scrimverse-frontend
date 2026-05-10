@@ -229,7 +229,7 @@ const HomePage = () => {
               </div>
               <button
                 onClick={handleExploreClick}
-                className="px-6 py-5 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all group inline-flex items-center"
+                className="px-6 py-4 text-sm font-bold rounded-xl bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all group inline-flex items-center"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 Explore ScrimVerse
@@ -240,7 +240,7 @@ const HomePage = () => {
               {!isAuthenticated() && (
                 <button
                   onClick={handleLoginClick}
-                  className="px-6 py-5 text-sm font-bold rounded-full bg-transparent hover:bg-white/5 text-foreground border border-foreground/20 hover:border-foreground/40 transition-all inline-flex items-center"
+                  className="px-6 py-4 text-sm font-bold rounded-xl bg-white/10 hover:bg-white/20 text-foreground border border-foreground/20 hover:border-foreground/40 transition-all inline-flex items-center"
                 >
                   Login
                 </button>

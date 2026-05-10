@@ -212,8 +212,8 @@ const HostProfile = () => {
               </div>
             </div>
 
-            {/* Key Stats Grid — always 4 columns, full row */}
-            <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-3 lg:max-w-lg">
+            {/* Key Stats Grid — 3 columns until Success Rate metric is finalized (CR-18) */}
+            <div className="w-full grid grid-cols-2 lg:grid-cols-3 gap-3 lg:max-w-lg">
               <div className="text-center p-4 bg-secondary/20 rounded-lg border border-border/20">
                 <div className="text-2xl md:text-3xl font-bold text-purple">
                   {host.total_tournaments_hosted || 0}
@@ -221,7 +221,7 @@ const HostProfile = () => {
                 <div className="text-xs text-muted-foreground">Tournaments</div>
               </div>
               <div className="text-center p-4 bg-secondary/20 rounded-lg border border-border/20">
-                <div className="text-lg md:text-xl font-bold text-green-500">
+                <div className="text-2xl md:text-3xl font-bold text-green-500">
                   {formatCurrency(host.prize_pool_distributed || 0)}
                 </div>
                 <div className="text-xs text-muted-foreground">Prize Pool</div>
@@ -232,12 +232,15 @@ const HostProfile = () => {
                 </div>
                 <div className="text-xs text-muted-foreground">Participants</div>
               </div>
+              {/* Success Rate hidden until backend defines the metric — see CR-18. Re-enable by uncommenting and changing grid back to lg:grid-cols-4. */}
+              {/*
               <div className="text-center p-4 bg-secondary/20 rounded-lg border border-border/20">
                 <div className="text-2xl md:text-3xl font-bold text-yellow-500">
                   {Number(host.success_rate || 0).toFixed(1)}%
                 </div>
                 <div className="text-xs text-muted-foreground">Success Rate</div>
               </div>
+              */}
             </div>
           </div>
         </div>

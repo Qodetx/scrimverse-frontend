@@ -312,6 +312,8 @@ export const teamAPI = {
     api.post(`/accounts/teams/${teamId}/send_invites/`, { invites }),
   resendInvite: (teamId, inviteId) =>
     api.post(`/accounts/teams/${teamId}/resend_invite/`, { invite_id: inviteId }),
+  cancelInvite: (teamId, inviteId) =>
+    api.delete(`/accounts/teams/${teamId}/cancel_invite/${inviteId}/`),
   generateInviteLink: (teamId) => api.post(`/accounts/teams/${teamId}/generate-invite-link/`),
   searchPlayers: (query, game = null) =>
     api.get('/accounts/players/search/', { params: { q: query, for_team: true, game } }),
@@ -341,6 +343,14 @@ export const analyticsAPI = {
     api.get('/accounts/players/analytics/recent-results/', { params: game ? { game } : {} }),
   getWeeklyActivity: (game) =>
     api.get('/accounts/players/analytics/weekly-activity/', { params: game ? { game } : {} }),
+  getTeamStats: (game) =>
+    api.get('/accounts/players/analytics/team-stats/', { params: game ? { game } : {} }),
+};
+
+export const communityAPI = {
+  getSettings: () => api.get('/community/settings/'),
+  recordJoin: (communityType) => api.post('/community/join/', { community_type: communityType }),
+  getStatus: () => api.get('/community/status/'),
 };
 
 export const notificationAPI = {

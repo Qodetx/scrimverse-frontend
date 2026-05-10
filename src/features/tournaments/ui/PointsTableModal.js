@@ -529,7 +529,7 @@ const PointsTableModal = ({
               }}
               disabled={!isRoundResultsUnlocked()}
             >
-              Results
+              Final Round Results
             </button>
           </div>
 
@@ -709,7 +709,7 @@ const PointsTableModal = ({
               <div className="compact-table-footer">
                 <span>
                   {getRoundLabel(selectedRound)} •{' '}
-                  {viewMode === 'match' ? `M${selectedMatch}` : 'Results'} •{' '}
+                  {viewMode === 'match' ? `M${selectedMatch}` : 'Final Round Results'} •{' '}
                   {selectedGroup?.group_name}
                 </span>
                 <span>{getTotalTeams()} Teams</span>

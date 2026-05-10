@@ -1,68 +1,143 @@
 /* PlayerSlotListView.css */
 
-/* ── Watch Live banner ───────────────────────────────────────────────────── */
+/* ── Community WhatsApp Banner ───────────────────────────────────────────── */
 
-.slot-live-banner {
+.sl-community-banner {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.625rem 1rem;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, hsl(142 70% 12% / 0.9) 0%, hsl(142 60% 8% / 0.95) 100%);
+  border: 1px solid #25d366;
   border-radius: 0.625rem;
-  background: hsl(0 84% 40% / 0.15);
-  border: 1px solid hsl(0 84% 60% / 0.35);
-  color: #fff;
-  text-decoration: none;
+  flex-wrap: wrap;
+}
+
+.sl-community-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.sl-community-banner-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sl-community-banner-title {
   font-size: 0.8125rem;
   font-weight: 600;
-  transition: background 0.15s ease;
-  animation: slot-live-pulse 2s ease-in-out infinite;
+  color: #fff;
+  margin: 0 0 0.125rem;
 }
 
-.slot-live-banner:hover {
-  background: hsl(0 84% 40% / 0.28);
+.sl-community-banner-sub {
+  font-size: 0.725rem;
+  color: hsl(142 60% 70%);
+  margin: 0;
 }
 
-.slot-live-indicator {
-  position: relative;
+.sl-community-banner-actions {
   display: flex;
   align-items: center;
-  color: hsl(0 84% 65%);
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
-.slot-live-dot {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: hsl(0 84% 60%);
-  animation: slot-dot-ping 1.2s ease-in-out infinite;
+.sl-community-join-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: none;
+  background: #25d366;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
 }
 
-.slot-live-text {
-  color: hsl(0 84% 75%);
+.sl-community-join-btn:hover {
+  background: #1db954;
 }
 
-@keyframes slot-live-pulse {
+.sl-community-later-btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(142 40% 35% / 0.5);
+  background: transparent;
+  color: hsl(142 40% 65%);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sl-community-later-btn:hover {
+  border-color: hsl(142 40% 50%);
+  color: #fff;
+}
+
+@media (max-width: 480px) {
+  .sl-community-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sl-community-banner-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ── Watch Live button ───────────────────────────────────────────────────── */
+
+.sl-live-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(0 84% 60% / 0.4);
+  background: hsl(0 84% 40% / 0.85);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+  animation: sl-live-pulse 2s ease-in-out infinite;
+}
+
+.sl-live-btn:hover {
+  background: hsl(0 84% 50% / 0.95);
+}
+
+@keyframes sl-live-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 hsl(0 84% 60% / 0.3);
+    box-shadow: 0 0 0 0 hsl(0 84% 60% / 0.4);
   }
   50% {
-    box-shadow: 0 0 0 5px hsl(0 84% 60% / 0);
-  }
-}
-
-@keyframes slot-dot-ping {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.6);
-    opacity: 0.4;
+    box-shadow: 0 0 0 4px hsl(0 84% 60% / 0);
   }
 }
 
@@ -401,9 +476,8 @@
 
 /* ── Mobile Overrides ───────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Fix filter dropdown overflow on mobile */
   .slot-filter-dropdown {
-    right: auto !important;
-    left: 0 !important;
+    min-width: 10rem;
+    max-width: 14rem;
   }
 }

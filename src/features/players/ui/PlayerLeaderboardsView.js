@@ -101,38 +101,42 @@ const PlayerLeaderboardsView = () => {
 
   const isMyTeam = (entry) => myTeamIds.has(entry.team_id || entry.team?.id);
 
-  // ── Podium (top 3) ──
+  // ── Podium (top 1–3) ──
   const renderPodium = (teams) => {
     const top3 = teams.slice(0, 3);
-    if (top3.length < 3) return null;
-    // Reorder: 2nd, 1st, 3rd for podium visual
-    const ordered = [top3[1], top3[0], top3[2]];
-    const heights = ['lb-podium-2nd', 'lb-podium-1st', 'lb-podium-3rd'];
-    const styles = ['silver', 'gold', 'bronze'];
+    if (top3.length === 0) return null;
+
+    // Build only the positions that have data.
+    // Visual order: left=2nd, center=1st, right=3rd
+    const POSITIONS = [
+      { index: 1, heightClass: 'lb-podium-2nd', style: 'silver' },
+      { index: 0, heightClass: 'lb-podium-1st', style: 'gold' },
+      { index: 2, heightClass: 'lb-podium-3rd', style: 'bronze' },
+    ];
+    const positions = POSITIONS.filter(({ index }) => top3[index] !== undefined);
 
     return (
       <div className="lb-podium">
-        {ordered.map((team, i) => {
+        {positions.map(({ index, heightClass, style }) => {
+          const team = top3[index];
           const mine = isMyTeam(team);
           const teamName = team.team_name || team.team?.name || `Team ${team.rank}`;
-          const initial = teamName.charAt(0).toUpperCase();
           const pts = Number(team.total_points || 0).toLocaleString();
           const wins = team.tournament_wins ?? team.scrim_wins ?? 0;
 
           return (
             <div
               key={team.rank}
-              className={`lb-podium-col ${heights[i]} lb-podium-${styles[i]}${mine ? ' lb-podium-mine' : ''}`}
+              className={`lb-podium-col ${heightClass} lb-podium-${style}${mine ? ' lb-podium-mine' : ''}`}
               onClick={() =>
                 (team.team_id || team.team?.id) &&
                 navigate(`/team/${team.team_id || team.team?.id}`)
               }
             >
-              <div className={`lb-podium-rank lb-rank-${styles[i]}`}>{team.rank}</div>
               <div className="lb-podium-bottom">
-                <div className={`lb-podium-avatar lb-avatar-${styles[i]}`}>{initial}</div>
+                <div className={`lb-podium-avatar lb-avatar-${style}`}>{team.rank}</div>
                 <h4 className="lb-podium-name">{teamName}</h4>
-                <div className={`lb-podium-pts lb-pts-${styles[i]}`}>{pts}</div>
+                <div className={`lb-podium-pts lb-pts-${style}`}>{pts}</div>
                 <div className="lb-podium-wins">{wins} wins</div>
                 {mine && <Star size={12} className="lb-mine-star" />}
               </div>
@@ -144,52 +148,86 @@ const PlayerLeaderboardsView = () => {
   };
 
   // ── List (rank 4+) ──
-  const renderList = (teams) => (
-    <div className="lb-list">
-      {teams.slice(3).map((team) => {
-        const mine = isMyTeam(team);
-        const teamName = team.team_name || team.team?.name || `Team ${team.rank}`;
-        const initial = teamName.charAt(0).toUpperCase();
-        const pts = Number(team.total_points || 0).toLocaleString();
-        const wins = team.tournament_wins ?? team.scrim_wins ?? 0;
-        const matchesPlayed =
-          activeTab === 'tournaments'
-            ? (team.tournament_matches_played ?? team.matches_played ?? 0)
-            : (team.scrim_matches_played ?? team.matches_played ?? 0);
+  const renderList = (teams) => {
+    const listTeams = teams.slice(3);
 
-        return (
-          <div
-            key={`${team.rank}-${teamName}`}
-            className={`lb-row${mine ? ' lb-row-mine' : ''}`}
-            onClick={() =>
-              (team.team_id || team.team?.id) && navigate(`/team/${team.team_id || team.team?.id}`)
-            }
-          >
-            <div className="lb-row-left">
-              <span className="lb-row-rank">#{team.rank}</span>
-              <div className="lb-row-avatar">{initial}</div>
-              <div className="lb-row-info">
-                <span className="lb-row-name">
-                  {teamName}
-                  {mine && <Star size={11} className="lb-mine-star-inline" />}
-                </span>
-                <span className="lb-row-sub">
-                  {wins} wins{matchesPlayed > 0 ? ` · ${matchesPlayed} matches` : ''}
-                </span>
+    // When there are 1-3 teams (podium only), show placeholder rows for ranks 4-6
+    // so the area below the podium doesn't look empty.
+    if (listTeams.length === 0) {
+      if (teams.length === 0 || teams.length > 3) return null;
+      const placeholderRanks = [4, 5, 6];
+      return (
+        <div className="lb-list">
+          {placeholderRanks.map((rank) => (
+            <div key={`placeholder-${rank}`} className="lb-row lb-row-placeholder">
+              <div className="lb-row-left">
+                <span className="lb-row-rank">#{rank}</span>
+                <div className="lb-row-avatar lb-row-avatar-empty">—</div>
+                <div className="lb-row-info">
+                  <span className="lb-row-name lb-row-name-empty">Position open</span>
+                  <span className="lb-row-sub">Awaiting team</span>
+                </div>
+              </div>
+              <div className="lb-row-right">
+                <div className="lb-row-pts-wrap">
+                  <span className="lb-row-pts lb-row-pts-empty">—</span>
+                  <span className="lb-row-pts-label">PTS</span>
+                </div>
               </div>
             </div>
-            <div className="lb-row-right">
-              <div className="lb-row-pts-wrap">
-                <span className="lb-row-pts">{pts}</span>
-                <span className="lb-row-pts-label">PTS</span>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="lb-list">
+        {listTeams.map((team) => {
+          const mine = isMyTeam(team);
+          const teamName = team.team_name || team.team?.name || `Team ${team.rank}`;
+          const initial = teamName.charAt(0).toUpperCase();
+          const pts = Number(team.total_points || 0).toLocaleString();
+          const wins = team.tournament_wins ?? team.scrim_wins ?? 0;
+          const matchesPlayed =
+            activeTab === 'tournaments'
+              ? (team.tournament_matches_played ?? team.matches_played ?? 0)
+              : (team.scrim_matches_played ?? team.matches_played ?? 0);
+
+          return (
+            <div
+              key={`${team.rank}-${teamName}`}
+              className={`lb-row${mine ? ' lb-row-mine' : ''}`}
+              onClick={() =>
+                (team.team_id || team.team?.id) &&
+                navigate(`/team/${team.team_id || team.team?.id}`)
+              }
+            >
+              <div className="lb-row-left">
+                <span className="lb-row-rank">#{team.rank}</span>
+                <div className="lb-row-avatar">{initial}</div>
+                <div className="lb-row-info">
+                  <span className="lb-row-name">
+                    {teamName}
+                    {mine && <Star size={11} className="lb-mine-star-inline" />}
+                  </span>
+                  <span className="lb-row-sub">
+                    {wins} wins{matchesPlayed > 0 ? ` · ${matchesPlayed} matches` : ''}
+                  </span>
+                </div>
               </div>
-              <Eye size={16} className="lb-row-eye" />
+              <div className="lb-row-right">
+                <div className="lb-row-pts-wrap">
+                  <span className="lb-row-pts">{pts}</span>
+                  <span className="lb-row-pts-label">PTS</span>
+                </div>
+                <Eye size={16} className="lb-row-eye" />
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+          );
+        })}
+      </div>
+    );
+  };
 
   const activeData = activeTab === 'tournaments' ? tournamentData : scrimData;
 

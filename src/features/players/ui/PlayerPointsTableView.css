@@ -1,5 +1,41 @@
 /* ── PlayerPointsTableView.css ─────────────────────────────────────────────── */
 
+/* ── Watch Live button ───────────────────────────────────────────────────── */
+
+.pt-live-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(0 84% 60% / 0.4);
+  background: hsl(0 84% 40% / 0.85);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+  animation: pt-live-pulse 2s ease-in-out infinite;
+}
+
+.pt-live-btn:hover {
+  background: hsl(0 84% 50% / 0.95);
+}
+
+@keyframes pt-live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(0 84% 60% / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px hsl(0 84% 60% / 0);
+  }
+}
+
 /* Card container — the downloadable snapshot target */
 .pt-card {
   background: hsl(var(--card));
@@ -505,15 +541,27 @@
   position: absolute;
   top: calc(100% + 0.375rem);
   right: 0;
-  min-width: 14rem;
-  max-width: 20rem;
+  min-width: 12rem;
+  max-width: 17rem;
+  max-height: 16rem;
+  overflow-y: auto;
   background: hsl(0 0% 8%);
   border: 1px solid hsl(var(--border) / 0.6);
   border-radius: 0.75rem;
   box-shadow: 0 8px 24px hsl(0 0% 0% / 0.4);
   z-index: 50;
-  overflow: hidden;
   padding: 0.25rem;
+}
+
+.pt-dropdown-menu::-webkit-scrollbar {
+  width: 4px;
+}
+.pt-dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+.pt-dropdown-menu::-webkit-scrollbar-thumb {
+  background: hsl(var(--border) / 0.7);
+  border-radius: 4px;
 }
 
 .pt-dropdown-option {
@@ -555,6 +603,7 @@
   .pt-dropdown-menu {
     max-width: calc(100vw - 32px) !important;
     min-width: 10rem !important;
+    max-height: 60vh !important;
   }
 
   /* Fix LEFT dropdown from overflowing off-screen on mobile */

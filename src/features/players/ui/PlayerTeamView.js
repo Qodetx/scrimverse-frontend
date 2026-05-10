@@ -23,6 +23,8 @@ import {
   Loader2,
   AtSign,
   RefreshCw,
+  Pencil,
+  Info,
 } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import GuestLockedState from '../../../components/GuestLockedState';
@@ -587,6 +589,8 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
 
   // Per-invite resend state: { [inviteId]: 'sending' | 'sent' | 'rate_limited' }
   const [resendingInvites, setResendingInvites] = useState({});
+  // { id, type, value } while editing a pending invite contact; null otherwise
+  const [editingInvite, setEditingInvite] = useState(null);
 
   // Photo upload
   const fileInputRef = useRef(null);
@@ -598,6 +602,8 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
 
   // Temp/Perm toggle — 'perm' | 'temp'
   const [teamMode, setTeamMode] = useState('perm');
+  const teamsLoadedRef = useRef(false);
+  const prevSelectedGameRef = useRef(null);
 
   // Create team dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -691,12 +697,18 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
   const tempTeamForGame =
     teams.find((t) => normalizeGameValue(t.game) === gameValue && isTempForMe(t)) || null;
 
-  // Auto-set teamMode when game changes or teams first load
+  // Auto-set teamMode only on initial load or when user switches game, NOT on teams refresh
   useEffect(() => {
-    if (permanentTeam) setTeamMode('perm');
-    else if (tempTeamForGame) setTeamMode('temp');
-    setConversionResult(null);
-    setConversionConflict(null);
+    const gameChanged =
+      prevSelectedGameRef.current !== null && prevSelectedGameRef.current !== selectedGame;
+    prevSelectedGameRef.current = selectedGame;
+    if (!teamsLoadedRef.current || gameChanged) {
+      if (teams.length > 0) teamsLoadedRef.current = true;
+      if (permanentTeam) setTeamMode('perm');
+      else if (tempTeamForGame) setTeamMode('temp');
+      setConversionResult(null);
+      setConversionConflict(null);
+    }
   }, [selectedGame, teams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Active team is determined by teamMode
@@ -1027,6 +1039,28 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
           return next;
         });
       }
+    }
+  };
+
+  const handleEditInviteSave = async () => {
+    if (!editingInvite || !team) return;
+    const { id, type, value } = editingInvite;
+    if (!value.trim()) return;
+    setResendingInvites((prev) => ({ ...prev, [id]: 'sending' }));
+    try {
+      await teamAPI.cancelInvite(team.id, id);
+      await teamAPI.sendInvites(team.id, [{ type, value: value.trim() }]);
+      showToast(`Invite resent to ${value.trim()}`, 'success');
+      setEditingInvite(null);
+      refreshTeam();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to update invite', 'error');
+    } finally {
+      setResendingInvites((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     }
   };
 
@@ -1558,7 +1592,7 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
           )}
           {/* TEMP / PERM toggle — only shown when both exist for this game */}
           {permanentTeam && tempTeamForGame && (
-            <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '10px', alignItems: 'center' }}>
               <button
                 onClick={() => {
                   setTeamMode('perm');
@@ -1566,14 +1600,15 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                   setConversionConflict(null);
                 }}
                 style={{
-                  fontSize: '11px',
+                  fontSize: '13px',
                   fontWeight: 600,
-                  padding: '3px 12px',
-                  borderRadius: '99px',
-                  border: 'none',
+                  padding: '6px 18px',
+                  borderRadius: '8px',
+                  border: teamMode === 'perm' ? 'none' : '1px solid hsl(var(--border) / 0.5)',
                   cursor: 'pointer',
-                  background: teamMode === 'perm' ? 'hsl(var(--accent))' : 'hsl(var(--secondary))',
+                  background: teamMode === 'perm' ? 'hsl(var(--accent))' : 'transparent',
                   color: teamMode === 'perm' ? '#000' : 'hsl(var(--muted-foreground))',
+                  animation: teamMode === 'perm' ? 'tm-tab-pulse 2s ease-in-out infinite' : 'none',
                 }}
               >
                 Permanent
@@ -1585,18 +1620,51 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                   setConversionConflict(null);
                 }}
                 style={{
-                  fontSize: '11px',
+                  fontSize: '13px',
                   fontWeight: 600,
-                  padding: '3px 12px',
-                  borderRadius: '99px',
-                  border: 'none',
+                  padding: '6px 18px',
+                  borderRadius: '8px',
+                  border:
+                    teamMode === 'temp'
+                      ? '1px solid rgba(234,179,8,0.5)'
+                      : '1px solid hsl(var(--border) / 0.5)',
                   cursor: 'pointer',
-                  background: teamMode === 'temp' ? 'rgba(234,179,8,0.2)' : 'hsl(var(--secondary))',
+                  background: teamMode === 'temp' ? 'rgba(234,179,8,0.15)' : 'transparent',
                   color: teamMode === 'temp' ? 'rgb(234,179,8)' : 'hsl(var(--muted-foreground))',
+                  animation:
+                    teamMode === 'temp' ? 'tm-tab-pulse-yellow 2s ease-in-out infinite' : 'none',
                 }}
               >
                 Temporary
               </button>
+              {/* Info tooltip */}
+              <div
+                style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
+                className="tm-tab-info-wrap"
+              >
+                <Info
+                  size={18}
+                  style={{
+                    color: 'hsl(var(--accent))',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    opacity: 0.85,
+                  }}
+                />
+                <div className="tm-tab-tooltip">
+                  <p>
+                    <strong style={{ color: 'hsl(var(--accent))' }}>Permanent</strong> — Your main
+                    team for this game. Stays until you leave or it's deleted. Used for all future
+                    tournaments unless you join a new one.
+                  </p>
+                  <p style={{ marginTop: '8px' }}>
+                    <strong style={{ color: 'rgb(234,179,8)' }}>Temporary</strong> — A team you
+                    joined for a specific tournament. You have a limited window to keep it as
+                    permanent or discard it. If you discard, you leave this team. If you keep it, it
+                    will become your permanent team, replacing your existing one.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -2533,105 +2601,210 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                 const isRateLimited = resendState === 'rate_limited';
 
                 return (
-                  <div
-                    key={`invite-${inv.id}`}
-                    className="tm-member-card"
-                    style={{ opacity: 0.85 }}
-                  >
-                    <div
-                      className="tm-member-avatar"
-                      style={{ background: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8' }}
-                    >
-                      {initials}
-                    </div>
-                    <div className="tm-member-info" style={{ minWidth: 0, flex: 1 }}>
-                      <div className="tm-member-name-row">
-                        <p
-                          className="tm-member-name"
-                          style={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={idLabel}
-                        >
-                          {idLabel}
-                        </p>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 3,
-                            background: sty.bg,
-                            color: sty.fg,
-                            fontSize: 9,
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: 999,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                          }}
-                        >
-                          {sty.label}
-                        </span>
+                  <React.Fragment key={`invite-${inv.id}`}>
+                    <div className="tm-member-card" style={{ opacity: 0.85 }}>
+                      <div
+                        className="tm-member-avatar"
+                        style={{ background: 'rgba(148, 163, 184, 0.15)', color: '#94a3b8' }}
+                      >
+                        {initials}
                       </div>
-                      <p
-                        className="tm-member-role"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                      >
-                        {methodIcon} {methodLabel}
-                      </p>
-                    </div>
-
-                    {isCaptain && inv.status !== 'accepted' && (
-                      <button
-                        onClick={() => handleResendInvite(inv.id)}
-                        disabled={isSending || isSent || isRateLimited}
-                        title="Resend invite"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          padding: '5px 10px',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          borderRadius: 6,
-                          border: '1px solid rgba(167, 139, 250, 0.3)',
-                          background: isSent
-                            ? 'rgba(34, 197, 94, 0.15)'
-                            : isRateLimited
-                              ? 'rgba(239, 68, 68, 0.15)'
-                              : 'rgba(167, 139, 250, 0.1)',
-                          color: isSent
-                            ? '#4ade80'
-                            : isRateLimited
-                              ? '#f87171'
-                              : 'hsl(var(--accent))',
-                          cursor: isSending || isSent || isRateLimited ? 'default' : 'pointer',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {isSending ? (
-                          <>
-                            <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
-                            Sending
-                          </>
-                        ) : isSent ? (
-                          <>
-                            <Check size={11} /> Sent
-                          </>
-                        ) : isRateLimited ? (
-                          <>
-                            <Clock size={11} /> Wait
-                          </>
+                      <div className="tm-member-info" style={{ minWidth: 0, flex: 1 }}>
+                        {editingInvite?.id === inv.id ? (
+                          <input
+                            autoFocus
+                            type={inv.invite_type === 'email' ? 'email' : 'text'}
+                            value={editingInvite.value}
+                            onChange={(e) =>
+                              setEditingInvite((prev) => ({ ...prev, value: e.target.value }))
+                            }
+                            style={{
+                              width: '100%',
+                              padding: '5px 9px',
+                              fontSize: 12,
+                              borderRadius: 6,
+                              border: '1px solid rgba(167, 139, 250, 0.4)',
+                              background: 'hsl(var(--background))',
+                              color: 'hsl(var(--foreground))',
+                              outline: 'none',
+                            }}
+                          />
                         ) : (
                           <>
-                            <RefreshCw size={11} /> Resend
+                            <div className="tm-member-name-row">
+                              <p
+                                className="tm-member-name"
+                                style={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title={idLabel}
+                              >
+                                {idLabel}
+                              </p>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  background: sty.bg,
+                                  color: sty.fg,
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                  padding: '2px 6px',
+                                  borderRadius: 999,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.05em',
+                                }}
+                              >
+                                {sty.label}
+                              </span>
+                            </div>
+                            <p
+                              className="tm-member-role"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                              {methodIcon} {methodLabel}
+                            </p>
                           </>
                         )}
-                      </button>
-                    )}
-                  </div>
+                      </div>
+
+                      {isCaptain && inv.status !== 'accepted' && inv.invite_type !== 'link' && (
+                        <div style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}>
+                          {editingInvite?.id === inv.id ? (
+                            <>
+                              <button
+                                onClick={handleEditInviteSave}
+                                disabled={isSending || !editingInvite.value.trim()}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '5px 10px',
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  borderRadius: 6,
+                                  border: 'none',
+                                  background: 'hsl(var(--accent))',
+                                  color: '#fff',
+                                  cursor:
+                                    isSending || !editingInvite.value.trim()
+                                      ? 'default'
+                                      : 'pointer',
+                                  whiteSpace: 'nowrap',
+                                  opacity: !editingInvite.value.trim() ? 0.5 : 1,
+                                }}
+                              >
+                                {isSending ? (
+                                  <Loader2
+                                    size={11}
+                                    style={{ animation: 'spin 1s linear infinite' }}
+                                  />
+                                ) : (
+                                  <Send size={11} />
+                                )}
+                                Save & Resend
+                              </button>
+                              <button
+                                onClick={() => setEditingInvite(null)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '5px 7px',
+                                  fontSize: 11,
+                                  borderRadius: 6,
+                                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                                  background: 'transparent',
+                                  color: '#94a3b8',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleResendInvite(inv.id)}
+                                disabled={isSending || isSent || isRateLimited}
+                                title="Resend invite"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '5px 10px',
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  borderRadius: 6,
+                                  border: '1px solid rgba(167, 139, 250, 0.3)',
+                                  background: isSent
+                                    ? 'rgba(34, 197, 94, 0.15)'
+                                    : isRateLimited
+                                      ? 'rgba(239, 68, 68, 0.15)'
+                                      : 'rgba(167, 139, 250, 0.1)',
+                                  color: isSent
+                                    ? '#4ade80'
+                                    : isRateLimited
+                                      ? '#f87171'
+                                      : 'hsl(var(--accent))',
+                                  cursor:
+                                    isSending || isSent || isRateLimited ? 'default' : 'pointer',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {isSending ? (
+                                  <>
+                                    <Loader2
+                                      size={11}
+                                      style={{ animation: 'spin 1s linear infinite' }}
+                                    />
+                                    Sending
+                                  </>
+                                ) : isSent ? (
+                                  <>
+                                    <Check size={11} /> Sent
+                                  </>
+                                ) : isRateLimited ? (
+                                  <>
+                                    <Clock size={11} /> Wait
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw size={11} /> Resend
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setEditingInvite(
+                                    editingInvite?.id === inv.id
+                                      ? null
+                                      : { id: inv.id, type: inv.invite_type, value: inv.identifier }
+                                  )
+                                }
+                                title="Edit contact & resend"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '5px 7px',
+                                  fontSize: 11,
+                                  borderRadius: 6,
+                                  border: '1px solid rgba(148, 163, 184, 0.25)',
+                                  background: 'rgba(148, 163, 184, 0.08)',
+                                  color: '#94a3b8',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <Pencil size={11} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </React.Fragment>
                 );
               })}
             </div>

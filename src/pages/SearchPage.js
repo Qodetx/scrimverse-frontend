@@ -191,13 +191,13 @@ const SearchPage = () => {
                       <div className="min-w-0">
                         <span className="text-sm font-semibold truncate block">{displayName}</span>
                         <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
-                        {/* Team-only stats row: K/D, recent matches in last 30d, leaderboard rank.
+                        {/* Team-only stats row: Kills/Match, recent matches in last 30d, leaderboard rank.
                             Surfaces info already in the team payload so users can scan team
                             performance without clicking through. Falls back to "—" if missing. */}
                         {activeTab === 'teams' && result.overall_stats && (
                           <p className="text-[10px] text-muted-foreground/80 truncate mt-0.5 flex items-center gap-1.5">
                             <span title="Kills per match">
-                              K/D{' '}
+                              Kills/Match{' '}
                               <span className="text-foreground font-medium">
                                 {result.overall_stats.kd_ratio ?? '—'}
                               </span>

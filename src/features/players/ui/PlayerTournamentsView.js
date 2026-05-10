@@ -253,7 +253,7 @@ const PlayerTournamentsView = () => {
   // ── tab state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('tab') || 'registered';
+    return params.get('tab') || (guest ? 'all' : 'registered');
   });
 
   // Sync activeTab to URL query parameter

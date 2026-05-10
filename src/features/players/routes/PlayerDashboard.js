@@ -993,9 +993,27 @@ const PlayerDashboard = () => {
       if (action === 'accept') {
         fetchUserData();
         fetchDashboardData();
+        setActiveView('team');
       }
     } catch (error) {
-      const msg = error?.response?.data?.error || 'Failed to process invitation';
+      const serverMsg = error?.response?.data?.error || '';
+      let msg;
+      if (
+        serverMsg.toLowerCase().includes('not found') ||
+        serverMsg.toLowerCase().includes('already accepted')
+      ) {
+        msg =
+          action === 'accept'
+            ? 'This invitation was already accepted.'
+            : 'This invitation was already declined. Request the captain to send a new invitation.';
+      } else if (
+        serverMsg.toLowerCase().includes('declined') ||
+        serverMsg.toLowerCase().includes('rejected')
+      ) {
+        msg = 'This invitation was declined. Request the captain to send a new invitation.';
+      } else {
+        msg = serverMsg || 'Failed to process invitation';
+      }
       showToast(msg, 'error');
     }
   };
@@ -1097,35 +1115,36 @@ const PlayerDashboard = () => {
 
   // ── sidebar props ─────────────────────────────────────────────────────────
 
+  const handleGuestSignIn = () => {
+    try {
+      localStorage.setItem(
+        'post_verify_redirect',
+        window.location.pathname + window.location.search
+      );
+    } catch {
+      /* localStorage unavailable — degrade gracefully */
+    }
+    navigate('/player-auth');
+  };
+
   const sidebarProps = {
     activeView,
     setActiveView,
     user,
     onOpenOnboarding: () => setOnboardingOpen(true),
-    onOpenSettings: () => setShowEditProfileModal(true),
+    onOpenSettings: () => {
+      if (guest) {
+        handleGuestSignIn();
+        return;
+      }
+      setShowEditProfileModal(true);
+    },
     onToggleNotif: () => setNotifOpen((v) => !v),
     onOpenSearch: () => setSearchOpen(true),
     unreadCount,
     onLogout: handleLogout,
     guest,
-    // Sign-in path for guests browsing the dashboard. Stash the current
-    // view in localStorage so the auth flow can return them here after
-    // successful login (handled in PlayerAuth post-login redirect).
-    onSignIn: () => {
-      // Stash the current view (path + ?view=tab query) so the auth flow
-      // can return them to the same tab after a successful login. Uses the
-      // existing `post_verify_redirect` key that PlayerAuth + TournamentDetail
-      // already honor.
-      try {
-        localStorage.setItem(
-          'post_verify_redirect',
-          window.location.pathname + window.location.search
-        );
-      } catch {
-        /* localStorage unavailable — degrade gracefully */
-      }
-      navigate('/player-auth');
-    },
+    onSignIn: handleGuestSignIn,
   };
 
   // ── grid-bg pages ────────────────────────────────────────────────────────
@@ -1163,6 +1182,15 @@ const PlayerDashboard = () => {
           </Link>
         </div>
         <div className="flex items-center gap-1">
+          {guest && (
+            <button
+              onClick={sidebarProps.onSignIn}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-purple hover:bg-purple-light border border-purple transition-all"
+            >
+              <LogOut size={14} style={{ transform: 'scaleX(-1)' }} />
+              Sign In
+            </button>
+          )}
           <div className="relative">
             <button
               onClick={() => setNotifOpen((v) => !v)}
@@ -1590,6 +1618,19 @@ const PlayerDashboard = () => {
                             <p className="text-[10px] text-muted-foreground truncate">
                               {displaySubtitle}
                             </p>
+                            {searchTab === 'teams' && result.overall_stats && (
+                              <p
+                                className="text-[10px] mt-0.5"
+                                style={{ color: 'hsl(var(--accent) / 0.8)' }}
+                              >
+                                Kills/Match {result.overall_stats.kd_ratio ?? '—'}
+                                {' · '}
+                                {result.overall_stats.recent_matches ?? 0} recent
+                                {result.overall_stats.rank > 0 && (
+                                  <> · #{result.overall_stats.rank}</>
+                                )}
+                              </p>
+                            )}
                           </div>
                         </div>
 

@@ -1,6 +1,18 @@
 import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Trophy, Mail, Users, Clock, Check, ArrowLeft } from 'lucide-react';
+import {
+  CheckCircle2,
+  Trophy,
+  Mail,
+  Users,
+  Clock,
+  Check,
+  ArrowLeft,
+  ExternalLink,
+  Sparkles,
+} from 'lucide-react';
+import { communityAPI } from '../../../utils/api';
 import './RegistrationConfirmationModal.css';
 
 /**
@@ -26,9 +38,37 @@ const RegistrationConfirmationModal = ({
   leader,
   existingMembers = [],
   teamSize = 1,
+  joinedCount = 0,
+  captainName = '',
   onClose,
+  viewerRole = 'captain', // 'captain' | 'teammate'
 }) => {
+  const isTeammate = viewerRole === 'teammate';
   const navigate = useNavigate();
+
+  // Community links from admin settings
+  const [communitySettings, setCommunitySettings] = useState({
+    whatsapp_link: '',
+    instagram_link: '',
+  });
+  const [waJoined, setWaJoined] = useState(false);
+  const [igJoined, setIgJoined] = useState(false);
+
+  useEffect(() => {
+    communityAPI
+      .getSettings()
+      .then((res) => setCommunitySettings(res.data))
+      .catch(() => {});
+  }, []);
+
+  const handleCommunityJoin = (type, link) => {
+    window.open(link, '_blank', 'noopener,noreferrer');
+    communityAPI.recordJoin(type).catch(() => {});
+    if (type === 'whatsapp') setWaJoined(true);
+    else setIgJoined(true);
+  };
+
+  const showCommunity = communitySettings.whatsapp_link || communitySettings.instagram_link;
 
   const handleGoToDashboard = () => {
     if (onClose) onClose();
@@ -36,9 +76,11 @@ const RegistrationConfirmationModal = ({
   };
 
   const teammateCount = Math.max(0, teamSize - 1);
-  const totalMembers = isNewTeam
-    ? 1 + invitees.filter((v) => v && v.trim()).length
-    : 1 + existingMembers.length;
+  const totalMembers = isTeammate
+    ? Math.min(joinedCount || 2, teamSize)
+    : isNewTeam
+      ? 1 + invitees.filter((v) => v && v.trim()).length
+      : 1 + existingMembers.length;
 
   // Mask helpers for displaying invitees politely
   const formatInvitee = (val) => {
@@ -63,16 +105,74 @@ const RegistrationConfirmationModal = ({
           </div>
           <div className="rcm-header-text">
             <h1 className="rcm-title">
-              Registration <span className="rcm-title-accent">Confirmed!</span>
+              {isTeammate ? (
+                <>
+                  You&apos;re <span className="rcm-title-accent">In!</span>
+                </>
+              ) : (
+                <>
+                  Registration <span className="rcm-title-accent">Confirmed!</span>
+                </>
+              )}
             </h1>
             <p className="rcm-subtitle">
-              You&apos;ve registered for{' '}
-              <span className="rcm-tournament-name">
-                {tournament?.title || tournament?.name || 'Tournament'}
-              </span>
+              {isTeammate ? (
+                <>
+                  You&apos;ve joined team <span className="rcm-tournament-name">{teamName}</span>
+                  {tournament?.title ? (
+                    <>
+                      {' '}
+                      for <span className="rcm-tournament-name">{tournament.title}</span> tournament
+                    </>
+                  ) : (
+                    ''
+                  )}
+                </>
+              ) : (
+                <>
+                  You&apos;ve registered for{' '}
+                  <span className="rcm-tournament-name">
+                    {tournament?.title || tournament?.name || 'Tournament'}
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>
+
+        {/* Community card — matches Lovable reference design */}
+        {showCommunity && (
+          <div className="rcm-community-card">
+            <div className="rcm-community-header">
+              <Sparkles size={14} className="rcm-community-icon" />
+              <span className="rcm-community-label">COMMUNITY</span>
+            </div>
+            <p className="rcm-community-title">Not in the Loop with Scrimverse?</p>
+            <p className="rcm-community-sub">
+              Join for tournament alerts, updates, points table, announcements, and more.
+            </p>
+            <div className="rcm-community-btns">
+              {communitySettings.whatsapp_link && (
+                <button
+                  className={`rcm-community-btn whatsapp${waJoined ? ' joined' : ''}`}
+                  onClick={() => handleCommunityJoin('whatsapp', communitySettings.whatsapp_link)}
+                >
+                  {waJoined ? <Check size={15} /> : <ExternalLink size={15} />}
+                  {waJoined ? 'Joined WhatsApp' : 'WhatsApp Community'}
+                </button>
+              )}
+              {communitySettings.instagram_link && (
+                <button
+                  className={`rcm-community-btn instagram${igJoined ? ' joined' : ''}`}
+                  onClick={() => handleCommunityJoin('instagram', communitySettings.instagram_link)}
+                >
+                  {igJoined ? <Check size={15} /> : <ExternalLink size={15} />}
+                  {igJoined ? 'Joined Instagram' : 'Instagram Community'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Team card */}
         <div className="rcm-team-card">
@@ -84,19 +184,25 @@ const RegistrationConfirmationModal = ({
               <div>
                 <h2 className="rcm-team-name">{teamName}</h2>
                 <p className="rcm-team-status-label">
-                  {isNewTeam ? 'Team Created Successfully' : 'Team Registered Successfully'}
+                  {isTeammate
+                    ? 'Team Joined Successfully'
+                    : isNewTeam
+                      ? 'Team Created Successfully'
+                      : 'Team Registered Successfully'}
                 </p>
               </div>
             </div>
-            <div className={`rcm-status-badge ${isNewTeam ? 'pending' : 'confirmed'}`}>
-              {isNewTeam ? <Clock size={12} /> : <Check size={12} />}
-              <span>{isNewTeam ? 'Pending' : 'Confirmed'}</span>
+            <div
+              className={`rcm-status-badge ${!isTeammate && isNewTeam ? 'pending' : 'confirmed'}`}
+            >
+              {!isTeammate && isNewTeam ? <Clock size={12} /> : <Check size={12} />}
+              <span>{!isTeammate && isNewTeam ? 'Pending' : 'Confirmed'}</span>
             </div>
           </div>
 
           <div className="rcm-team-card-body">
-            {/* Invite warning banner — only for new team */}
-            {isNewTeam && teammateCount > 0 && (
+            {/* Invite warning banner — only for captain of new team */}
+            {!isTeammate && isNewTeam && teammateCount > 0 && (
               <div className="rcm-invite-banner">
                 <div className="rcm-invite-banner-icon">
                   <Mail size={18} />
@@ -132,9 +238,11 @@ const RegistrationConfirmationModal = ({
                 <div className="rcm-avatar rcm-avatar-leader">1</div>
                 <div className="rcm-row-info">
                   <span className="rcm-row-name">
-                    {leader?.displayName || leader?.username || 'You'}
+                    {isTeammate
+                      ? captainName || 'Captain'
+                      : leader?.displayName || leader?.username || 'You'}
                   </span>
-                  <p className="rcm-row-sub">You</p>
+                  <p className="rcm-row-sub">{isTeammate ? 'Team Captain' : 'You'}</p>
                 </div>
                 <div className="rcm-leader-badge">
                   <Check size={12} />
@@ -147,51 +255,77 @@ const RegistrationConfirmationModal = ({
             {teammateCount > 0 && (
               <div className="rcm-section">
                 <p className="rcm-section-label">
-                  {isNewTeam
-                    ? `Teammates (${invitees.filter((v) => v?.trim()).length}/${teammateCount})`
-                    : `Members (${existingMembers.length})`}
+                  {isTeammate
+                    ? `Teammates (${totalMembers}/${teamSize})`
+                    : isNewTeam
+                      ? `Teammates (${invitees.filter((v) => v?.trim()).length}/${teammateCount})`
+                      : `Members (${existingMembers.length})`}
                 </p>
                 <div className="rcm-members-list">
-                  {isNewTeam
-                    ? Array.from({ length: teammateCount }).map((_, idx) => {
-                        const value = invitees[idx]?.trim();
-                        if (!value) {
-                          return (
-                            <div key={idx} className="rcm-member-row empty">
-                              <div className="rcm-avatar rcm-avatar-empty">{idx + 2}</div>
-                              <span className="rcm-member-empty-text">Waiting for teammate...</span>
-                            </div>
-                          );
-                        }
-                        return (
-                          <div key={idx} className="rcm-member-row">
-                            <div className="rcm-avatar rcm-avatar-pending">{idx + 2}</div>
-                            <div className="rcm-row-info">
-                              <span className="rcm-row-name">{formatInvitee(value)}</span>
-                              <p className="rcm-row-sub">
-                                Invited via {inviteMode === 'phone' ? 'SMS' : inviteMode}
-                              </p>
-                            </div>
-                            <div className="rcm-status-badge pending small">
-                              <Clock size={10} />
-                              <span>Pending</span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    : existingMembers.map((m, idx) => (
-                        <div key={idx} className="rcm-member-row">
-                          <div className="rcm-avatar rcm-avatar-confirmed">{idx + 2}</div>
-                          <div className="rcm-row-info">
-                            <span className="rcm-row-name">{m.displayName || m.username}</span>
-                            <p className="rcm-row-sub">Team Member</p>
-                          </div>
-                          <div className="rcm-status-badge confirmed small">
-                            <Check size={10} />
-                            <span>Joined</span>
-                          </div>
+                  {isTeammate ? (
+                    <>
+                      {/* You — the current user who just accepted */}
+                      <div className="rcm-member-row">
+                        <div className="rcm-avatar rcm-avatar-confirmed">2</div>
+                        <div className="rcm-row-info">
+                          <span className="rcm-row-name">You</span>
+                          <p className="rcm-row-sub">Joined</p>
+                        </div>
+                        <div className="rcm-status-badge confirmed small">
+                          <Check size={10} />
+                          <span>Joined</span>
+                        </div>
+                      </div>
+                      {/* Remaining pending slots */}
+                      {Array.from({ length: Math.max(0, teamSize - 2) }).map((_, idx) => (
+                        <div key={idx} className="rcm-member-row empty">
+                          <div className="rcm-avatar rcm-avatar-empty">{idx + 3}</div>
+                          <span className="rcm-member-empty-text">Waiting for teammate...</span>
                         </div>
                       ))}
+                    </>
+                  ) : isNewTeam ? (
+                    Array.from({ length: teammateCount }).map((_, idx) => {
+                      const value = invitees[idx]?.trim();
+                      if (!value) {
+                        return (
+                          <div key={idx} className="rcm-member-row empty">
+                            <div className="rcm-avatar rcm-avatar-empty">{idx + 2}</div>
+                            <span className="rcm-member-empty-text">Waiting for teammate...</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={idx} className="rcm-member-row">
+                          <div className="rcm-avatar rcm-avatar-pending">{idx + 2}</div>
+                          <div className="rcm-row-info">
+                            <span className="rcm-row-name">{formatInvitee(value)}</span>
+                            <p className="rcm-row-sub">
+                              Invited via {inviteMode === 'phone' ? 'SMS' : inviteMode}
+                            </p>
+                          </div>
+                          <div className="rcm-status-badge pending small">
+                            <Clock size={10} />
+                            <span>Pending</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    existingMembers.map((m, idx) => (
+                      <div key={idx} className="rcm-member-row">
+                        <div className="rcm-avatar rcm-avatar-confirmed">{idx + 2}</div>
+                        <div className="rcm-row-info">
+                          <span className="rcm-row-name">{m.displayName || m.username}</span>
+                          <p className="rcm-row-sub">Team Member</p>
+                        </div>
+                        <div className="rcm-status-badge confirmed small">
+                          <Check size={10} />
+                          <span>Joined</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}

@@ -15,7 +15,7 @@ import {
   Video,
   ExternalLink,
 } from 'lucide-react';
-import { tournamentAPI } from '../../../utils/api';
+import { tournamentAPI, communityAPI } from '../../../utils/api';
 import './PlayerSlotListView.css';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -116,6 +116,14 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const downloadMenuRef = useRef(null);
 
+  // Community banner state
+  const [communitySettings, setCommunitySettings] = useState({
+    whatsapp_link: '',
+    instagram_link: '',
+  });
+  const [waJoined, setWaJoined] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
   const dropdownRef = useRef(null);
   const slotCardRef = useRef(null);
 
@@ -133,6 +141,37 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // ── fetch community settings + WhatsApp join status ──────────────────────
+  useEffect(() => {
+    const DISMISS_KEY = 'community_banner_dismissed_until';
+    const dismissedUntil = localStorage.getItem(DISMISS_KEY);
+    if (dismissedUntil && Date.now() < Number(dismissedUntil)) {
+      setBannerDismissed(true);
+    }
+    Promise.all([
+      communityAPI.getSettings().catch(() => ({ data: { whatsapp_link: '', instagram_link: '' } })),
+      communityAPI.getStatus().catch(() => ({ data: { whatsapp_joined: false } })),
+    ]).then(([settingsRes, statusRes]) => {
+      setCommunitySettings(settingsRes.data);
+      setWaJoined(statusRes.data.whatsapp_joined);
+    });
+  }, []);
+
+  const handleWaBannerJoin = () => {
+    if (!communitySettings.whatsapp_link) return;
+    window.open(communitySettings.whatsapp_link, '_blank', 'noopener,noreferrer');
+    communityAPI.recordJoin('whatsapp').catch(() => {});
+    setWaJoined(true);
+  };
+
+  const handleBannerDismiss = () => {
+    const dismissUntil = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    localStorage.setItem('community_banner_dismissed_until', String(dismissUntil));
+    setBannerDismissed(true);
+  };
+
+  const showCommunityBanner = communitySettings.whatsapp_link && !waJoined && !bannerDismissed;
 
   // ── fetch registrations on mount ─────────────────────────────────────────
 
@@ -252,44 +291,155 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
     fetchGroups();
   }, [registrations, selectedIdx]);
 
-  // ── download slot list as PNG (no gold highlight) ─────────────────────────
+  // ── download slot list as PNG (canvas-based, matches standings image style) ──
 
   const handleDownload = async () => {
-    if (!slotCardRef.current || downloading || slots.length === 0) return;
+    if (downloading || slots.length === 0) return;
     setDownloading(true);
     try {
-      // Strip gold classes temporarily
-      const mineRows = slotCardRef.current.querySelectorAll('.slot-row-mine');
-      const mineNames = slotCardRef.current.querySelectorAll('.slot-team-name-mine');
-      const mineBadges = slotCardRef.current.querySelectorAll('.slot-your-team-badge');
-      mineRows.forEach((el) => el.classList.remove('slot-row-mine'));
-      mineNames.forEach((el) => el.classList.remove('slot-team-name-mine'));
-      mineBadges.forEach((el) => (el.style.display = 'none'));
-
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(slotCardRef.current, {
-        backgroundColor: null,
-        scale: window.devicePixelRatio || 1,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
+      // Preload fonts
+      await new Promise((res) => {
+        const fontLink = document.createElement('link');
+        fontLink.href =
+          'https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&family=Inter:wght@400;600;700&display=swap';
+        fontLink.rel = 'stylesheet';
+        document.head.appendChild(fontLink);
+        setTimeout(res, 400);
       });
 
-      // Restore
-      mineRows.forEach((el) => el.classList.add('slot-row-mine'));
-      mineNames.forEach((el) => el.classList.add('slot-team-name-mine'));
-      mineBadges.forEach((el) => (el.style.display = ''));
+      // Try to load background image — S3 first, then local fallback, then null (pure dark)
+      const tryImg = (url) =>
+        new Promise((res) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => res(img);
+          img.onerror = () => res(null);
+          img.src = url;
+        });
+      const bgImage =
+        (await tryImg(
+          'https://scrimverse-public.s3.ap-south-1.amazonaws.com/media/uploaded_media_1769422838293.jpg'
+        )) || (await tryImg('/standings-bg.jpeg'));
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      const width = 1080;
+      const headerHeight = 300;
+      const rowHeight = 70;
+      const footerHeight = 100;
+      const sidePadding = 60;
+      const totalHeight = headerHeight + slots.length * rowHeight + footerHeight + 20;
+
+      canvas.width = width;
+      canvas.height = totalHeight;
+
+      // 1. Background
+      ctx.fillStyle = '#050508';
+      ctx.fillRect(0, 0, width, totalHeight);
+      if (bgImage) {
+        const scale = Math.max(width / bgImage.width, totalHeight / bgImage.height);
+        const imgW = bgImage.width * scale;
+        const imgH = bgImage.height * scale;
+        ctx.drawImage(bgImage, (width - imgW) / 2, (totalHeight - imgH) / 2, imgW, imgH);
+      }
+      const overlay = ctx.createLinearGradient(0, 0, 0, totalHeight);
+      overlay.addColorStop(0, 'rgba(0,0,0,0.80)');
+      overlay.addColorStop(0.4, 'rgba(0,0,0,0.55)');
+      overlay.addColorStop(0.8, 'rgba(0,0,0,0.65)');
+      overlay.addColorStop(1, 'rgba(0,0,0,0.90)');
+      ctx.fillStyle = overlay;
+      ctx.fillRect(0, 0, width, totalHeight);
+
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+
+      // 2. SCRIMVERSE branding
+      ctx.font = '900 72px "Outfit", sans-serif';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('SCRIMVERSE', width / 2, 90);
+      ctx.shadowBlur = 0;
+
+      // 3. SLOT LIST title
+      ctx.font = '900 54px "Outfit", sans-serif';
+      ctx.letterSpacing = '4px';
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('SLOT LIST', width / 2, 175);
+      ctx.shadowBlur = 0;
+      ctx.letterSpacing = '0px';
+
+      // 4. Tournament + round subtitle
+      const subtitle = `${(tournamentName || 'Tournament').toUpperCase()} — ROUND ${roundNumber}`;
+      ctx.font = '600 18px "Inter", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.letterSpacing = '2px';
+      ctx.fillText(subtitle, width / 2, 232);
+      ctx.letterSpacing = '0px';
+
+      // Divider
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(width / 2 - 50, 258);
+      ctx.lineTo(width / 2 + 50, 258);
+      ctx.stroke();
+
+      // 5. Slot rows
+      slots.forEach(({ slotNumber, teamName: tName }, i) => {
+        const ry = headerHeight + i * rowHeight;
+        const isMine = myTeamName && tName.trim().toLowerCase() === myTeamName.trim().toLowerCase();
+        const rowMidY = ry + rowHeight / 2;
+
+        ctx.fillStyle = isMine ? 'rgba(245,158,11,0.15)' : 'rgba(0,0,0,0.45)';
+        ctx.beginPath();
+        ctx.roundRect(sidePadding, ry + 6, width - sidePadding * 2, rowHeight - 12, 8);
+        ctx.fill();
+
+        ctx.strokeStyle = isMine ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(sidePadding, ry + 6, width - sidePadding * 2, rowHeight - 12, 8);
+        ctx.stroke();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '700 18px "Inter", sans-serif';
+        ctx.fillText(String(slotNumber).padStart(2, '0'), sidePadding + 24, rowMidY);
+
+        ctx.fillStyle = isMine ? '#FCD34D' : '#FFFFFF';
+        ctx.font = '700 22px "Inter", sans-serif';
+        const displayName = tName.length > 38 ? tName.substring(0, 36) + '...' : tName;
+        ctx.fillText(displayName, sidePadding + 80, rowMidY);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#4ADE80';
+        ctx.font = '700 13px "Inter", sans-serif';
+        ctx.letterSpacing = '1px';
+        ctx.fillText('CONFIRMED', width - sidePadding - 24, rowMidY);
+        ctx.letterSpacing = '0px';
+      });
+
+      // 6. Footer
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '600 18px "Outfit", sans-serif';
+      ctx.letterSpacing = '6px';
+      ctx.globalAlpha = 0.35;
+      ctx.fillText('SCRIMVERSE.COM', width / 2, totalHeight - 45);
+      ctx.globalAlpha = 1.0;
+      ctx.letterSpacing = '0px';
 
       const fileName = `slot-list-${(tournamentName || 'tournament').replace(/\s+/g, '-').replace(/[^a-z0-9_.-]/gi, '_')}.png`;
-      const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
-      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.download = fileName;
-      link.href = url;
+      link.href = canvas.toDataURL('image/png', 1.0);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error('Slot list download error:', err);
     } finally {
@@ -366,6 +516,31 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
 
   return (
     <div className="space-y-4">
+      {/* ── WhatsApp Community Banner ───────────────────────────────────────── */}
+      {showCommunityBanner && (
+        <div className="sl-community-banner">
+          <div className="sl-community-banner-left">
+            <div className="sl-community-banner-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+            </div>
+            <div>
+              <p className="sl-community-banner-title">Get match updates &amp; announcements</p>
+              <p className="sl-community-banner-sub">Join the Scrimverse WhatsApp community</p>
+            </div>
+          </div>
+          <div className="sl-community-banner-actions">
+            <button className="sl-community-join-btn" onClick={handleWaBannerJoin}>
+              Join WhatsApp
+            </button>
+            <button className="sl-community-later-btn" onClick={handleBannerDismiss}>
+              Later
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Top header row ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 text-foreground">
@@ -373,92 +548,93 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
           Slot List
         </h2>
 
-        {/* Tournament dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setShowDropdown((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{
-              background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border) / 0.5)',
-              color: 'hsl(var(--foreground))',
-              maxWidth: '16rem',
-            }}
-          >
-            <Gamepad2 size={13} style={{ flexShrink: 0 }} />
-            <span
+        {/* Right side controls */}
+        <div className="flex items-center gap-2">
+          {selectedReg?.tournament?.live_link && (
+            <a
+              href={selectedReg.tournament.live_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sl-live-btn"
+            >
+              <Video size={13} />
+              Watch Live
+              <ExternalLink size={11} style={{ opacity: 0.7 }} />
+            </a>
+          )}
+
+          {/* Tournament dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowDropdown((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
               style={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                maxWidth: '11rem',
+                background: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border) / 0.5)',
+                color: 'hsl(var(--foreground))',
+                maxWidth: '16rem',
               }}
             >
-              {tournamentName || 'Select Tournament'}
-            </span>
-            <ChevronDown
-              size={12}
-              style={{
-                flexShrink: 0,
-                transform: showDropdown ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.15s ease',
-              }}
-            />
-          </button>
+              <Gamepad2 size={13} style={{ flexShrink: 0 }} />
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '11rem',
+                }}
+              >
+                {tournamentName || 'Select Tournament'}
+              </span>
+              <ChevronDown
+                size={12}
+                style={{
+                  flexShrink: 0,
+                  transform: showDropdown ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.15s ease',
+                }}
+              />
+            </button>
 
-          {showDropdown && (
-            <div className="slot-filter-dropdown">
-              {registrations.map((reg, i) => {
-                const name =
-                  reg.tournament?.title ||
-                  reg.tournament?.name ||
-                  reg.tournament_name ||
-                  `Registration ${i + 1}`;
-                const game = reg.tournament?.game_name || reg.tournament?.game || '';
-                return (
-                  <button
-                    key={reg.id || i}
-                    className={`slot-filter-option${i === selectedIdx ? ' selected' : ''}`}
-                    onClick={() => {
-                      setSelectedIdx(i);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    {i === selectedIdx && <Check size={12} style={{ flexShrink: 0 }} />}
-                    <span
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        flex: 1,
+            {showDropdown && (
+              <div className="slot-filter-dropdown">
+                {registrations.map((reg, i) => {
+                  const name =
+                    reg.tournament?.title ||
+                    reg.tournament?.name ||
+                    reg.tournament_name ||
+                    `Registration ${i + 1}`;
+                  const game = reg.tournament?.game_name || reg.tournament?.game || '';
+                  return (
+                    <button
+                      key={reg.id || i}
+                      className={`slot-filter-option${i === selectedIdx ? ' selected' : ''}`}
+                      onClick={() => {
+                        setSelectedIdx(i);
+                        setShowDropdown(false);
                       }}
                     >
-                      {name}
-                      {game ? ` · ${game}` : ''}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                      {i === selectedIdx && <Check size={12} style={{ flexShrink: 0 }} />}
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1,
+                          minWidth: 0,
+                        }}
+                      >
+                        {name}
+                        {game ? ` · ${game}` : ''}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* ── Watch Live banner ─────────────────────────────────────────────── */}
-      {selectedReg?.tournament?.live_link && (
-        <a
-          href={selectedReg.tournament.live_link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="slot-live-banner"
-        >
-          <div className="slot-live-indicator">
-            <Video size={16} />
-            <span className="slot-live-dot" />
-          </div>
-          <span className="slot-live-text">Watch Live</span>
-          <ExternalLink size={13} style={{ opacity: 0.7, marginLeft: 'auto' }} />
-        </a>
-      )}
 
       {/* ── Capture area: header + rows ──────────────────────────────────────── */}
       <div ref={slotCardRef}>
