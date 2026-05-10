@@ -227,7 +227,7 @@ const PublicNavbar = () => {
             {/* Login — desktop only */}
             <Link
               to={enterArenaPath}
-              className="hidden md:inline-flex px-5 py-2 text-sm font-bold rounded-full bg-transparent hover:bg-white/5 text-foreground border border-foreground/20 hover:border-foreground/40 transition-all items-center"
+              className="hidden md:inline-flex px-5 py-2 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all items-center"
             >
               Login
             </Link>
