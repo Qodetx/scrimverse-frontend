@@ -589,6 +589,8 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
 
   // Per-invite resend state: { [inviteId]: 'sending' | 'sent' | 'rate_limited' }
   const [resendingInvites, setResendingInvites] = useState({});
+  // Per-invite cooldown countdown: { [inviteId]: remainingSeconds }
+  const [resendCooldowns, setResendCooldowns] = useState({});
   // { id, type, value } while editing a pending invite contact; null otherwise
   const [editingInvite, setEditingInvite] = useState(null);
 
@@ -1024,13 +1026,25 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
       if (err.response?.status === 429) {
         showToast(data?.message || 'Too many resends. Please wait before sending again.', 'error');
         setResendingInvites((prev) => ({ ...prev, [inviteId]: 'rate_limited' }));
-        setTimeout(() => {
-          setResendingInvites((prev) => {
-            const next = { ...prev };
-            delete next[inviteId];
-            return next;
+        const retryAfter = data?.retry_after_seconds || 300;
+        setResendCooldowns((prev) => ({ ...prev, [inviteId]: retryAfter }));
+        const interval = setInterval(() => {
+          setResendCooldowns((prev) => {
+            const remaining = (prev[inviteId] || 1) - 1;
+            if (remaining <= 0) {
+              clearInterval(interval);
+              setResendingInvites((p) => {
+                const n = { ...p };
+                delete n[inviteId];
+                return n;
+              });
+              const next = { ...prev };
+              delete next[inviteId];
+              return next;
+            }
+            return { ...prev, [inviteId]: remaining };
           });
-        }, 4000);
+        }, 1000);
       } else {
         showToast(data?.error || 'Failed to resend invite', 'error');
         setResendingInvites((prev) => {
@@ -2599,6 +2613,7 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                 const isSending = resendState === 'sending';
                 const isSent = resendState === 'sent';
                 const isRateLimited = resendState === 'rate_limited';
+                const cooldownSecs = resendCooldowns[inv.id] || 0;
 
                 return (
                   <React.Fragment key={`invite-${inv.id}`}>
@@ -2768,7 +2783,10 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                                   </>
                                 ) : isRateLimited ? (
                                   <>
-                                    <Clock size={11} /> Wait
+                                    <Clock size={11} />
+                                    {cooldownSecs > 0
+                                      ? `${Math.floor(cooldownSecs / 60)}m ${cooldownSecs % 60}s`
+                                      : 'Wait'}
                                   </>
                                 ) : (
                                   <>

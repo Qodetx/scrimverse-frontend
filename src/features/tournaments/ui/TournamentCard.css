@@ -25,15 +25,9 @@
 .tc-poster-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   background: hsl(var(--secondary) / 0.2);
-}
-
-@media (min-width: 640px) {
-  .tc-poster-wrap {
-    aspect-ratio: 16 / 9;
-  }
 }
 
 @media (min-width: 1024px) {

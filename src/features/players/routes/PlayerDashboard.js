@@ -820,6 +820,8 @@ const PlayerDashboard = () => {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   // Registration confirmed modal shown after accepting an invite via the notification bell
   const [acceptedInviteData, setAcceptedInviteData] = useState(null);
+  // Flow B: registration_confirmed notification for existing team members on next login
+  const [regConfirmNotif, setRegConfirmNotif] = useState(null);
 
   // notifications state
   const [notifications, setNotifications] = useState([]);
@@ -904,6 +906,16 @@ const PlayerDashboard = () => {
     fetchDashboardData();
     fetchInvitations();
     fetchNotifications();
+    // Flow B: check for unread registration_confirmed notifications (existing team members)
+    if (!guest) {
+      notificationAPI
+        .getNotifications({ type: 'registration_confirmed', unread: true, limit: 1 })
+        .then((res) => {
+          const list = res.data?.notifications || [];
+          if (list.length > 0) setRegConfirmNotif(list[0]);
+        })
+        .catch(() => {});
+    }
     // Poll every 60 seconds
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
@@ -1483,6 +1495,30 @@ const PlayerDashboard = () => {
           onClose={() => {
             setAcceptedInviteData(null);
             setActiveView('team');
+          }}
+        />
+      )}
+
+      {regConfirmNotif && (
+        <RegistrationConfirmationModal
+          viewerRole="teammate"
+          teamName={regConfirmNotif.message?.match(/"([^"]+)" is registered/)?.[1] || 'Your Team'}
+          tournament={{
+            title:
+              regConfirmNotif.related_type === 'registration'
+                ? regConfirmNotif.message?.match(/for "([^"]+)"/)?.[1] || ''
+                : '',
+          }}
+          isNewTeam={false}
+          teamSize={1}
+          joinedCount={1}
+          captainName=""
+          existingMembers={[]}
+          onClose={async () => {
+            try {
+              await notificationAPI.markRead(regConfirmNotif.id);
+            } catch (_) {}
+            setRegConfirmNotif(null);
           }}
         />
       )}

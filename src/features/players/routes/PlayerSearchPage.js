@@ -103,6 +103,19 @@ const PlayerSearchPage = () => {
                             </h3>
                             <p className="text-gray-400">Player Profile</p>
                             <p className="text-gray-500 text-sm">{player.email}</p>
+                            {player.player_profile && (
+                              <p className="text-gray-500 text-xs mt-0.5 flex items-center gap-2">
+                                {(player.player_profile.kills_per_match || 0) > 0 && (
+                                  <span>K/M: {player.player_profile.kills_per_match}</span>
+                                )}
+                                {player.player_profile.team_ranks?.[0] && (
+                                  <span>
+                                    Rank #{player.player_profile.team_ranks[0].rank} (
+                                    {player.player_profile.team_ranks[0].game})
+                                  </span>
+                                )}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="text-accent-blue text-2xl group-hover:translate-x-2 transition-transform">

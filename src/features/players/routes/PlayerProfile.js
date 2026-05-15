@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, Target, Flame, Users, Calendar, Circle, Gamepad2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Trophy,
+  Target,
+  Flame,
+  Users,
+  Calendar,
+  Circle,
+  Gamepad2,
+  TrendingUp,
+} from 'lucide-react';
 import { authAPI, tournamentAPI, teamAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
 import EditPlayerProfileModal from '../ui/EditPlayerProfileModal';
@@ -277,6 +287,12 @@ const PlayerProfile = () => {
                   </div>
                   <div className="text-[10px] text-muted-foreground">Win Rate</div>
                 </div>
+                <div className="text-center p-3 bg-secondary/20 rounded-lg">
+                  <div className="text-xl font-bold text-cyan-400">
+                    {player.player_profile?.kills_per_match || 0}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">Kills/Match</div>
+                </div>
               </div>
               {/* Game ID */}
               <div className="mt-3 p-3 bg-secondary/20 rounded-lg">
@@ -289,6 +305,32 @@ const PlayerProfile = () => {
                 <p className="text-sm font-bold">{player.player_profile?.in_game_name || 'N/A'}</p>
               </div>
             </div>
+
+            {/* Team Rankings */}
+            {player.player_profile?.team_ranks?.length > 0 && (
+              <div className="cyber-card rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
+                  <TrendingUp className="h-4 w-4 text-purple" />
+                  <h2 className="text-sm font-bold">Team Rankings</h2>
+                </div>
+                <div className="space-y-1.5">
+                  {player.player_profile.team_ranks.map((tr) => (
+                    <div
+                      key={`${tr.team_id}-${tr.game}`}
+                      className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-secondary/10"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{tr.team_name}</p>
+                        <p className="text-[10px] text-muted-foreground">{tr.game}</p>
+                      </div>
+                      <span className="text-sm font-bold text-purple ml-2 shrink-0">
+                        #{tr.rank}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Team & Teammates */}
             <div className="cyber-card rounded-xl p-4">

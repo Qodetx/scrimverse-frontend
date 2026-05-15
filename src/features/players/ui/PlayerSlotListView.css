@@ -121,6 +121,66 @@
   }
 }
 
+/* ── Permanent Join Community button + dropdown ──────────────────────────── */
+
+.sl-community-permanent-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  background: hsl(var(--purple) / 0.15);
+  border: 1px solid hsl(var(--purple) / 0.4);
+  color: hsl(var(--purple));
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.sl-community-permanent-btn:hover {
+  background: hsl(var(--purple) / 0.25);
+  border-color: hsl(var(--purple) / 0.7);
+}
+
+.sl-community-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  min-width: 140px;
+  overflow: hidden;
+}
+
+.sl-community-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sl-community-dropdown-item:hover {
+  background: hsl(var(--secondary) / 0.5);
+}
+
+.sl-community-dropdown-ig {
+  border-top: 1px solid hsl(var(--border) / 0.3);
+}
+
 /* ── Watch Live button ───────────────────────────────────────────────────── */
 
 .sl-live-btn {

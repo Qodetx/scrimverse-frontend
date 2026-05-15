@@ -730,3 +730,47 @@
     transform: rotate(360deg);
   }
 }
+
+/* ── Mobile compactness overrides (< 640px) ──────────────────────────────── */
+@media (max-width: 639px) {
+  .tv-grid {
+    gap: 10px;
+  }
+
+  /* Shrink poster from tall 4:5 to standard 16:9 on phones */
+  .tv-browse-card-img {
+    aspect-ratio: 16 / 9;
+  }
+
+  .tv-reg-card-img {
+    aspect-ratio: 16 / 9;
+  }
+
+  .tv-browse-card-body {
+    padding: 10px 12px 12px;
+    gap: 6px;
+  }
+
+  .tv-browse-card-title {
+    font-size: 13px;
+  }
+
+  .tv-browse-card-prize {
+    font-size: 12px;
+  }
+
+  .tv-browse-card-register,
+  .tv-browse-card-registered {
+    padding: 6px 14px;
+    font-size: 11px;
+  }
+
+  .tv-reg-card-body {
+    padding: 10px 12px 12px;
+    gap: 5px;
+  }
+
+  .tv-reg-card-title {
+    font-size: 13px;
+  }
+}

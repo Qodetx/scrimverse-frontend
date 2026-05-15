@@ -733,63 +733,6 @@ const PlayerAnalyticsViewAuthenticated = () => {
                       </>
                     )}
 
-                  {/* My Contribution — scoped to player's registrations */}
-                  <p className="an-section-label">My Contribution</p>
-                  <div className="an-stats-grid">
-                    {[
-                      {
-                        icon: Trophy,
-                        label: 'Wins',
-                        value: selectedTeam.my_contribution.wins || 0,
-                        sub: `of ${selectedTeam.my_contribution.tournaments_played} tournaments`,
-                        subColor: 'an-sub-muted',
-                        iconColor: 'an-icon-yellow',
-                        bgColor: 'an-bg-yellow',
-                      },
-                      {
-                        icon: Target,
-                        label: 'Win Rate',
-                        value:
-                          selectedTeam.my_contribution.tournaments_played > 0
-                            ? `${selectedTeam.my_contribution.win_rate}%`
-                            : 'N/A',
-                        sub: `${selectedTeam.my_contribution.tournaments_played} tournaments played`,
-                        subColor: 'an-sub-green',
-                        iconColor: 'an-icon-blue',
-                        bgColor: 'an-bg-blue',
-                      },
-                      {
-                        icon: Medal,
-                        label: 'Matches Played',
-                        value: selectedTeam.my_contribution.matches_played || 0,
-                        sub: 'matches I participated in',
-                        subColor: 'an-sub-muted',
-                        iconColor: 'an-icon-purple',
-                        bgColor: 'an-bg-purple',
-                      },
-                      {
-                        icon: Crown,
-                        label: 'Points Earned',
-                        value: selectedTeam.my_contribution.total_points_earned || 0,
-                        sub: 'total points from my matches',
-                        subColor: 'an-sub-muted',
-                        iconColor: 'an-icon-purple-light',
-                        bgColor: 'an-bg-purple',
-                      },
-                    ].map((s, i) => (
-                      <div key={i} className="an-stat-card">
-                        <div className="an-stat-card-top">
-                          <div className={`an-stat-icon-wrap ${s.bgColor}`}>
-                            <s.icon size={16} className={s.iconColor} />
-                          </div>
-                          <span className={`an-stat-sub ${s.subColor}`}>{s.sub}</span>
-                        </div>
-                        <div className="an-stat-value">{s.value}</div>
-                        <div className="an-stat-label">{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-
                   {/* Performance Trend chart */}
                   <div className="an-chart-card">
                     <div className="an-chart-header">

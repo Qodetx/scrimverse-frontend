@@ -518,7 +518,8 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
   const fetchSponsors = useCallback(async () => {
     try {
       const res = await sponsorAPI.list(id);
-      setSponsors(res.data);
+      const data = res.data;
+      setSponsors(Array.isArray(data) ? data : (data?.results ?? []));
     } catch {
       // non-critical, silently ignore
     }

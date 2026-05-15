@@ -125,6 +125,8 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
   const [waJoined, setWaJoined] = useState(false);
   const [igJoined, setIgJoined] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
+  const communityDropdownRef = useRef(null);
 
   const dropdownRef = useRef(null);
   const slotCardRef = useRef(null);
@@ -138,6 +140,9 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
       }
       if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target)) {
         setDownloadMenuOpen(false);
+      }
+      if (communityDropdownRef.current && !communityDropdownRef.current.contains(e.target)) {
+        setCommunityDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -586,6 +591,55 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
               Watch Live
               <ExternalLink size={11} style={{ opacity: 0.7 }} />
             </a>
+          )}
+
+          {/* Permanent Join Community button */}
+          {(communitySettings.whatsapp_link || communitySettings.instagram_link) && (
+            <div className="relative" ref={communityDropdownRef}>
+              <button
+                onClick={() => setCommunityDropdownOpen((v) => !v)}
+                className="sl-community-permanent-btn"
+              >
+                <Sparkles size={13} />
+                Join Community
+              </button>
+              {communityDropdownOpen && (
+                <div className="sl-community-dropdown">
+                  {communitySettings.whatsapp_link && (
+                    <button
+                      className="sl-community-dropdown-item"
+                      onClick={() => {
+                        window.open(
+                          communitySettings.whatsapp_link,
+                          '_blank',
+                          'noopener,noreferrer'
+                        );
+                        communityAPI.recordJoin('whatsapp').catch(() => {});
+                        setCommunityDropdownOpen(false);
+                      }}
+                    >
+                      WhatsApp
+                    </button>
+                  )}
+                  {communitySettings.instagram_link && (
+                    <button
+                      className="sl-community-dropdown-item sl-community-dropdown-ig"
+                      onClick={() => {
+                        window.open(
+                          communitySettings.instagram_link,
+                          '_blank',
+                          'noopener,noreferrer'
+                        );
+                        communityAPI.recordJoin('instagram').catch(() => {});
+                        setCommunityDropdownOpen(false);
+                      }}
+                    >
+                      Instagram
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Tournament dropdown */}
