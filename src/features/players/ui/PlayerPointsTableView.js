@@ -14,8 +14,9 @@ import {
   Download,
   Video,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
-import { tournamentAPI } from '../../../utils/api';
+import { tournamentAPI, communityAPI } from '../../../utils/api';
 import { useToast } from '../../../hooks/useToast';
 import { generateStandingsImage } from '../../tournaments/ui/standingsImageGenerator';
 import './PlayerPointsTableView.css';
@@ -131,6 +132,17 @@ const PlayerPointsTableViewAuthenticated = () => {
   const [downloading, setDownloading] = useState(false);
   const [viewMode, setViewMode] = useState('match'); // 'match' | 'results'
 
+  // Community state (mirrors PlayerSlotListView)
+  const [communitySettings, setCommunitySettings] = useState({
+    whatsapp_link: '',
+    instagram_link: '',
+  });
+  const [waJoined, setWaJoined] = useState(false);
+  const [igJoined, setIgJoined] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
+  const communityDropdownRef = useRef(null);
+
   // ── fetch registrations on mount ──────────────────────────────────────────
 
   useEffect(() => {
@@ -153,6 +165,38 @@ const PlayerPointsTableViewAuthenticated = () => {
     fetchRegistrations();
   }, []);
 
+  // ── community settings + join status ──────────────────────────────────────
+
+  useEffect(() => {
+    const DISMISS_KEY = 'community_banner_dismissed_until';
+    const dismissedUntil = localStorage.getItem(DISMISS_KEY);
+    if (dismissedUntil && Date.now() < Number(dismissedUntil)) {
+      setBannerDismissed(true);
+    }
+    Promise.all([
+      communityAPI.getSettings().catch(() => ({ data: { whatsapp_link: '', instagram_link: '' } })),
+      communityAPI
+        .getStatus()
+        .catch(() => ({ data: { whatsapp_joined: false, instagram_joined: false } })),
+    ]).then(([settingsRes, statusRes]) => {
+      setCommunitySettings(settingsRes.data);
+      setWaJoined(statusRes.data.whatsapp_joined);
+      setIgJoined(statusRes.data.instagram_joined);
+    });
+  }, []);
+
+  // ── close community dropdown on outside click ─────────────────────────────
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (communityDropdownRef.current && !communityDropdownRef.current.contains(e.target)) {
+        setCommunityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   // ── fetch groups when tournament or round changes ─────────────────────────
 
   useEffect(() => {
@@ -173,6 +217,16 @@ const PlayerPointsTableViewAuthenticated = () => {
         const groups =
           res.data?.groups || res.data?.results || (Array.isArray(res.data) ? res.data : []);
         setGroupsData(groups);
+        // Auto-select player's own group
+        const teamName = reg.team_name || '';
+        if (teamName && groups.length > 0) {
+          const myIdx = groups.findIndex((g) =>
+            (g.teams || []).some(
+              (t) => (t.team_name || '').toLowerCase() === teamName.toLowerCase()
+            )
+          );
+          if (myIdx !== -1) setSelectedGroupIdx(myIdx);
+        }
       } catch (err) {
         if (err.response?.status !== 404) {
           console.error('Error fetching round groups:', err);
@@ -362,10 +416,68 @@ const PlayerPointsTableViewAuthenticated = () => {
     );
   }
 
+  // ── community derived values ──────────────────────────────────────────────
+  const showWaBanner = communitySettings.whatsapp_link && !waJoined;
+  const showIgBanner = communitySettings.instagram_link && !igJoined;
+  const showCommunityBanner = (showWaBanner || showIgBanner) && !bannerDismissed;
+
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-4">
+      {/* ── Community Banner ───────────────────────────────────────────────── */}
+      {showCommunityBanner && (
+        <div className="sl-community-banner">
+          <div className="sl-community-banner-left">
+            <div className="sl-community-banner-icon">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <p className="sl-community-banner-title">Join the Scrimverse community</p>
+              <p className="sl-community-banner-sub">
+                Get match updates, announcements &amp; tournament news
+              </p>
+            </div>
+          </div>
+          <div className="sl-community-banner-actions">
+            {showWaBanner && (
+              <button
+                className="sl-community-join-btn"
+                onClick={() => {
+                  window.open(communitySettings.whatsapp_link, '_blank', 'noopener,noreferrer');
+                  communityAPI.recordJoin('whatsapp').catch(() => {});
+                  setWaJoined(true);
+                }}
+              >
+                Join WhatsApp
+              </button>
+            )}
+            {showIgBanner && (
+              <button
+                className="sl-community-join-btn sl-community-ig-btn"
+                onClick={() => {
+                  window.open(communitySettings.instagram_link, '_blank', 'noopener,noreferrer');
+                  communityAPI.recordJoin('instagram').catch(() => {});
+                  setIgJoined(true);
+                }}
+              >
+                Join Instagram
+              </button>
+            )}
+            <button
+              className="sl-community-later-btn"
+              onClick={() => {
+                const dismissUntil = Date.now() + 24 * 60 * 60 * 1000;
+                localStorage.setItem('community_banner_dismissed_until', String(dismissUntil));
+                setBannerDismissed(true);
+              }}
+            >
+              Later
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Top header row ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-base sm:text-lg md:text-xl font-bold flex items-center gap-2 text-foreground">
@@ -374,6 +486,55 @@ const PlayerPointsTableViewAuthenticated = () => {
         </h2>
 
         <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+          {/* Permanent Join Community button */}
+          {(communitySettings.whatsapp_link || communitySettings.instagram_link) && (
+            <div className="relative" ref={communityDropdownRef}>
+              <button
+                onClick={() => setCommunityDropdownOpen((v) => !v)}
+                className="sl-community-permanent-btn"
+              >
+                <Sparkles size={13} />
+                Join Community
+              </button>
+              {communityDropdownOpen && (
+                <div className="sl-community-dropdown">
+                  {communitySettings.whatsapp_link && (
+                    <button
+                      className="sl-community-dropdown-item"
+                      onClick={() => {
+                        window.open(
+                          communitySettings.whatsapp_link,
+                          '_blank',
+                          'noopener,noreferrer'
+                        );
+                        communityAPI.recordJoin('whatsapp').catch(() => {});
+                        setCommunityDropdownOpen(false);
+                      }}
+                    >
+                      WhatsApp
+                    </button>
+                  )}
+                  {communitySettings.instagram_link && (
+                    <button
+                      className="sl-community-dropdown-item sl-community-dropdown-ig"
+                      onClick={() => {
+                        window.open(
+                          communitySettings.instagram_link,
+                          '_blank',
+                          'noopener,noreferrer'
+                        );
+                        communityAPI.recordJoin('instagram').catch(() => {});
+                        setCommunityDropdownOpen(false);
+                      }}
+                    >
+                      Instagram
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Group dropdown */}
           <CustomDropdown
             align="right"
@@ -515,6 +676,16 @@ const PlayerPointsTableViewAuthenticated = () => {
           )}
         </div>
       </div>
+
+      {/* ── My group chip ──────────────────────────────────────────────────── */}
+      {myTeamName && groupName && (
+        <div className="pt-my-group-chip">
+          <Star size={12} style={{ flexShrink: 0 }} />
+          <span>
+            {myTeamName} · {groupName}
+          </span>
+        </div>
+      )}
 
       {/* ── Card ───────────────────────────────────────────────────────────── */}
       <div className="pt-card">

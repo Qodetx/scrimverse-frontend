@@ -271,6 +271,15 @@ export const sponsorAPI = {
     api.delete(`/tournaments/${tournamentId}/sponsors/${sponsorId}/`),
 };
 
+// Contact & Report APIs
+export const contactAPI = {
+  submit: (data) => api.post('/accounts/contact/', data),
+};
+
+export const reportAPI = {
+  submit: (data) => api.post('/accounts/report-issue/', data),
+};
+
 // Invite APIs
 export const inviteAPI = {
   getInviteDetails: (token) => publicApi.get(`/accounts/invites/${token}/`),

@@ -33,10 +33,11 @@ const flattenGroups = (groups) => {
   if (!Array.isArray(groups)) return slots;
   groups.forEach((group) => {
     const teams = group.teams || [];
+    const groupName = group.group_name || '';
     teams.forEach((team) => {
       const name = team.team_name || team.player_name || team.name || '';
       if (name) {
-        slots.push({ slotNumber: counter, teamName: name });
+        slots.push({ slotNumber: counter, teamName: name, groupName });
         counter += 1;
       }
     });
@@ -239,6 +240,10 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
 
   const isMyTeam = (teamName) =>
     myTeamName && teamName.trim().toLowerCase() === myTeamName.trim().toLowerCase();
+
+  const mySlotData = myTeamName
+    ? slots.find((s) => s.teamName.trim().toLowerCase() === myTeamName.trim().toLowerCase())
+    : null;
 
   // Countdown for slot list release (moved here, before the useEffect that uses it)
   const slotCountdown = useCountdown(selectedReg?.tournament?.slot_list_release_time);
@@ -714,6 +719,18 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
           </div>
         </div>
       </div>
+
+      {/* ── My slot chip ─────────────────────────────────────────────────────── */}
+      {mySlotData && (
+        <div className="psl-my-slot-chip">
+          <Star size={12} style={{ flexShrink: 0 }} />
+          <span>
+            {mySlotData.teamName}
+            {mySlotData.groupName ? ` · ${mySlotData.groupName}` : ''}
+            {` · Slot ${pad2(mySlotData.slotNumber)}`}
+          </span>
+        </div>
+      )}
 
       {/* ── Capture area: header + rows ──────────────────────────────────────── */}
       <div ref={slotCardRef}>

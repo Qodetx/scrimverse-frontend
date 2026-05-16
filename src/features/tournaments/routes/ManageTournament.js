@@ -126,6 +126,9 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
   const [showRoundNamesModal, setShowRoundNamesModal] = useState(false);
   const [roundDates, setRoundDates] = useState({});
   const [editPrizeDistribution, setEditPrizeDistribution] = useState([]);
+  const [editSpecialAwards, setEditSpecialAwards] = useState([]);
+  const [editCouponTiers, setEditCouponTiers] = useState([]);
+  const [editCouponSpecialAwards, setEditCouponSpecialAwards] = useState([]);
   const [showTeamsModal, setShowTeamsModal] = useState(false);
   const [teamsTab, setTeamsTab] = useState('active'); // 'active' or 'rejected'
   const [finalStandings, setFinalStandings] = useState(null);
@@ -488,6 +491,17 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
           ]);
         }
 
+        // Load special_awards and coupon_distribution
+        setEditSpecialAwards(response.data.tournament.special_awards || []);
+        const cdLoad = response.data.tournament.coupon_distribution;
+        if (cdLoad && typeof cdLoad === 'object' && !Array.isArray(cdLoad)) {
+          setEditCouponTiers(cdLoad.tiers || []);
+          setEditCouponSpecialAwards(cdLoad.special_awards || []);
+        } else {
+          setEditCouponTiers([]);
+          setEditCouponSpecialAwards([]);
+        }
+
         // Load selected teams for current round
         if (currentRoundNum > 0) {
           // Fetch groups only if round is actively ongoing (not pre_configured)
@@ -641,6 +655,16 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
           }))
         );
       }
+      // Reset special_awards and coupon_distribution
+      setEditSpecialAwards(tournament.special_awards || []);
+      const cdReset = tournament.coupon_distribution;
+      if (cdReset && typeof cdReset === 'object' && !Array.isArray(cdReset)) {
+        setEditCouponTiers(cdReset.tiers || []);
+        setEditCouponSpecialAwards(cdReset.special_awards || []);
+      } else {
+        setEditCouponTiers([]);
+        setEditCouponSpecialAwards([]);
+      }
     }
     setIsEditing(!isEditing);
   };
@@ -731,6 +755,50 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
         });
         formData.append('prize_distribution', JSON.stringify(prizeObj));
       }
+
+      // Add special_awards
+      const validSpecialAwards = editSpecialAwards.filter((a) => a.name && String(a.name).trim());
+      formData.append('special_awards', JSON.stringify(validSpecialAwards));
+
+      // Add coupon_distribution
+      const validCouponTiers = editCouponTiers
+        .filter(
+          (t) =>
+            t.rank &&
+            String(t.rank).trim() &&
+            t.coupons?.some((c) => c.name && String(c.name).trim())
+        )
+        .map((t) => ({
+          rank: String(t.rank).trim(),
+          coupons: (t.coupons || [])
+            .filter((c) => c.name && String(c.name).trim())
+            .map((c) => ({
+              name: String(c.name).trim(),
+              link: String(c.link || '').trim(),
+              amount: Number(c.amount) || 0,
+            })),
+        }));
+      const validCouponSpecial = editCouponSpecialAwards
+        .filter(
+          (a) =>
+            a.name &&
+            String(a.name).trim() &&
+            a.coupons?.some((c) => c.name && String(c.name).trim())
+        )
+        .map((a) => ({
+          name: String(a.name).trim(),
+          coupons: (a.coupons || [])
+            .filter((c) => c.name && String(c.name).trim())
+            .map((c) => ({
+              name: String(c.name).trim(),
+              link: String(c.link || '').trim(),
+              amount: Number(c.amount) || 0,
+            })),
+        }));
+      formData.append(
+        'coupon_distribution',
+        JSON.stringify({ tiers: validCouponTiers, special_awards: validCouponSpecial })
+      );
 
       // Add banner image if a new file was selected
       if (editData.banner_image instanceof File) {
@@ -2005,125 +2073,456 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                   </div>
 
                   {tournament.status === 'upcoming' && (
-                    <div>
-                      <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1.5">
-                        Prize Distribution
-                      </label>
-                      <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.2)] rounded-lg p-4 space-y-2">
-                        {editPrizeDistribution.map((prize, index) => {
-                          let trophyColor = 'text-gray-400';
-                          if (prize.place === '1st') trophyColor = 'text-yellow-500';
-                          else if (prize.place === '2nd') trophyColor = 'text-gray-400';
-                          else if (prize.place === '3rd') trophyColor = 'text-orange-500';
-                          return (
-                            <div key={index} className="flex items-center gap-2">
-                              <div className="flex items-center gap-1.5 min-w-[56px]">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="14"
-                                  height="14"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className={`h-3.5 w-3.5 ${trophyColor}`}
-                                >
-                                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                                  <path d="M4 22h16"></path>
-                                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-                                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-                                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-                                </svg>
-                                <span className="text-xs font-medium text-gray-300">
-                                  {prize.place}
-                                </span>
+                    <>
+                      <div>
+                        <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1.5">
+                          Prize Distribution
+                        </label>
+                        <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.2)] rounded-lg p-4 space-y-2">
+                          {editPrizeDistribution.map((prize, index) => {
+                            let trophyColor = 'text-gray-400';
+                            if (prize.place === '1st') trophyColor = 'text-yellow-500';
+                            else if (prize.place === '2nd') trophyColor = 'text-gray-400';
+                            else if (prize.place === '3rd') trophyColor = 'text-orange-500';
+                            return (
+                              <div key={index} className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 min-w-[56px]">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className={`h-3.5 w-3.5 ${trophyColor}`}
+                                  >
+                                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                                    <path d="M4 22h16"></path>
+                                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                                  </svg>
+                                  <span className="text-xs font-medium text-gray-300">
+                                    {prize.place}
+                                  </span>
+                                </div>
+                                <div className="flex-1 relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                                    ₹
+                                  </span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={prize.amount}
+                                    onChange={(e) => {
+                                      const updated = [...editPrizeDistribution];
+                                      updated[index].amount = parseInt(e.target.value) || 0;
+                                      setEditPrizeDistribution(updated);
+                                    }}
+                                    onWheel={(e) => e.target.blur()}
+                                    className="w-full rounded-xl border border-white/20 px-3 py-1.5 pl-6 text-xs bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500/50"
+                                  />
+                                </div>
+                                {editPrizeDistribution.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setEditPrizeDistribution(
+                                        editPrizeDistribution.filter((_, i) => i !== index)
+                                      )
+                                    }
+                                    className="w-7 h-7 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all flex-shrink-0"
+                                  >
+                                    <svg
+                                      className="w-3.5 h-3.5"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M6 18L18 6M6 6l12 12"
+                                      />
+                                    </svg>
+                                  </button>
+                                )}
                               </div>
-                              <div className="flex-1 relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                                  ₹
-                                </span>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={prize.amount}
-                                  onChange={(e) => {
-                                    const updated = [...editPrizeDistribution];
-                                    updated[index].amount = parseInt(e.target.value) || 0;
-                                    setEditPrizeDistribution(updated);
-                                  }}
-                                  onWheel={(e) => e.target.blur()}
-                                  className="w-full rounded-xl border border-white/20 px-3 py-1.5 pl-6 text-xs bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/30 focus:border-yellow-500/50"
-                                />
-                              </div>
-                              {editPrizeDistribution.length > 1 && (
+                            );
+                          })}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const places = [
+                                '1st',
+                                '2nd',
+                                '3rd',
+                                '4th',
+                                '5th',
+                                '6th',
+                                '7th',
+                                '8th',
+                              ];
+                              const nextPlace =
+                                places[editPrizeDistribution.length] ||
+                                `${editPrizeDistribution.length + 1}th`;
+                              setEditPrizeDistribution([
+                                ...editPrizeDistribution,
+                                { place: nextPlace, amount: 0 },
+                              ]);
+                            }}
+                            disabled={editPrizeDistribution.length >= 8}
+                            className="w-full py-1.5 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] border border-[hsl(var(--border)/0.3)] hover:border-[hsl(var(--border)/0.5)] rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            + Add Place
+                          </button>
+                          <div className="pt-2 border-t border-[hsl(var(--border)/0.2)] flex justify-between items-center">
+                            <span className="text-xs text-[hsl(var(--muted-foreground))] font-medium">
+                              Total Distributed
+                            </span>
+                            <span
+                              className={`text-sm font-semibold ${
+                                editPrizeDistribution.reduce((s, p) => s + p.amount, 0) ===
+                                parseFloat(editData.prize_pool || 0)
+                                  ? 'text-green-400'
+                                  : 'text-yellow-400'
+                              }`}
+                            >
+                              ₹
+                              {editPrizeDistribution
+                                .reduce((s, p) => s + p.amount, 0)
+                                .toLocaleString()}{' '}
+                              / ₹{parseFloat(editData.prize_pool || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Special Awards (cash) */}
+                      <div className="space-y-2 pt-2 border-t border-[hsl(var(--border)/0.4)]">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-[hsl(var(--foreground))]">
+                            ⭐ Special Awards (Cash)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditSpecialAwards((p) => [...p, { name: '', amount: '' }])
+                            }
+                            className="flex items-center gap-1 text-xs text-[hsl(var(--foreground))] hover:text-[hsl(var(--accent))] transition-colors"
+                          >
+                            <Plus className="w-3 h-3" /> Add Award
+                          </button>
+                        </div>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                          e.g. Best IGL Award, MVP Award
+                        </p>
+                        {editSpecialAwards.map((award, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={award.name}
+                              placeholder="Award name"
+                              onChange={(e) => {
+                                const updated = [...editSpecialAwards];
+                                updated[idx] = { ...updated[idx], name: e.target.value };
+                                setEditSpecialAwards(updated);
+                              }}
+                              className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              value={award.amount}
+                              placeholder="₹ Amount"
+                              onChange={(e) => {
+                                const updated = [...editSpecialAwards];
+                                updated[idx] = { ...updated[idx], amount: e.target.value };
+                                setEditSpecialAwards(updated);
+                              }}
+                              onWheel={(e) => e.target.blur()}
+                              className="w-28 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditSpecialAwards((p) => p.filter((_, i) => i !== idx))
+                              }
+                              className="flex items-center justify-center w-8 h-8 text-red-400 hover:bg-red-500/10 rounded-md transition-colors flex-shrink-0"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Coupon Prizes */}
+                      <div className="space-y-3 pt-2 border-t border-[hsl(var(--border)/0.4)]">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-[hsl(var(--foreground))]">
+                            🎟 Coupon Prizes
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditCouponTiers((p) => [
+                                ...p,
+                                {
+                                  rank: `${p.length + 1}${['th', 'st', 'nd', 'rd'][(p.length + 1) % 10] || 'th'}`,
+                                  coupons: [{ name: '', link: '', amount: '' }],
+                                },
+                              ])
+                            }
+                            className="flex items-center gap-1 text-xs text-[hsl(var(--foreground))] hover:text-[hsl(var(--accent))] transition-colors"
+                          >
+                            <Plus className="w-3 h-3" /> Add Placement
+                          </button>
+                        </div>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                          Add coupon prizes from sponsors (e.g. SPINBOT, UniPin) per placement.
+                        </p>
+
+                        {editCouponTiers.map((tier, tIdx) => (
+                          <div
+                            key={tIdx}
+                            className="rounded-lg border border-[hsl(var(--border)/0.5)] p-3 space-y-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={tier.rank}
+                                placeholder="Placement (e.g. 1st)"
+                                onChange={(e) => {
+                                  const updated = [...editCouponTiers];
+                                  updated[tIdx] = { ...updated[tIdx], rank: e.target.value };
+                                  setEditCouponTiers(updated);
+                                }}
+                                className="w-24 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                              />
+                              <span className="text-xs text-[hsl(var(--muted-foreground))] flex-1">
+                                Place
+                              </span>
+                              {editCouponTiers.length > 1 && (
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    setEditPrizeDistribution(
-                                      editPrizeDistribution.filter((_, i) => i !== index)
-                                    )
+                                    setEditCouponTiers((p) => p.filter((_, i) => i !== tIdx))
                                   }
-                                  className="w-7 h-7 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all flex-shrink-0"
+                                  className="text-xs text-red-400 hover:underline"
                                 >
-                                  <svg
-                                    className="w-3.5 h-3.5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M6 18L18 6M6 6l12 12"
-                                    />
-                                  </svg>
+                                  Remove
                                 </button>
                               )}
                             </div>
-                          );
-                        })}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const places = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
-                            const nextPlace =
-                              places[editPrizeDistribution.length] ||
-                              `${editPrizeDistribution.length + 1}th`;
-                            setEditPrizeDistribution([
-                              ...editPrizeDistribution,
-                              { place: nextPlace, amount: 0 },
-                            ]);
-                          }}
-                          disabled={editPrizeDistribution.length >= 8}
-                          className="w-full py-1.5 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] border border-[hsl(var(--border)/0.3)] hover:border-[hsl(var(--border)/0.5)] rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          + Add Place
-                        </button>
-                        <div className="pt-2 border-t border-[hsl(var(--border)/0.2)] flex justify-between items-center">
-                          <span className="text-xs text-[hsl(var(--muted-foreground))] font-medium">
-                            Total Distributed
-                          </span>
-                          <span
-                            className={`text-sm font-semibold ${
-                              editPrizeDistribution.reduce((s, p) => s + p.amount, 0) ===
-                              parseFloat(editData.prize_pool || 0)
-                                ? 'text-green-400'
-                                : 'text-yellow-400'
-                            }`}
-                          >
-                            ₹
-                            {editPrizeDistribution
-                              .reduce((s, p) => s + p.amount, 0)
-                              .toLocaleString()}{' '}
-                            / ₹{parseFloat(editData.prize_pool || 0).toLocaleString()}
-                          </span>
+                            {tier.coupons.map((coupon, cIdx) => (
+                              <div key={cIdx} className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
+                                  value={coupon.name}
+                                  placeholder="Sponsor name"
+                                  onChange={(e) => {
+                                    const updated = [...editCouponTiers];
+                                    updated[tIdx].coupons[cIdx] = {
+                                      ...coupon,
+                                      name: e.target.value,
+                                    };
+                                    setEditCouponTiers(updated);
+                                  }}
+                                  className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                                />
+                                <input
+                                  type="text"
+                                  value={coupon.link}
+                                  placeholder="Website link"
+                                  onChange={(e) => {
+                                    const updated = [...editCouponTiers];
+                                    updated[tIdx].coupons[cIdx] = {
+                                      ...coupon,
+                                      link: e.target.value,
+                                    };
+                                    setEditCouponTiers(updated);
+                                  }}
+                                  className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                                />
+                                <input
+                                  type="number"
+                                  value={coupon.amount}
+                                  placeholder="Amount"
+                                  min="0"
+                                  onChange={(e) => {
+                                    const updated = [...editCouponTiers];
+                                    updated[tIdx].coupons[cIdx] = {
+                                      ...coupon,
+                                      amount: e.target.value,
+                                    };
+                                    setEditCouponTiers(updated);
+                                  }}
+                                  onWheel={(e) => e.target.blur()}
+                                  className="w-24 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                                />
+                                {tier.coupons.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...editCouponTiers];
+                                      updated[tIdx].coupons = updated[tIdx].coupons.filter(
+                                        (_, i) => i !== cIdx
+                                      );
+                                      setEditCouponTiers(updated);
+                                    }}
+                                    className="text-red-400 flex-shrink-0"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...editCouponTiers];
+                                updated[tIdx].coupons.push({ name: '', link: '', amount: '' });
+                                setEditCouponTiers(updated);
+                              }}
+                              className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                            >
+                              + Add Coupon Sponsor
+                            </button>
+                          </div>
+                        ))}
+
+                        {/* Special Coupon Awards */}
+                        <div className="space-y-2 pt-2 border-t border-[hsl(var(--border)/0.3)]">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-[hsl(var(--muted-foreground))]">
+                              Special Coupon Awards
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditCouponSpecialAwards((p) => [
+                                  ...p,
+                                  { name: '', coupons: [{ name: '', link: '', amount: '' }] },
+                                ])
+                              }
+                              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                            >
+                              <Plus className="w-3 h-3" /> Add
+                            </button>
+                          </div>
+                          {editCouponSpecialAwards.map((award, aIdx) => (
+                            <div
+                              key={aIdx}
+                              className="rounded-lg border border-[hsl(var(--border)/0.4)] p-3 space-y-2"
+                            >
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={award.name}
+                                  placeholder="Award name (e.g. Best IGL Award)"
+                                  onChange={(e) => {
+                                    const updated = [...editCouponSpecialAwards];
+                                    updated[aIdx] = { ...updated[aIdx], name: e.target.value };
+                                    setEditCouponSpecialAwards(updated);
+                                  }}
+                                  className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEditCouponSpecialAwards((p) =>
+                                      p.filter((_, i) => i !== aIdx)
+                                    )
+                                  }
+                                  className="text-red-400"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                              {award.coupons.map((coupon, cIdx) => (
+                                <div key={cIdx} className="flex items-center gap-1.5">
+                                  <input
+                                    type="text"
+                                    value={coupon.name}
+                                    placeholder="Sponsor name"
+                                    onChange={(e) => {
+                                      const updated = [...editCouponSpecialAwards];
+                                      updated[aIdx].coupons[cIdx] = {
+                                        ...coupon,
+                                        name: e.target.value,
+                                      };
+                                      setEditCouponSpecialAwards(updated);
+                                    }}
+                                    className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={coupon.link}
+                                    placeholder="Website link"
+                                    onChange={(e) => {
+                                      const updated = [...editCouponSpecialAwards];
+                                      updated[aIdx].coupons[cIdx] = {
+                                        ...coupon,
+                                        link: e.target.value,
+                                      };
+                                      setEditCouponSpecialAwards(updated);
+                                    }}
+                                    className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                                  />
+                                  <input
+                                    type="number"
+                                    value={coupon.amount}
+                                    placeholder="Amount"
+                                    min="0"
+                                    onChange={(e) => {
+                                      const updated = [...editCouponSpecialAwards];
+                                      updated[aIdx].coupons[cIdx] = {
+                                        ...coupon,
+                                        amount: e.target.value,
+                                      };
+                                      setEditCouponSpecialAwards(updated);
+                                    }}
+                                    onWheel={(e) => e.target.blur()}
+                                    className="w-24 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                                  />
+                                  {award.coupons.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...editCouponSpecialAwards];
+                                        updated[aIdx].coupons = updated[aIdx].coupons.filter(
+                                          (_, i) => i !== cIdx
+                                        );
+                                        setEditCouponSpecialAwards(updated);
+                                      }}
+                                      className="text-red-400"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...editCouponSpecialAwards];
+                                  updated[aIdx].coupons.push({ name: '', link: '', amount: '' });
+                                  setEditCouponSpecialAwards(updated);
+                                }}
+                                className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                              >
+                                + Add Sponsor
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>

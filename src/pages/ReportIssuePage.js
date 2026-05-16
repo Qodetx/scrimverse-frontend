@@ -11,12 +11,17 @@ import {
   MessageCircle,
   Upload,
   Send,
+  CheckCircle,
 } from 'lucide-react';
+import { reportAPI } from '../utils/api';
+import { useToast } from '../hooks/useToast';
 
 const ReportIssuePage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     issueType: '',
@@ -26,6 +31,9 @@ const ReportIssuePage = () => {
     steps: '',
     anonymous: false,
   });
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [reportId, setReportId] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -35,9 +43,18 @@ const ReportIssuePage = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Thank you for reporting this issue. Our team will investigate it within 24-48 hours.');
+    setLoading(true);
+    try {
+      const res = await reportAPI.submit(formData);
+      setReportId(res.data.report_id);
+      setSubmitted(true);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to submit report. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const issueTypes = [
@@ -143,128 +160,165 @@ const ReportIssuePage = () => {
                   Please provide as much detail as possible to help us investigate.
                 </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-foreground">Issue Type</label>
-                      <select
-                        name="issueType"
-                        required
-                        value={formData.issueType}
-                        onChange={handleChange}
-                        className={inputClass}
-                      >
-                        <option value="">Select issue type</option>
-                        <option value="bug">Technical Bug</option>
-                        <option value="behavior">Inappropriate Behavior</option>
-                        <option value="tournament">Tournament Issue</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-foreground">Priority Level</label>
-                      <select
-                        name="priority"
-                        required
-                        value={formData.priority}
-                        onChange={handleChange}
-                        className={inputClass}
-                      >
-                        <option value="">Select priority</option>
-                        <option value="low">Low - Minor issue</option>
-                        <option value="medium">Medium - Affects gameplay</option>
-                        <option value="high">High - Critical/Blocking</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-foreground">Issue Title</label>
-                    <input
-                      type="text"
-                      name="title"
-                      placeholder="Brief description of the issue"
-                      required
-                      value={formData.title}
-                      onChange={handleChange}
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-foreground">
-                      Detailed Description
-                    </label>
-                    <textarea
-                      name="description"
-                      rows="5"
-                      placeholder="Please describe the issue in detail..."
-                      required
-                      value={formData.description}
-                      onChange={handleChange}
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-foreground">
-                      Steps to Reproduce (for bugs)
-                    </label>
-                    <textarea
-                      name="steps"
-                      rows="3"
-                      placeholder="1. Go to... 2. Click on... 3. The issue occurs..."
-                      value={formData.steps}
-                      onChange={handleChange}
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-foreground">
-                      Screenshots/Evidence
-                    </label>
-                    <div className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 text-center bg-secondary/20">
-                      <Upload className="h-7 w-7 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Drag and drop files here or click to browse
-                      </p>
-                      <span className="text-xs text-muted-foreground">
-                        PNG, JPG, GIF up to 10MB
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="anonymous"
-                      name="anonymous"
-                      checked={formData.anonymous}
-                      onChange={handleChange}
-                      className="w-4 h-4 rounded border-border bg-secondary accent-primary"
-                    />
-                    <label
-                      htmlFor="anonymous"
-                      className="text-sm text-muted-foreground cursor-pointer"
+                {submitted ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+                    <CheckCircle className="h-12 w-12 text-green-500" />
+                    <h3 className="text-lg font-bold text-foreground">Report Submitted!</h3>
+                    {reportId && (
+                      <div className="px-4 py-2 bg-secondary rounded-lg border border-border">
+                        <p className="text-xs text-muted-foreground mb-0.5">Report ID</p>
+                        <p className="text-lg font-bold text-foreground">#{reportId}</p>
+                      </div>
+                    )}
+                    <p className="text-muted-foreground text-sm max-w-xs">
+                      Our team will investigate within 24-48 hours. Save your report ID for
+                      follow-ups.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setSubmitted(false);
+                        setReportId(null);
+                        setFormData({
+                          issueType: '',
+                          priority: '',
+                          title: '',
+                          description: '',
+                          steps: '',
+                          anonymous: false,
+                        });
+                      }}
+                      className="mt-2 text-sm text-primary underline underline-offset-2"
                     >
-                      Submit this report anonymously
-                    </label>
+                      Submit another report
+                    </button>
                   </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-foreground">Issue Type</label>
+                        <select
+                          name="issueType"
+                          required
+                          value={formData.issueType}
+                          onChange={handleChange}
+                          className={inputClass}
+                        >
+                          <option value="">Select issue type</option>
+                          <option value="bug">Technical Bug</option>
+                          <option value="behavior">Inappropriate Behavior</option>
+                          <option value="tournament">Tournament Issue</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-foreground">
+                          Priority Level
+                        </label>
+                        <select
+                          name="priority"
+                          required
+                          value={formData.priority}
+                          onChange={handleChange}
+                          className={inputClass}
+                        >
+                          <option value="">Select priority</option>
+                          <option value="low">Low - Minor issue</option>
+                          <option value="medium">Medium - Affects gameplay</option>
+                          <option value="high">High - Critical/Blocking</option>
+                        </select>
+                      </div>
+                    </div>
 
-                  <button
-                    type="submit"
-                    className="gaming-button w-full py-3 px-4 rounded-lg font-bold text-white transition-all duration-300 flex items-center justify-center gap-2"
-                  >
-                    <Send className="h-4 w-4" />
-                    SUBMIT REPORT
-                  </button>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">Issue Title</label>
+                      <input
+                        type="text"
+                        name="title"
+                        placeholder="Brief description of the issue"
+                        required
+                        value={formData.title}
+                        onChange={handleChange}
+                        className={inputClass}
+                      />
+                    </div>
 
-                  <p className="text-xs text-muted-foreground text-center">
-                    Reports are reviewed within 24-48 hours. We'll contact you if we need additional
-                    information.
-                  </p>
-                </form>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">
+                        Detailed Description
+                      </label>
+                      <textarea
+                        name="description"
+                        rows="5"
+                        placeholder="Please describe the issue in detail..."
+                        required
+                        value={formData.description}
+                        onChange={handleChange}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">
+                        Steps to Reproduce (for bugs)
+                      </label>
+                      <textarea
+                        name="steps"
+                        rows="3"
+                        placeholder="1. Go to... 2. Click on... 3. The issue occurs..."
+                        value={formData.steps}
+                        onChange={handleChange}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">
+                        Screenshots/Evidence
+                      </label>
+                      <div className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 text-center bg-secondary/20">
+                        <Upload className="h-7 w-7 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Drag and drop files here or click to browse
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          PNG, JPG, GIF up to 10MB
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="anonymous"
+                        name="anonymous"
+                        checked={formData.anonymous}
+                        onChange={handleChange}
+                        className="w-4 h-4 rounded border-border bg-secondary accent-primary"
+                      />
+                      <label
+                        htmlFor="anonymous"
+                        className="text-sm text-muted-foreground cursor-pointer"
+                      >
+                        Submit this report anonymously
+                      </label>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="gaming-button w-full py-3 px-4 rounded-lg font-bold text-white transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      <Send className="h-4 w-4" />
+                      {loading ? 'SUBMITTING...' : 'SUBMIT REPORT'}
+                    </button>
+
+                    <p className="text-xs text-muted-foreground text-center">
+                      Reports are reviewed within 24-48 hours. We'll contact you if we need
+                      additional information.
+                    </p>
+                  </form>
+                )}
               </div>
             </div>
           </div>

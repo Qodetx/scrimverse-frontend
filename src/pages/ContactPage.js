@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { Phone, MessageCircle, Mail } from 'lucide-react';
+import { Phone, MessageCircle, Mail, CheckCircle } from 'lucide-react';
+import { contactAPI } from '../utils/api';
+import { useToast } from '../hooks/useToast';
 
 const ContactPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -15,14 +19,24 @@ const ContactPage = () => {
     subject: '',
     message: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Thank you for your message! Our team will get back to you soon.');
+    setLoading(true);
+    try {
+      await contactAPI.submit(formData);
+      setSubmitted(true);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to send message. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass =
@@ -97,85 +111,106 @@ const ContactPage = () => {
             <div className="lg:col-span-3">
               <div className="cyber-card p-6">
                 <h2 className="text-lg font-bold text-foreground mb-5">Send us a Message</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-foreground">Full Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        placeholder="Your name"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-foreground">Phone Number</label>
-                      <input
-                        type="text"
-                        name="phone"
-                        placeholder="Your phone number"
-                        required
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className={inputClass}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-foreground">Email Address</label>
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="your.email@example.com"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-foreground">Subject</label>
-                    <select
-                      name="subject"
-                      required
-                      value={formData.subject}
-                      onChange={handleChange}
-                      className={inputClass}
+                {submitted ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+                    <CheckCircle className="h-12 w-12 text-green-500" />
+                    <h3 className="text-lg font-bold text-foreground">Message Sent!</h3>
+                    <p className="text-muted-foreground text-sm max-w-xs">
+                      Thank you for reaching out. Our team will get back to you at{' '}
+                      <span className="text-foreground font-medium">{formData.email}</span> soon.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setSubmitted(false);
+                        setFormData({ name: '', phone: '', email: '', subject: '', message: '' });
+                      }}
+                      className="mt-2 text-sm text-primary underline underline-offset-2"
                     >
-                      <option value="">Select a topic</option>
-                      <option value="tournament">Tournament Listing</option>
-                      <option value="partnership">Partnership / Collaboration</option>
-                      <option value="support">Technical Support</option>
-                      <option value="feedback">Feedback</option>
-                      <option value="other">Other</option>
-                    </select>
+                      Send another message
+                    </button>
                   </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-foreground">Full Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          placeholder="Your name"
+                          required
+                          value={formData.name}
+                          onChange={handleChange}
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-foreground">Phone Number</label>
+                        <input
+                          type="text"
+                          name="phone"
+                          placeholder="Your phone number"
+                          required
+                          value={formData.phone}
+                          onChange={handleChange}
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
 
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-foreground">Message</label>
-                    <textarea
-                      name="message"
-                      rows="5"
-                      placeholder="Tell us about your tournament, collaboration idea, or any questions you have..."
-                      required
-                      value={formData.message}
-                      onChange={handleChange}
-                      className={inputClass}
-                    />
-                  </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="your.email@example.com"
+                        required
+                        value={formData.email}
+                        onChange={handleChange}
+                        className={inputClass}
+                      />
+                    </div>
 
-                  <button
-                    type="submit"
-                    className="gaming-button w-full py-3 px-4 rounded-lg font-bold text-white transition-all duration-300"
-                  >
-                    SEND MESSAGE
-                  </button>
-                </form>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">Subject</label>
+                      <select
+                        name="subject"
+                        required
+                        value={formData.subject}
+                        onChange={handleChange}
+                        className={inputClass}
+                      >
+                        <option value="">Select a topic</option>
+                        <option value="tournament">Tournament Listing</option>
+                        <option value="partnership">Partnership / Collaboration</option>
+                        <option value="support">Technical Support</option>
+                        <option value="feedback">Feedback</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">Message</label>
+                      <textarea
+                        name="message"
+                        rows="5"
+                        placeholder="Tell us about your tournament, collaboration idea, or any questions you have..."
+                        required
+                        value={formData.message}
+                        onChange={handleChange}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="gaming-button w-full py-3 px-4 rounded-lg font-bold text-white transition-all duration-300 disabled:opacity-60"
+                    >
+                      {loading ? 'SENDING...' : 'SEND MESSAGE'}
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           </div>

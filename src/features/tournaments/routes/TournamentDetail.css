@@ -855,6 +855,410 @@
   margin-top: 8px;
 }
 
+/* ── Prize Tab Switcher (Cash | Coupons) ────────────────────────────────── */
+
+.td-prize-tab-switcher {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  background: hsl(220 10% 10%);
+  border: 1px solid hsl(220 5% 20%);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.td-prize-tab-btn {
+  flex: 1;
+  padding: 7px 12px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: hsl(220 5% 55%);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.td-prize-tab-btn.active {
+  background: hsl(220 10% 18%);
+  color: hsl(220 5% 94%);
+}
+
+/* ── Special Awards (cash) ───────────────────────────────────────────────── */
+
+.td-special-awards {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid hsl(220 5% 20%);
+}
+
+.td-special-awards-heading {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(45 80% 60%);
+  margin-bottom: 8px;
+}
+
+.td-special-award-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: hsl(45 80% 50% / 0.06);
+  border: 1px solid hsl(45 80% 50% / 0.2);
+  margin-bottom: 6px;
+}
+
+.td-special-award-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(220 5% 85%);
+}
+
+.td-special-award-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(45 80% 60%);
+}
+
+/* ── Coupon Tab ──────────────────────────────────────────────────────────── */
+
+.td-coupon-powered-by {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(220 5% 55%);
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  background: hsl(220 10% 10%);
+  border: 1px solid hsl(220 5% 18%);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.td-coupon-powered-sep {
+  color: hsl(220 5% 40%);
+}
+
+.td-coupon-sponsor-link {
+  font-weight: 700;
+  color: hsl(270 60% 65%);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.td-coupon-sponsor-link:hover {
+  color: hsl(270 60% 80%);
+}
+
+.td-coupon-tier {
+  margin-bottom: 12px;
+}
+
+.td-coupon-tier-rank {
+  font-size: 12px;
+  font-weight: 700;
+  color: hsl(220 5% 70%);
+  margin-bottom: 6px;
+}
+
+.td-coupon-tier-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.td-coupon-amount-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: hsl(270 60% 50% / 0.08);
+  border: 1px solid hsl(270 60% 50% / 0.3);
+  text-decoration: none;
+  cursor: default;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  min-width: 110px;
+}
+
+.td-coupon-amount-chip.clickable {
+  cursor: pointer;
+}
+
+.td-coupon-amount-chip.clickable:hover {
+  background: hsl(270 60% 50% / 0.16);
+  border-color: hsl(270 60% 55% / 0.6);
+}
+
+.td-coupon-chip-sponsor {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: hsl(270 60% 65%);
+}
+
+.td-coupon-chip-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(220 5% 90%);
+}
+
+.td-coupon-footer {
+  font-size: 11px;
+  color: hsl(220 5% 45%);
+  text-align: center;
+  margin: 10px 0 14px;
+  font-style: italic;
+}
+
+.td-coupon-special-award {
+  margin-bottom: 10px;
+}
+
+.td-coupon-special-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: hsl(220 5% 70%);
+  margin-bottom: 6px;
+}
+
+/* ── Calendar Tab ────────────────────────────────────────────────────────── */
+
+.td-calendar-months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin-bottom: 20px;
+}
+
+.td-calendar-month {
+  flex: 1 1 280px;
+  max-width: 360px;
+}
+
+.td-calendar-month-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(220 5% 65%);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.td-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.td-calendar-dow {
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  color: hsl(220 5% 45%);
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+.td-calendar-cell-empty {
+  /* placeholder for leading empty days */
+}
+
+.td-calendar-cell {
+  aspect-ratio: 1;
+  border-radius: 5px;
+  border: 1px solid hsl(220 5% 15%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 2px;
+  position: relative;
+}
+
+.td-calendar-cell-event {
+  border-radius: 6px;
+}
+
+.td-calendar-day-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(220 5% 80%);
+  line-height: 1;
+}
+
+.td-calendar-cell-event .td-calendar-day-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.td-calendar-day-label {
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.td-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.td-calendar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(220 5% 65%);
+}
+
+.td-calendar-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Roadmap Tab ─────────────────────────────────────────────────────────── */
+
+.td-roadmap-flow {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.td-roadmap-stage-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.td-roadmap-card {
+  background: hsl(220 10% 13%);
+  border: 1px solid hsl(220 5% 22%);
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 160px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s;
+}
+
+.td-roadmap-card:hover {
+  border-color: hsl(270 60% 55% / 0.5);
+}
+
+.td-roadmap-card-final {
+  background: hsl(45 80% 50% / 0.1);
+  border-color: hsl(45 80% 50% / 0.4);
+}
+
+.td-roadmap-card-final:hover {
+  border-color: hsl(45 80% 55% / 0.7);
+}
+
+.td-roadmap-stage-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: hsl(270 60% 60%);
+  margin: 0;
+}
+
+.td-roadmap-card-final .td-roadmap-stage-label {
+  color: hsl(45 80% 60%);
+}
+
+.td-roadmap-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: hsl(220 5% 94%);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.td-roadmap-card-final .td-roadmap-name {
+  color: hsl(45 80% 70%);
+}
+
+.td-roadmap-teams-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 800;
+  background: hsl(270 60% 50% / 0.18);
+  border: 1px solid hsl(270 60% 55% / 0.35);
+  color: hsl(270 60% 70%);
+  border-radius: 4px;
+  padding: 2px 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.td-roadmap-card-final .td-roadmap-teams-badge {
+  background: hsl(45 80% 50% / 0.15);
+  border-color: hsl(45 80% 50% / 0.35);
+  color: hsl(45 80% 65%);
+}
+
+.td-roadmap-advancement {
+  font-size: 11px;
+  color: hsl(220 5% 55%);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.td-roadmap-arrow {
+  font-size: 22px;
+  color: hsl(220 5% 35%);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .td-roadmap-flow {
+    gap: 6px;
+  }
+  .td-roadmap-card {
+    min-width: 130px;
+    max-width: 160px;
+    padding: 12px;
+  }
+  .td-calendar-months {
+    gap: 20px;
+  }
+  .td-prize-tab-switcher {
+    padding: 3px;
+  }
+}
+
 /* ---- About / Description ---- */
 .td-description {
   font-size: 13px;

@@ -31,6 +31,7 @@ import GuestLockedState from '../../../components/GuestLockedState';
 import { teamAPI, leaderboardAPI, authAPI } from '../../../utils/api';
 import { useToast } from '../../../hooks/useToast';
 import ConfirmModal from '../../../components/ConfirmModal';
+import Toast from '../../../components/Toast';
 import './PlayerTeamView.css';
 
 const MEDIA_URL = (process.env.REACT_APP_MEDIA_URL || 'http://localhost:8000').replace(
@@ -538,7 +539,7 @@ const PlayerTeamView = (props) => {
 
 const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRequests }) => {
   const { user } = useContext(AuthContext);
-  const { showToast } = useToast();
+  const { toast, showToast, hideToast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -1024,7 +1025,10 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
     } catch (err) {
       const data = err.response?.data;
       if (err.response?.status === 429) {
-        showToast(data?.message || 'Too many resends. Please wait before sending again.', 'error');
+        showToast(
+          `Invite not sent — ${data?.message || 'Please wait before resending again.'}`,
+          'error'
+        );
         setResendingInvites((prev) => ({ ...prev, [inviteId]: 'rate_limited' }));
         const retryAfter = data?.retry_after_seconds || 300;
         setResendCooldowns((prev) => ({ ...prev, [inviteId]: retryAfter }));
@@ -1618,10 +1622,10 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                   fontWeight: 600,
                   padding: '6px 18px',
                   borderRadius: '8px',
-                  border: teamMode === 'perm' ? 'none' : '1px solid hsl(var(--border) / 0.5)',
+                  border: 'none',
                   cursor: 'pointer',
-                  background: teamMode === 'perm' ? 'hsl(var(--accent))' : 'transparent',
-                  color: teamMode === 'perm' ? '#000' : 'hsl(var(--muted-foreground))',
+                  background: teamMode === 'perm' ? 'hsl(var(--accent))' : '#ffffff',
+                  color: '#000',
                   animation: teamMode === 'perm' ? 'tm-tab-pulse 2s ease-in-out infinite' : 'none',
                 }}
               >
@@ -1638,13 +1642,10 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                   fontWeight: 600,
                   padding: '6px 18px',
                   borderRadius: '8px',
-                  border:
-                    teamMode === 'temp'
-                      ? '1px solid rgba(234,179,8,0.5)'
-                      : '1px solid hsl(var(--border) / 0.5)',
+                  border: teamMode === 'temp' ? '1px solid rgba(234,179,8,0.5)' : 'none',
                   cursor: 'pointer',
-                  background: teamMode === 'temp' ? 'rgba(234,179,8,0.15)' : 'transparent',
-                  color: teamMode === 'temp' ? 'rgb(234,179,8)' : 'hsl(var(--muted-foreground))',
+                  background: teamMode === 'temp' ? 'rgba(234,179,8,0.15)' : '#ffffff',
+                  color: teamMode === 'temp' ? 'rgb(234,179,8)' : '#000',
                   animation:
                     teamMode === 'temp' ? 'tm-tab-pulse-yellow 2s ease-in-out infinite' : 'none',
                 }}
@@ -3131,6 +3132,7 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
         title="Leave Team"
         message={`Are you sure you want to leave ${team?.name}? You cannot undo this.`}
       />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
     </div>
   );
 };

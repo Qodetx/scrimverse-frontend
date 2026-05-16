@@ -275,6 +275,7 @@ const TournamentDetail = () => {
   const [selectedScheduleRound, setSelectedScheduleRound] = useState(null);
   const [selectedScheduleGroup, setSelectedScheduleGroup] = useState(null);
   const [activeTab, setActiveTab] = useState('schedule');
+  const [prizeTab, setPrizeTab] = useState('cash');
   const [tournamentResults, setTournamentResults] = useState([]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -964,6 +965,20 @@ const TournamentDetail = () => {
             </button>
             <button
               role="tab"
+              className={`td-tab-btn${activeTab === 'calendar' ? ' active' : ''}`}
+              onClick={() => setActiveTab('calendar')}
+            >
+              📅 Calendar
+            </button>
+            <button
+              role="tab"
+              className={`td-tab-btn${activeTab === 'roadmap' ? ' active' : ''}`}
+              onClick={() => setActiveTab('roadmap')}
+            >
+              🗺 Roadmap
+            </button>
+            <button
+              role="tab"
               className={`td-tab-btn${activeTab === 'briefing' ? ' active' : ''}`}
               onClick={() => setActiveTab('briefing')}
             >
@@ -1193,117 +1208,264 @@ const TournamentDetail = () => {
                 </div>
 
                 {/* Right column: prize distribution */}
-                <div>
-                  <p className="td-section-heading">Prize Distribution</p>
+                {(() => {
+                  // Build prize tiers from prize_distribution
+                  let prizeData = [];
+                  if (
+                    tournament.prize_distribution &&
+                    typeof tournament.prize_distribution === 'object' &&
+                    Object.keys(tournament.prize_distribution).length > 0
+                  ) {
+                    prizeData = Object.entries(tournament.prize_distribution).map(
+                      ([place, amount]) => ({ place, amount: parseInt(amount) || 0 })
+                    );
+                  } else {
+                    prizeData = [
+                      { place: '1st', amount: prizePool * 0.5 },
+                      { place: '2nd', amount: prizePool * 0.3 },
+                      { place: '3rd', amount: prizePool * 0.2 },
+                    ];
+                  }
 
-                  {(() => {
-                    // Build prize tiers
-                    let prizeData = [];
-                    if (
-                      tournament.prize_distribution &&
-                      typeof tournament.prize_distribution === 'object' &&
-                      Object.keys(tournament.prize_distribution).length > 0
-                    ) {
-                      prizeData = Object.entries(tournament.prize_distribution).map(
-                        ([place, amount]) => ({ place, amount: parseInt(amount) || 0 })
-                      );
-                    } else {
-                      prizeData = [
-                        { place: '1st', amount: prizePool * 0.5 },
-                        { place: '2nd', amount: prizePool * 0.3 },
-                        { place: '3rd', amount: prizePool * 0.2 },
-                      ];
+                  // Build rank → team name map (only for completed tournaments)
+                  const rankMap = {};
+                  if (tournament.status === 'completed') {
+                    tournamentResults.forEach((entry) => {
+                      rankMap[entry.rank] = entry.team_name;
+                    });
+                    if (Object.keys(rankMap).length === 0 && tournament.winner_name) {
+                      rankMap[1] = tournament.winner_name;
                     }
+                  }
 
-                    // Build rank → team name map (only for completed tournaments)
-                    const rankMap = {};
-                    if (tournament.status === 'completed') {
-                      tournamentResults.forEach((entry) => {
-                        rankMap[entry.rank] = entry.team_name;
-                      });
-                      // Fallback for 5v5 with no round scores
-                      if (Object.keys(rankMap).length === 0 && tournament.winner_name) {
-                        rankMap[1] = tournament.winner_name;
-                      }
-                    }
-
-                    const isCompleted = tournament.status === 'completed';
-                    const medals = ['🥇', '🥈', '🥉'];
-                    const placeColors = {
-                      '1st': {
-                        row: 'td-prize-row-1',
-                        label: 'td-prize-label-1',
-                        amount: 'td-prize-amount-1',
-                      },
-                      '2nd': {
-                        row: 'td-prize-row-2',
-                        label: 'td-prize-label-2',
-                        amount: 'td-prize-amount-2',
-                      },
-                      '3rd': {
-                        row: 'td-prize-row-3',
-                        label: 'td-prize-label-3',
-                        amount: 'td-prize-amount-3',
-                      },
-                    };
-                    const defaultColors = {
+                  const isCompleted = tournament.status === 'completed';
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const placeColors = {
+                    '1st': {
+                      row: 'td-prize-row-1',
+                      label: 'td-prize-label-1',
+                      amount: 'td-prize-amount-1',
+                    },
+                    '2nd': {
                       row: 'td-prize-row-2',
                       label: 'td-prize-label-2',
                       amount: 'td-prize-amount-2',
-                    };
+                    },
+                    '3rd': {
+                      row: 'td-prize-row-3',
+                      label: 'td-prize-label-3',
+                      amount: 'td-prize-amount-3',
+                    },
+                  };
+                  const defaultColors = {
+                    row: 'td-prize-row-2',
+                    label: 'td-prize-label-2',
+                    amount: 'td-prize-amount-2',
+                  };
 
-                    return (
-                      <>
-                        {prizeData.map((prize, idx) => {
-                          const colors = placeColors[prize.place] || defaultColors;
-                          const teamName = rankMap[idx + 1];
-                          const medal = medals[idx];
-                          const tagColors = ['#f9c22a', '#9ca3af', '#f97316'];
-                          const tagColor = tagColors[idx] || '#9ca3af';
-                          return (
-                            <div key={prize.place} className={`td-prize-row ${colors.row}`}>
-                              <div className={`td-prize-label ${colors.label}`}>
-                                {isCompleted && medal ? (
-                                  <span style={{ fontSize: 16 }}>{medal}</span>
-                                ) : (
-                                  <IconTrophy style={{ width: 18, height: 18 }} />
-                                )}
-                                <span>{prize.place} Place</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                {isCompleted && teamName && (
-                                  <span
-                                    style={{
-                                      fontSize: 11,
-                                      fontWeight: 700,
-                                      color: tagColor,
-                                      background: `${tagColor}22`,
-                                      border: `1px solid ${tagColor}60`,
-                                      borderRadius: 20,
-                                      padding: '2px 10px',
-                                      letterSpacing: '0.02em',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    {teamName}
+                  // Coupon data
+                  const cd = tournament.coupon_distribution || {};
+                  const hasCouponData =
+                    Array.isArray(cd.tiers) &&
+                    cd.tiers.length > 0 &&
+                    cd.tiers.some((t) => t.coupons?.length > 0);
+                  const hasSpecialAwards =
+                    Array.isArray(tournament.special_awards) &&
+                    tournament.special_awards.length > 0;
+
+                  // Collect unique sponsor names for "Powered by" header
+                  const allCouponSponsors = [];
+                  if (hasCouponData) {
+                    [...(cd.tiers || []), ...(cd.special_awards || [])].forEach((tier) => {
+                      (tier.coupons || []).forEach((c) => {
+                        if (c.name && !allCouponSponsors.find((s) => s.name === c.name)) {
+                          allCouponSponsors.push({ name: c.name, link: c.link });
+                        }
+                      });
+                    });
+                  }
+
+                  const couponMedals = ['🥇', '🥈', '🥉'];
+
+                  return (
+                    <div>
+                      <p className="td-section-heading">Prize Distribution</p>
+
+                      {/* Tab switcher — only shown when coupon data exists */}
+                      {hasCouponData && (
+                        <div className="td-prize-tab-switcher">
+                          <button
+                            className={`td-prize-tab-btn${prizeTab === 'cash' ? ' active' : ''}`}
+                            onClick={() => setPrizeTab('cash')}
+                          >
+                            💵 Cash (INR)
+                          </button>
+                          <button
+                            className={`td-prize-tab-btn${prizeTab === 'coupons' ? ' active' : ''}`}
+                            onClick={() => setPrizeTab('coupons')}
+                          >
+                            🎟 Coupons
+                          </button>
+                        </div>
+                      )}
+
+                      {/* ── Cash tab (default) ── */}
+                      {(!hasCouponData || prizeTab === 'cash') && (
+                        <>
+                          {prizeData.map((prize, idx) => {
+                            const colors = placeColors[prize.place] || defaultColors;
+                            const teamName = rankMap[idx + 1];
+                            const medal = medals[idx];
+                            const tagColors = ['#f9c22a', '#9ca3af', '#f97316'];
+                            const tagColor = tagColors[idx] || '#9ca3af';
+                            return (
+                              <div key={prize.place} className={`td-prize-row ${colors.row}`}>
+                                <div className={`td-prize-label ${colors.label}`}>
+                                  {isCompleted && medal ? (
+                                    <span style={{ fontSize: 16 }}>{medal}</span>
+                                  ) : (
+                                    <IconTrophy style={{ width: 18, height: 18 }} />
+                                  )}
+                                  <span>{prize.place} Place</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  {isCompleted && teamName && (
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        color: tagColor,
+                                        background: `${tagColor}22`,
+                                        border: `1px solid ${tagColor}60`,
+                                        borderRadius: 20,
+                                        padding: '2px 10px',
+                                        letterSpacing: '0.02em',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      {teamName}
+                                    </span>
+                                  )}
+                                  <span className={`td-prize-amount ${colors.amount}`}>
+                                    {formatPrize(prize.amount)}
                                   </span>
-                                )}
-                                <span className={`td-prize-amount ${colors.amount}`}>
-                                  {formatPrize(prize.amount)}
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          <p className="td-prize-total">
+                            Total Cash Pool:{' '}
+                            <strong style={{ color: '#f9c22a' }}>₹{tournament.prize_pool}</strong>
+                          </p>
+
+                          {/* Special Awards (cash) */}
+                          {hasSpecialAwards && (
+                            <div className="td-special-awards">
+                              <p className="td-special-awards-heading">⭐ Special Awards</p>
+                              {tournament.special_awards.map((award, idx) => (
+                                <div key={idx} className="td-special-award-row">
+                                  <span className="td-special-award-name">{award.name}</span>
+                                  <span className="td-special-award-amount">
+                                    {formatPrize(parseInt(award.amount) || 0)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Coupons tab ── */}
+                      {hasCouponData && prizeTab === 'coupons' && (
+                        <>
+                          {/* Powered by header */}
+                          {allCouponSponsors.length > 0 && (
+                            <div className="td-coupon-powered-by">
+                              <span>Powered by</span>
+                              {allCouponSponsors.map((sp, idx) => (
+                                <span key={sp.name}>
+                                  {idx > 0 && <span className="td-coupon-powered-sep"> + </span>}
+                                  {sp.link ? (
+                                    <a
+                                      href={sp.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="td-coupon-sponsor-link"
+                                    >
+                                      {sp.name} ↗
+                                    </a>
+                                  ) : (
+                                    <span className="td-coupon-sponsor-link">{sp.name}</span>
+                                  )}
                                 </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Placement coupon rows */}
+                          {(cd.tiers || []).map((tier, idx) => (
+                            <div key={tier.rank} className="td-coupon-tier">
+                              <p className="td-coupon-tier-rank">
+                                {couponMedals[idx] || '🏆'} {tier.rank} Place
+                              </p>
+                              <div className="td-coupon-tier-chips">
+                                {(tier.coupons || []).map((coupon, cIdx) => (
+                                  <a
+                                    key={cIdx}
+                                    href={coupon.link || undefined}
+                                    target={coupon.link ? '_blank' : undefined}
+                                    rel="noopener noreferrer"
+                                    className={`td-coupon-amount-chip${coupon.link ? ' clickable' : ''}`}
+                                  >
+                                    <span className="td-coupon-chip-sponsor">{coupon.name}</span>
+                                    <span className="td-coupon-chip-amount">
+                                      {Number(coupon.amount).toLocaleString('en-IN')} coupons
+                                    </span>
+                                  </a>
+                                ))}
                               </div>
                             </div>
-                          );
-                        })}
-                      </>
-                    );
-                  })()}
+                          ))}
 
-                  <p className="td-prize-total">
-                    Total Prize Pool:{' '}
-                    <strong style={{ color: '#f9c22a' }}>₹{tournament.prize_pool}</strong>
-                  </p>
-                </div>
+                          <p className="td-coupon-footer">
+                            Tap a coupon to visit the partner site and redeem.
+                          </p>
+
+                          {/* Coupon special awards */}
+                          {(cd.special_awards || []).length > 0 && (
+                            <div className="td-special-awards">
+                              <p className="td-special-awards-heading">⭐ Special Awards</p>
+                              {(cd.special_awards || []).map((award, aIdx) => (
+                                <div key={aIdx} className="td-coupon-special-award">
+                                  <p className="td-coupon-special-name">{award.name}</p>
+                                  <div className="td-coupon-tier-chips">
+                                    {(award.coupons || []).map((coupon, cIdx) => (
+                                      <a
+                                        key={cIdx}
+                                        href={coupon.link || undefined}
+                                        target={coupon.link ? '_blank' : undefined}
+                                        rel="noopener noreferrer"
+                                        className={`td-coupon-amount-chip${coupon.link ? ' clickable' : ''}`}
+                                      >
+                                        <span className="td-coupon-chip-sponsor">
+                                          {coupon.name}
+                                        </span>
+                                        <span className="td-coupon-chip-amount">
+                                          {Number(coupon.amount).toLocaleString('en-IN')} coupons
+                                        </span>
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -1574,6 +1736,253 @@ const TournamentDetail = () => {
                   </a>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ── Tab: Calendar ── */}
+          {activeTab === 'calendar' && (
+            <div className="td-tab-panel" role="tabpanel">
+              {(() => {
+                const regStart = tournament.registration_start
+                  ? new Date(tournament.registration_start)
+                  : null;
+                const regEnd = tournament.registration_end
+                  ? new Date(tournament.registration_end)
+                  : null;
+                const roundDates = tournament.round_dates || {};
+                const roundNames = tournament.round_names || {};
+                const totalRounds = Object.keys(roundDates).length;
+
+                // Color palette per round index (0-based)
+                const ROUND_COLORS = [
+                  '#7c3aed', // Round 1 — purple (Qualifiers)
+                  '#4c1d95', // Round 2 — dark purple (QF)
+                  '#a16207', // Round 3 — olive (Semi Finals)
+                  '#92400e', // Round 4 — dark gold (Finals)
+                  '#d97706', // Round 5+ — gold (Grand Finals)
+                ];
+
+                // Build date → { label, color } map
+                const dateMap = {};
+                const eachDay = (start, end) => {
+                  const days = [];
+                  const cur = new Date(start);
+                  cur.setHours(0, 0, 0, 0);
+                  const endD = new Date(end);
+                  endD.setHours(0, 0, 0, 0);
+                  while (cur <= endD) {
+                    days.push(cur.toISOString().slice(0, 10));
+                    cur.setDate(cur.getDate() + 1);
+                  }
+                  return days;
+                };
+
+                // Registration period
+                if (regStart && regEnd) {
+                  eachDay(regStart, regEnd).forEach((d) => {
+                    dateMap[d] = { label: 'Reg Open', color: '#22c55e' };
+                  });
+                }
+
+                // Each round
+                const roundNums = Object.keys(roundDates)
+                  .map(Number)
+                  .sort((a, b) => a - b);
+                roundNums.forEach((rNum, idx) => {
+                  const rd = roundDates[String(rNum)];
+                  if (!rd?.start_date || !rd?.end_date) return;
+                  const isLast = rNum === Math.max(...roundNums);
+                  const color = isLast
+                    ? '#d97706'
+                    : ROUND_COLORS[Math.min(idx, ROUND_COLORS.length - 2)];
+                  const label = roundNames[String(rNum)] || `Round ${rNum}`;
+                  eachDay(new Date(rd.start_date), new Date(rd.end_date)).forEach((d) => {
+                    dateMap[d] = { label, color };
+                  });
+                });
+
+                // Rest days: days between rounds that are in the tournament span but have no event
+                if (roundNums.length > 0 && regStart) {
+                  const lastRound = roundDates[String(Math.max(...roundNums))];
+                  const spanEnd = lastRound?.end_date ? new Date(lastRound.end_date) : regEnd;
+                  if (spanEnd) {
+                    eachDay(regStart, spanEnd).forEach((d) => {
+                      if (!dateMap[d]) {
+                        dateMap[d] = { label: 'Rest', color: '#374151' };
+                      }
+                    });
+                  }
+                }
+
+                // Determine which months to render
+                const allDates = Object.keys(dateMap).sort();
+                if (allDates.length === 0) {
+                  return (
+                    <p style={{ color: 'hsl(220 5% 55%)', fontSize: 13 }}>
+                      No tournament dates configured yet.
+                    </p>
+                  );
+                }
+
+                const firstDate = new Date(allDates[0]);
+                const lastDate = new Date(allDates[allDates.length - 1]);
+                firstDate.setDate(1);
+                lastDate.setDate(1);
+
+                const months = [];
+                const cur = new Date(firstDate);
+                while (cur <= lastDate) {
+                  months.push({ year: cur.getFullYear(), month: cur.getMonth() });
+                  cur.setMonth(cur.getMonth() + 1);
+                }
+
+                const MONTH_NAMES = [
+                  'January',
+                  'February',
+                  'March',
+                  'April',
+                  'May',
+                  'June',
+                  'July',
+                  'August',
+                  'September',
+                  'October',
+                  'November',
+                  'December',
+                ];
+                const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+                // Build legend from unique events present
+                const seenLabels = new Set();
+                const legendItems = [];
+                Object.values(dateMap).forEach(({ label, color }) => {
+                  if (!seenLabels.has(label)) {
+                    seenLabels.add(label);
+                    legendItems.push({ label, color });
+                  }
+                });
+
+                return (
+                  <>
+                    <p className="td-section-heading">📅 Tournament Calendar</p>
+                    <div className="td-calendar-months">
+                      {months.map(({ year, month }) => {
+                        const firstDay = new Date(year, month, 1).getDay();
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
+                        // Build cells: leading empties + day numbers
+                        const cells = Array(firstDay).fill(null);
+                        for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+                        return (
+                          <div key={`${year}-${month}`} className="td-calendar-month">
+                            <p className="td-calendar-month-title">
+                              {MONTH_NAMES[month]} {year}
+                            </p>
+                            <div className="td-calendar-grid">
+                              {DOW.map((d, i) => (
+                                <span key={i} className="td-calendar-dow">
+                                  {d}
+                                </span>
+                              ))}
+                              {cells.map((day, i) => {
+                                if (!day)
+                                  return <div key={`e-${i}`} className="td-calendar-cell-empty" />;
+                                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                const evt = dateMap[dateStr];
+                                return (
+                                  <div
+                                    key={dateStr}
+                                    className={`td-calendar-cell${evt ? ' td-calendar-cell-event' : ''}`}
+                                    style={
+                                      evt
+                                        ? {
+                                            background: evt.color + '28',
+                                            borderColor: evt.color + '80',
+                                          }
+                                        : {}
+                                    }
+                                  >
+                                    <span className="td-calendar-day-num">{day}</span>
+                                    {evt && (
+                                      <span
+                                        className="td-calendar-day-label"
+                                        style={{ color: evt.color }}
+                                      >
+                                        {evt.label}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Legend */}
+                    <div className="td-calendar-legend">
+                      {legendItems.map(({ label, color }) => (
+                        <span key={label} className="td-calendar-legend-item">
+                          <span className="td-calendar-legend-dot" style={{ background: color }} />
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ── Tab: Roadmap ── */}
+          {activeTab === 'roadmap' && (
+            <div className="td-tab-panel" role="tabpanel">
+              {(() => {
+                const rounds = Array.isArray(tournament.rounds) ? tournament.rounds : [];
+                const roundNames = tournament.round_names || {};
+
+                if (rounds.length === 0) {
+                  return (
+                    <p style={{ color: 'hsl(220 5% 55%)', fontSize: 13 }}>
+                      No round structure configured yet.
+                    </p>
+                  );
+                }
+
+                const stages = rounds.map((r, idx) => {
+                  const stageName = roundNames[String(r.round)] || `Round ${r.round}`;
+                  const nextName = roundNames[String(r.round + 1)];
+                  const isLast = idx === rounds.length - 1;
+                  const advancement = isLast
+                    ? `Top ${r.qualifying_teams || r.max_teams} earn prize points & trophy`
+                    : `Top ${r.qualifying_teams} advance to ${nextName || 'next stage'}`;
+                  return { stageNum: r.round, stageName, teams: r.max_teams, advancement, isLast };
+                });
+
+                return (
+                  <>
+                    <p className="td-section-heading">🗺 Tournament Roadmap</p>
+                    <div className="td-roadmap-flow">
+                      {stages.map((stage, idx) => (
+                        <div key={stage.stageNum} className="td-roadmap-stage-wrap">
+                          <div
+                            className={`td-roadmap-card${stage.isLast ? ' td-roadmap-card-final' : ''}`}
+                          >
+                            <p className="td-roadmap-stage-label">STAGE {stage.stageNum}</p>
+                            <p className="td-roadmap-name">{stage.stageName.toUpperCase()}</p>
+                            {stage.teams > 0 && (
+                              <span className="td-roadmap-teams-badge">{stage.teams} TEAMS</span>
+                            )}
+                            <p className="td-roadmap-advancement">{stage.advancement}</p>
+                          </div>
+                          {idx < stages.length - 1 && <span className="td-roadmap-arrow">›</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 

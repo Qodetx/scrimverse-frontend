@@ -269,7 +269,8 @@ const PlayerProfile = () => {
                 </div>
                 <div className="text-center p-3 bg-secondary/20 rounded-lg">
                   <div className="text-xl font-bold text-green-400">
-                    {player.player_profile?.tournament_wins || 0}
+                    {(player.player_profile?.tournament_wins || 0) +
+                      (player.player_profile?.scrim_wins || 0)}
                   </div>
                   <div className="text-[10px] text-muted-foreground">Wins</div>
                 </div>

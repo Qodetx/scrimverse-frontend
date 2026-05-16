@@ -466,6 +466,40 @@ const CredentialCard = ({ registration }) => {
             </div>
           )}
 
+          {/* ── My group + slot chip ── */}
+          {(() => {
+            const myGroupName = (currentGroups || []).reduce((found, g, gIdx) => {
+              if (found) return found;
+              const inGroup = (g.teams || []).some(
+                (t) => (t.team_name || '').toLowerCase() === registration.team_name.toLowerCase()
+              );
+              return inGroup ? g.group_name || `Group ${gIdx + 1}` : null;
+            }, null);
+
+            let mySlot = null;
+            let counter = 0;
+            for (const g of currentGroups || []) {
+              for (const t of g.teams || []) {
+                counter++;
+                if ((t.team_name || '').toLowerCase() === registration.team_name.toLowerCase()) {
+                  mySlot = counter;
+                  break;
+                }
+              }
+              if (mySlot) break;
+            }
+            const mySlotPadded = mySlot ? String(mySlot).padStart(2, '0') : null;
+
+            if (!myGroupName && !mySlotPadded) return null;
+            return (
+              <div className="credentials-group-chip">
+                {registration.team_name}
+                {myGroupName ? ` · ${myGroupName}` : ''}
+                {mySlotPadded ? ` · Slot ${mySlotPadded}` : ''}
+              </div>
+            );
+          })()}
+
           {/* ── Credentials box ── */}
           <div className="credentials-creds-box">
             {/* Header row */}

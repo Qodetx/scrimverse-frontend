@@ -143,6 +143,15 @@ const CreateTournament = () => {
     { place: '2nd', amount: 3000 },
     { place: '3rd', amount: 2000 },
   ]);
+
+  // Special Awards (cash)
+  const [specialAwards, setSpecialAwards] = useState([]);
+
+  // Coupon Prizes
+  const [couponTiers, setCouponTiers] = useState([
+    { rank: '1st', coupons: [{ name: '', link: '', amount: '' }] },
+  ]);
+  const [couponSpecialAwards, setCouponSpecialAwards] = useState([]);
   const [placementPoints, setPlacementPoints] = useState([
     { position: 1, points: 10 },
     { position: 2, points: 6 },
@@ -337,6 +346,44 @@ const CreateTournament = () => {
         prizeDistributionObj[item.place] = parseInt(item.amount) || 0;
       });
       formDataToSend.append('prize_distribution', JSON.stringify(prizeDistributionObj));
+
+      // Special Awards (cash)
+      const validSpecialAwards = specialAwards.filter((a) => a.name.trim());
+      if (validSpecialAwards.length > 0) {
+        formDataToSend.append('special_awards', JSON.stringify(validSpecialAwards));
+      }
+
+      // Coupon Prizes
+      const validCouponTiers = couponTiers
+        .filter((t) => t.rank.trim() && t.coupons.some((c) => c.name.trim()))
+        .map((t) => ({
+          rank: t.rank.trim(),
+          coupons: t.coupons
+            .filter((c) => c.name.trim())
+            .map((c) => ({
+              name: c.name.trim(),
+              link: c.link.trim(),
+              amount: Number(c.amount) || 0,
+            })),
+        }));
+      const validCouponSpecial = couponSpecialAwards
+        .filter((a) => a.name.trim() && a.coupons.some((c) => c.name.trim()))
+        .map((a) => ({
+          name: a.name.trim(),
+          coupons: a.coupons
+            .filter((c) => c.name.trim())
+            .map((c) => ({
+              name: c.name.trim(),
+              link: c.link.trim(),
+              amount: Number(c.amount) || 0,
+            })),
+        }));
+      if (validCouponTiers.length > 0 || validCouponSpecial.length > 0) {
+        formDataToSend.append(
+          'coupon_distribution',
+          JSON.stringify({ tiers: validCouponTiers, special_awards: validCouponSpecial })
+        );
+      }
 
       const shouldIncludePlacementPoints = !['Valorant', 'COD'].includes(formData.game_name);
       if (shouldIncludePlacementPoints) {
@@ -945,6 +992,297 @@ const CreateTournament = () => {
                     <p className="text-xs text-[hsl(var(--destructive))]">{prizeError}</p>
                   </div>
                 )}
+
+                {/* Special Awards (cash) */}
+                <div className="space-y-2 pt-2 border-t border-[hsl(var(--border)/0.4)]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                      ⭐ Special Awards (Cash)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setSpecialAwards((p) => [...p, { name: '', amount: '' }])}
+                      className="flex items-center gap-1 text-xs text-[hsl(var(--foreground))] hover:text-[hsl(var(--accent))] transition-colors"
+                    >
+                      <Plus className="w-3 h-3" /> Add Award
+                    </button>
+                  </div>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                    e.g. Best IGL Award, MVP Award
+                  </p>
+                  {specialAwards.map((award, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={award.name}
+                        placeholder="Award name"
+                        onChange={(e) => {
+                          const updated = [...specialAwards];
+                          updated[idx] = { ...updated[idx], name: e.target.value };
+                          setSpecialAwards(updated);
+                        }}
+                        className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-sm px-3 py-2 text-[hsl(var(--foreground))] focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors h-9"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        value={award.amount}
+                        placeholder="₹ Amount"
+                        onChange={(e) => {
+                          const updated = [...specialAwards];
+                          updated[idx] = { ...updated[idx], amount: e.target.value };
+                          setSpecialAwards(updated);
+                        }}
+                        className="w-28 bg-black border border-[hsl(var(--border))] rounded-lg text-sm px-3 py-2 text-[hsl(var(--foreground))] focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors h-9"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSpecialAwards((p) => p.filter((_, i) => i !== idx))}
+                        className="flex items-center justify-center w-8 h-8 text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/0.1)] rounded-md transition-colors flex-shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Coupon Prizes */}
+                <div className="space-y-3 pt-2 border-t border-[hsl(var(--border)/0.4)]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                      🎟 Coupon Prizes
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCouponTiers((p) => [
+                          ...p,
+                          {
+                            rank: `${p.length + 1}${['th', 'st', 'nd', 'rd'][(p.length + 1) % 10] || 'th'}`,
+                            coupons: [{ name: '', link: '', amount: '' }],
+                          },
+                        ])
+                      }
+                      className="flex items-center gap-1 text-xs text-[hsl(var(--foreground))] hover:text-[hsl(var(--accent))] transition-colors"
+                    >
+                      <Plus className="w-3 h-3" /> Add Placement
+                    </button>
+                  </div>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                    Add coupon prizes from sponsors (e.g. SPINBOT, UniPin) per placement.
+                  </p>
+
+                  {couponTiers.map((tier, tIdx) => (
+                    <div
+                      key={tIdx}
+                      className="rounded-lg border border-[hsl(var(--border)/0.5)] p-3 space-y-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={tier.rank}
+                          placeholder="Placement (e.g. 1st)"
+                          onChange={(e) => {
+                            const updated = [...couponTiers];
+                            updated[tIdx] = { ...updated[tIdx], rank: e.target.value };
+                            setCouponTiers(updated);
+                          }}
+                          className="w-24 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                        />
+                        <span className="text-xs text-[hsl(var(--muted-foreground))] flex-1">
+                          Place
+                        </span>
+                        {couponTiers.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setCouponTiers((p) => p.filter((_, i) => i !== tIdx))}
+                            className="text-xs text-[hsl(var(--destructive))] hover:underline"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      {tier.coupons.map((coupon, cIdx) => (
+                        <div key={cIdx} className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={coupon.name}
+                            placeholder="Sponsor name"
+                            onChange={(e) => {
+                              const updated = [...couponTiers];
+                              updated[tIdx].coupons[cIdx] = { ...coupon, name: e.target.value };
+                              setCouponTiers(updated);
+                            }}
+                            className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                          />
+                          <input
+                            type="text"
+                            value={coupon.link}
+                            placeholder="Website link"
+                            onChange={(e) => {
+                              const updated = [...couponTiers];
+                              updated[tIdx].coupons[cIdx] = { ...coupon, link: e.target.value };
+                              setCouponTiers(updated);
+                            }}
+                            className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                          />
+                          <input
+                            type="number"
+                            value={coupon.amount}
+                            placeholder="Amount"
+                            min="0"
+                            onChange={(e) => {
+                              const updated = [...couponTiers];
+                              updated[tIdx].coupons[cIdx] = { ...coupon, amount: e.target.value };
+                              setCouponTiers(updated);
+                            }}
+                            className="w-24 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                          />
+                          {tier.coupons.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...couponTiers];
+                                updated[tIdx].coupons = updated[tIdx].coupons.filter(
+                                  (_, i) => i !== cIdx
+                                );
+                                setCouponTiers(updated);
+                              }}
+                              className="text-[hsl(var(--destructive))] flex-shrink-0"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...couponTiers];
+                          updated[tIdx].coupons.push({ name: '', link: '', amount: '' });
+                          setCouponTiers(updated);
+                        }}
+                        className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                      >
+                        + Add Coupon Sponsor
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Special Coupon Awards */}
+                  <div className="space-y-2 pt-2 border-t border-[hsl(var(--border)/0.3)]">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-[hsl(var(--muted-foreground))]">
+                        Special Coupon Awards
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCouponSpecialAwards((p) => [
+                            ...p,
+                            { name: '', coupons: [{ name: '', link: '', amount: '' }] },
+                          ])
+                        }
+                        className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                      >
+                        <Plus className="w-3 h-3" /> Add
+                      </button>
+                    </div>
+                    {couponSpecialAwards.map((award, aIdx) => (
+                      <div
+                        key={aIdx}
+                        className="rounded-lg border border-[hsl(var(--border)/0.4)] p-3 space-y-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={award.name}
+                            placeholder="Award name (e.g. Best IGL Award)"
+                            onChange={(e) => {
+                              const updated = [...couponSpecialAwards];
+                              updated[aIdx] = { ...updated[aIdx], name: e.target.value };
+                              setCouponSpecialAwards(updated);
+                            }}
+                            className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCouponSpecialAwards((p) => p.filter((_, i) => i !== aIdx))
+                            }
+                            className="text-[hsl(var(--destructive))]"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                        {award.coupons.map((coupon, cIdx) => (
+                          <div key={cIdx} className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={coupon.name}
+                              placeholder="Sponsor name"
+                              onChange={(e) => {
+                                const updated = [...couponSpecialAwards];
+                                updated[aIdx].coupons[cIdx] = { ...coupon, name: e.target.value };
+                                setCouponSpecialAwards(updated);
+                              }}
+                              className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                            />
+                            <input
+                              type="text"
+                              value={coupon.link}
+                              placeholder="Website link"
+                              onChange={(e) => {
+                                const updated = [...couponSpecialAwards];
+                                updated[aIdx].coupons[cIdx] = { ...coupon, link: e.target.value };
+                                setCouponSpecialAwards(updated);
+                              }}
+                              className="flex-1 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                            />
+                            <input
+                              type="number"
+                              value={coupon.amount}
+                              placeholder="Amount"
+                              min="0"
+                              onChange={(e) => {
+                                const updated = [...couponSpecialAwards];
+                                updated[aIdx].coupons[cIdx] = { ...coupon, amount: e.target.value };
+                                setCouponSpecialAwards(updated);
+                              }}
+                              className="w-24 bg-black border border-[hsl(var(--border))] rounded-lg text-xs px-2 py-1.5 text-[hsl(var(--foreground))] focus:outline-none h-8"
+                            />
+                            {award.coupons.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...couponSpecialAwards];
+                                  updated[aIdx].coupons = updated[aIdx].coupons.filter(
+                                    (_, i) => i !== cIdx
+                                  );
+                                  setCouponSpecialAwards(updated);
+                                }}
+                                className="text-[hsl(var(--destructive))]"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...couponSpecialAwards];
+                            updated[aIdx].coupons.push({ name: '', link: '', amount: '' });
+                            setCouponSpecialAwards(updated);
+                          }}
+                          className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                        >
+                          + Add Sponsor
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Placement Points — only for non-competitive games */}
                 {!['Valorant', 'COD'].includes(formData.game_name) && (
