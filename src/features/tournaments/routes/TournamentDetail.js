@@ -1388,7 +1388,11 @@ const TournamentDetail = () => {
                                   {idx > 0 && <span className="td-coupon-powered-sep"> + </span>}
                                   {sp.link ? (
                                     <a
-                                      href={sp.link}
+                                      href={
+                                        /^https?:\/\//i.test(sp.link)
+                                          ? sp.link
+                                          : `https://${sp.link}`
+                                      }
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="td-coupon-sponsor-link"
@@ -1403,30 +1407,53 @@ const TournamentDetail = () => {
                             </div>
                           )}
 
-                          {/* Placement coupon rows */}
-                          {(cd.tiers || []).map((tier, idx) => (
-                            <div key={tier.rank} className="td-coupon-tier">
-                              <p className="td-coupon-tier-rank">
-                                {couponMedals[idx] || '🏆'} {tier.rank} Place
-                              </p>
-                              <div className="td-coupon-tier-chips">
-                                {(tier.coupons || []).map((coupon, cIdx) => (
-                                  <a
-                                    key={cIdx}
-                                    href={coupon.link || undefined}
-                                    target={coupon.link ? '_blank' : undefined}
-                                    rel="noopener noreferrer"
-                                    className={`td-coupon-amount-chip${coupon.link ? ' clickable' : ''}`}
-                                  >
-                                    <span className="td-coupon-chip-sponsor">{coupon.name}</span>
-                                    <span className="td-coupon-chip-amount">
-                                      {Number(coupon.amount).toLocaleString('en-IN')} coupons
-                                    </span>
-                                  </a>
-                                ))}
+                          {/* Placement coupon rows — group same-rank tiers into one row */}
+                          {(() => {
+                            const grouped = [];
+                            (cd.tiers || []).forEach((tier) => {
+                              const existing = grouped.find((g) => g.rank === tier.rank);
+                              if (existing) {
+                                existing.coupons.push(...(tier.coupons || []));
+                              } else {
+                                grouped.push({
+                                  rank: tier.rank,
+                                  coupons: [...(tier.coupons || [])],
+                                });
+                              }
+                            });
+                            const ensureUrl = (link) => {
+                              if (!link) return undefined;
+                              return /^https?:\/\//i.test(link) ? link : `https://${link}`;
+                            };
+                            return grouped.map((tier, idx) => (
+                              <div key={tier.rank} className="td-coupon-tier">
+                                <p className="td-coupon-tier-rank">
+                                  {couponMedals[idx] || '🏆'} {tier.rank} Place
+                                </p>
+                                <div className="td-coupon-tier-chips">
+                                  {(tier.coupons || []).map((coupon, cIdx) => {
+                                    const url = ensureUrl(coupon.link);
+                                    return (
+                                      <a
+                                        key={cIdx}
+                                        href={url}
+                                        target={url ? '_blank' : undefined}
+                                        rel="noopener noreferrer"
+                                        className={`td-coupon-amount-chip${url ? ' clickable' : ''}`}
+                                      >
+                                        <span className="td-coupon-chip-sponsor">
+                                          {coupon.name}
+                                        </span>
+                                        <span className="td-coupon-chip-amount">
+                                          {Number(coupon.amount).toLocaleString('en-IN')} coupons
+                                        </span>
+                                      </a>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ));
+                          })()}
 
                           <p className="td-coupon-footer">
                             Tap a coupon to visit the partner site and redeem.
@@ -1440,22 +1467,29 @@ const TournamentDetail = () => {
                                 <div key={aIdx} className="td-coupon-special-award">
                                   <p className="td-coupon-special-name">{award.name}</p>
                                   <div className="td-coupon-tier-chips">
-                                    {(award.coupons || []).map((coupon, cIdx) => (
-                                      <a
-                                        key={cIdx}
-                                        href={coupon.link || undefined}
-                                        target={coupon.link ? '_blank' : undefined}
-                                        rel="noopener noreferrer"
-                                        className={`td-coupon-amount-chip${coupon.link ? ' clickable' : ''}`}
-                                      >
-                                        <span className="td-coupon-chip-sponsor">
-                                          {coupon.name}
-                                        </span>
-                                        <span className="td-coupon-chip-amount">
-                                          {Number(coupon.amount).toLocaleString('en-IN')} coupons
-                                        </span>
-                                      </a>
-                                    ))}
+                                    {(award.coupons || []).map((coupon, cIdx) => {
+                                      const awardUrl = coupon.link
+                                        ? /^https?:\/\//i.test(coupon.link)
+                                          ? coupon.link
+                                          : `https://${coupon.link}`
+                                        : undefined;
+                                      return (
+                                        <a
+                                          key={cIdx}
+                                          href={awardUrl}
+                                          target={awardUrl ? '_blank' : undefined}
+                                          rel="noopener noreferrer"
+                                          className={`td-coupon-amount-chip${awardUrl ? ' clickable' : ''}`}
+                                        >
+                                          <span className="td-coupon-chip-sponsor">
+                                            {coupon.name}
+                                          </span>
+                                          <span className="td-coupon-chip-amount">
+                                            {Number(coupon.amount).toLocaleString('en-IN')} coupons
+                                          </span>
+                                        </a>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               ))}
@@ -1835,6 +1869,13 @@ const TournamentDetail = () => {
                   months.push({ year: cur.getFullYear(), month: cur.getMonth() });
                   cur.setMonth(cur.getMonth() + 1);
                 }
+                // Pad with up to 2 empty months so the row looks filled
+                const targetMonths = Math.max(months.length, 3);
+                while (months.length < targetMonths) {
+                  const last = months[months.length - 1];
+                  const next = new Date(last.year, last.month + 1, 1);
+                  months.push({ year: next.getFullYear(), month: next.getMonth() });
+                }
 
                 const MONTH_NAMES = [
                   'January',
@@ -1955,8 +1996,8 @@ const TournamentDetail = () => {
                   const nextName = roundNames[String(r.round + 1)];
                   const isLast = idx === rounds.length - 1;
                   const advancement = isLast
-                    ? `Top ${r.qualifying_teams || r.max_teams} earn prize points & trophy`
-                    : `Top ${r.qualifying_teams} advance to ${nextName || 'next stage'}`;
+                    ? `Top ${r.qualifying_teams || r.max_teams || 1} earn prize points & trophy`
+                    : `Top ${r.qualifying_teams || r.max_teams || '?'} advance to ${nextName || 'next stage'}`;
                   return { stageNum: r.round, stageName, teams: r.max_teams, advancement, isLast };
                 });
 

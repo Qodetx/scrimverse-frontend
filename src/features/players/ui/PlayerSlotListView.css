@@ -150,17 +150,17 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  background: hsl(var(--purple) / 0.15);
-  border: 1px solid hsl(var(--purple) / 0.4);
-  color: hsl(var(--purple));
+  background: #ffffff;
+  border: 1px solid #ffffff;
+  color: #000000;
   transition:
     background 0.2s,
     border-color 0.2s;
 }
 
 .sl-community-permanent-btn:hover {
-  background: hsl(var(--purple) / 0.25);
-  border-color: hsl(var(--purple) / 0.7);
+  background: #f0f0f0;
+  border-color: #f0f0f0;
 }
 
 .sl-community-dropdown {

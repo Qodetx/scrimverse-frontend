@@ -177,6 +177,8 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
   const [sponsorLogoPreview, setSponsorLogoPreview] = useState(null);
   const [sponsorSaving, setSponsorSaving] = useState(false);
   const [sponsorError, setSponsorError] = useState('');
+  const [editingSponsor, setEditingSponsor] = useState(null); // { id, name, sponsor_type, website_url, logo, logoPreview }
+  const [editSponsorSaving, setEditSponsorSaving] = useState(false);
 
   // 5v5 lobby preview (inline, not a modal)
   const [lobbyPreview, setLobbyPreview] = useState(null); // { lobbies, bestOf, qualifyingPerGroup, roundNumber }
@@ -612,6 +614,27 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       // Revert on failure
       await fetchSponsors();
       showToast('Failed to reorder sponsors', 'error');
+    }
+  };
+
+  const handleSaveEditSponsor = async () => {
+    if (!editingSponsor?.name?.trim()) return;
+    setEditSponsorSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('name', editingSponsor.name.trim());
+      fd.append('sponsor_type', editingSponsor.sponsor_type.trim());
+      if (editingSponsor.website_url.trim())
+        fd.append('website_url', editingSponsor.website_url.trim());
+      if (editingSponsor.logo instanceof File) fd.append('logo', editingSponsor.logo);
+      await sponsorAPI.update(id, editingSponsor.id, fd);
+      setEditingSponsor(null);
+      await fetchSponsors();
+      showToast('Sponsor updated', 'success');
+    } catch {
+      showToast('Failed to update sponsor', 'error');
+    } finally {
+      setEditSponsorSaving(false);
     }
   };
 
@@ -2527,40 +2550,12 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                 </div>
               </div>
 
-              {tournament.status === 'upcoming' && (
-                <>
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/20">
-                    <button
-                      onClick={handleSaveChanges}
-                      className="flex-1 bg-accent hover:bg-accent/90 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors"
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={handleEditToggle}
-                      className="flex-1 bg-secondary/50 text-muted-foreground px-5 py-2.5 rounded-lg font-medium text-sm border border-border/30 hover:bg-secondary transition-colors"
-                    >
-                      Discard
-                    </button>
-                  </div>
-
-                  <p className="mt-4 text-muted-foreground text-xs bg-accent/5 border border-accent/10 rounded-lg px-4 py-3">
-                    <strong className="text-foreground">Note:</strong> Some parameters are locked
-                    once the tournament starts.
-                  </p>
-                </>
-              )}
-
-              {tournament.status !== 'upcoming' && (
-                <p className="mt-4 text-muted-foreground text-xs bg-secondary/30 border border-border/20 rounded-lg px-4 py-3">
-                  <strong className="text-foreground">Locked:</strong> Editing is disabled after the
-                  tournament starts.
-                </p>
-              )}
-
-              {/* ── Sponsors ── */}
+              {/* ── Sponsors ── (managed independently — no Save required) */}
               <hr className="border-[hsl(var(--border)/0.2)] my-6" />
               <div className="info-grid-card rounded-xl p-6">
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mb-4 bg-[hsl(var(--secondary)/0.4)] border border-[hsl(var(--border)/0.2)] rounded-lg px-3 py-2">
+                  Sponsors are saved immediately — no need to click Save Changes above.
+                </p>
                 <div className="flex items-center gap-2 mb-5">
                   <h2 className="text-lg font-bold text-[hsl(var(--foreground))]">Sponsors</h2>
                   {sponsors.length > 0 && (
@@ -2658,79 +2653,212 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                 {sponsors.length > 0 && (
                   <div className="space-y-2">
                     {sponsors.map((sp, idx) => (
-                      <div
-                        key={sp.id}
-                        className="flex items-center gap-3 p-3 bg-[hsl(var(--card)/0.6)] border border-[hsl(var(--border)/0.25)] rounded-xl"
-                      >
-                        {sp.logo ? (
-                          <img
-                            src={sp.logo}
-                            alt={sp.name}
-                            className="w-12 h-12 rounded-lg object-cover border border-[hsl(var(--border)/0.3)] shrink-0"
-                          />
+                      <div key={sp.id}>
+                        {editingSponsor?.id === sp.id ? (
+                          /* ── Inline edit form ── */
+                          <div className="p-4 bg-[hsl(var(--card)/0.8)] border border-[hsl(var(--accent)/0.3)] rounded-xl space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                                  Sponsor Name *
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editingSponsor.name}
+                                  onChange={(e) =>
+                                    setEditingSponsor((s) => ({ ...s, name: e.target.value }))
+                                  }
+                                  className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                                  Sponsor Type
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editingSponsor.sponsor_type}
+                                  onChange={(e) =>
+                                    setEditingSponsor((s) => ({
+                                      ...s,
+                                      sponsor_type: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="e.g. Title Sponsor"
+                                  className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                                  Website URL
+                                </label>
+                                <input
+                                  type="url"
+                                  value={editingSponsor.website_url}
+                                  onChange={(e) =>
+                                    setEditingSponsor((s) => ({
+                                      ...s,
+                                      website_url: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="https://example.com"
+                                  className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                                  Logo (optional)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  {(editingSponsor.logoPreview || editingSponsor.existingLogo) && (
+                                    <img
+                                      src={
+                                        editingSponsor.logoPreview || editingSponsor.existingLogo
+                                      }
+                                      alt="preview"
+                                      className="w-10 h-10 rounded-lg object-cover border border-[hsl(var(--border)/0.3)] shrink-0"
+                                    />
+                                  )}
+                                  <label className="flex-1 cursor-pointer px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] border-dashed rounded-lg text-[hsl(var(--muted-foreground))] text-xs text-center hover:border-[hsl(var(--accent)/0.4)] transition-colors">
+                                    {editingSponsor.logo instanceof File
+                                      ? editingSponsor.logo.name
+                                      : 'Click to change logo'}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (!file) return;
+                                        setEditingSponsor((s) => ({
+                                          ...s,
+                                          logo: file,
+                                          logoPreview: URL.createObjectURL(file),
+                                        }));
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => setEditingSponsor(null)}
+                                className="px-4 py-1.5 text-sm text-[hsl(var(--muted-foreground))] border border-[hsl(var(--border)/0.3)] rounded-lg hover:bg-[hsl(var(--secondary))] transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleSaveEditSponsor}
+                                disabled={editSponsorSaving}
+                                className="px-4 py-1.5 text-sm bg-[hsl(var(--accent))] text-white rounded-lg hover:bg-[hsl(var(--accent)/0.85)] transition-colors disabled:opacity-60"
+                              >
+                                {editSponsorSaving ? 'Saving…' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-lg bg-[hsl(var(--secondary))] flex items-center justify-center shrink-0 text-[hsl(var(--muted-foreground))] text-xl font-bold">
-                            {sp.name.charAt(0).toUpperCase()}
+                          /* ── Read-only card ── */
+                          <div className="flex items-center gap-3 p-3 bg-[hsl(var(--card)/0.6)] border border-[hsl(var(--border)/0.25)] rounded-xl">
+                            {sp.logo ? (
+                              <img
+                                src={sp.logo}
+                                alt={sp.name}
+                                className="w-12 h-12 rounded-lg object-cover border border-[hsl(var(--border)/0.3)] shrink-0"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-[hsl(var(--secondary))] flex items-center justify-center shrink-0 text-[hsl(var(--muted-foreground))] text-xl font-bold">
+                                {sp.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-[hsl(var(--foreground))] truncate">
+                                {sp.name}
+                              </p>
+                              {sp.sponsor_type && (
+                                <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">
+                                  {sp.sponsor_type}
+                                </p>
+                              )}
+                              {sp.website_url && (
+                                <a
+                                  href={sp.website_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-[hsl(var(--accent))] truncate hover:underline"
+                                >
+                                  {sp.website_url}
+                                </a>
+                              )}
+                            </div>
+                            {/* Edit button */}
+                            <button
+                              onClick={() =>
+                                setEditingSponsor({
+                                  id: sp.id,
+                                  name: sp.name,
+                                  sponsor_type: sp.sponsor_type || '',
+                                  website_url: sp.website_url || '',
+                                  logo: null,
+                                  logoPreview: null,
+                                  existingLogo: sp.logo || null,
+                                })
+                              }
+                              className="p-1.5 rounded-lg hover:bg-[hsl(var(--accent)/0.15)] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--accent))] transition-colors shrink-0"
+                              title="Edit sponsor"
+                            >
+                              <svg
+                                width="15"
+                                height="15"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
+                            {/* Reorder buttons */}
+                            <div className="flex flex-col gap-0.5">
+                              <button
+                                onClick={() => handleMoveOrder(sp.id, 'up')}
+                                disabled={idx === 0}
+                                className="p-1 rounded hover:bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] disabled:opacity-30 transition-colors"
+                                title="Move up"
+                              >
+                                ▲
+                              </button>
+                              <button
+                                onClick={() => handleMoveOrder(sp.id, 'down')}
+                                disabled={idx === sponsors.length - 1}
+                                className="p-1 rounded hover:bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] disabled:opacity-30 transition-colors"
+                                title="Move down"
+                              >
+                                ▼
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveSponsor(sp.id)}
+                              className="p-1.5 rounded-lg hover:bg-red-500/15 text-red-400 transition-colors shrink-0"
+                              title="Remove sponsor"
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                                <path d="M10 11v6M14 11v6" />
+                                <path d="M9 6V4h6v2" />
+                              </svg>
+                            </button>
                           </div>
                         )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[hsl(var(--foreground))] truncate">
-                            {sp.name}
-                          </p>
-                          {sp.sponsor_type && (
-                            <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">
-                              {sp.sponsor_type}
-                            </p>
-                          )}
-                          {sp.website_url && (
-                            <a
-                              href={sp.website_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-[hsl(var(--accent))] truncate hover:underline"
-                            >
-                              {sp.website_url}
-                            </a>
-                          )}
-                        </div>
-                        {/* Reorder buttons */}
-                        <div className="flex flex-col gap-0.5">
-                          <button
-                            onClick={() => handleMoveOrder(sp.id, 'up')}
-                            disabled={idx === 0}
-                            className="p-1 rounded hover:bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] disabled:opacity-30 transition-colors"
-                            title="Move up"
-                          >
-                            ▲
-                          </button>
-                          <button
-                            onClick={() => handleMoveOrder(sp.id, 'down')}
-                            disabled={idx === sponsors.length - 1}
-                            className="p-1 rounded hover:bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))] disabled:opacity-30 transition-colors"
-                            title="Move down"
-                          >
-                            ▼
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveSponsor(sp.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-500/15 text-red-400 transition-colors shrink-0"
-                          title="Remove sponsor"
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-                            <path d="M10 11v6M14 11v6" />
-                            <path d="M9 6V4h6v2" />
-                          </svg>
-                        </button>
                       </div>
                     ))}
                   </div>
@@ -2742,6 +2870,36 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                   </p>
                 )}
               </div>
+
+              {tournament.status === 'upcoming' && (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/20 mt-6">
+                    <button
+                      onClick={handleSaveChanges}
+                      className="flex-1 bg-accent hover:bg-accent/90 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={handleEditToggle}
+                      className="flex-1 bg-secondary/50 text-muted-foreground px-5 py-2.5 rounded-lg font-medium text-sm border border-border/30 hover:bg-secondary transition-colors"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                  <p className="mt-4 text-muted-foreground text-xs bg-accent/5 border border-accent/10 rounded-lg px-4 py-3">
+                    <strong className="text-foreground">Note:</strong> Some parameters are locked
+                    once the tournament starts.
+                  </p>
+                </>
+              )}
+
+              {tournament.status !== 'upcoming' && (
+                <p className="mt-4 text-muted-foreground text-xs bg-secondary/30 border border-border/20 rounded-lg px-4 py-3">
+                  <strong className="text-foreground">Locked:</strong> Editing is disabled after the
+                  tournament starts.
+                </p>
+              )}
             </div>
           )}
 
