@@ -254,6 +254,49 @@ const IconBadgeCheck = () => (
     />
   </svg>
 );
+const IconChevronRight = ({ style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style || { width: 20, height: 20 }}
+  >
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+);
+const IconCalendar = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 15, height: 15 }}
+  >
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+const IconTicket = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ width: 14, height: 14 }}
+  >
+    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+    <line x1="9" y1="9" x2="9" y2="15" strokeDasharray="2 2" />
+  </svg>
+);
 
 /* ═══════════════════════════════════════════════════════════
    COMPONENT
@@ -1298,13 +1341,13 @@ const TournamentDetail = () => {
                             className={`td-prize-tab-btn${prizeTab === 'cash' ? ' active' : ''}`}
                             onClick={() => setPrizeTab('cash')}
                           >
-                            💵 Cash (INR)
+                            💰 Cash (INR)
                           </button>
                           <button
                             className={`td-prize-tab-btn${prizeTab === 'coupons' ? ' active' : ''}`}
                             onClick={() => setPrizeTab('coupons')}
                           >
-                            🎟 Coupons
+                            <IconTicket /> Coupons
                           </button>
                         </div>
                       )}
@@ -1362,141 +1405,173 @@ const TournamentDetail = () => {
                           {/* Special Awards (cash) */}
                           {hasSpecialAwards && (
                             <div className="td-special-awards">
-                              <p className="td-special-awards-heading">⭐ Special Awards</p>
-                              {tournament.special_awards.map((award, idx) => (
-                                <div key={idx} className="td-special-award-row">
-                                  <span className="td-special-award-name">{award.name}</span>
-                                  <span className="td-special-award-amount">
-                                    {formatPrize(parseInt(award.amount) || 0)}
-                                  </span>
-                                </div>
-                              ))}
+                              <p className="td-special-awards-heading">
+                                <IconStar /> Special Awards
+                              </p>
+                              <div className="td-special-awards-grid">
+                                {tournament.special_awards.map((award, idx) => (
+                                  <div key={idx} className="td-special-award-row">
+                                    <span className="td-special-award-name">{award.name}</span>
+                                    <span className="td-special-award-amount">
+                                      {formatPrize(parseInt(award.amount) || 0)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </>
                       )}
 
                       {/* ── Coupons tab ── */}
-                      {hasCouponData && prizeTab === 'coupons' && (
-                        <>
-                          {/* Powered by header */}
-                          {allCouponSponsors.length > 0 && (
-                            <div className="td-coupon-powered-by">
-                              <span>Powered by</span>
-                              {allCouponSponsors.map((sp, idx) => (
-                                <span key={sp.name}>
-                                  {idx > 0 && <span className="td-coupon-powered-sep"> + </span>}
-                                  {sp.link ? (
-                                    <a
-                                      href={
-                                        /^https?:\/\//i.test(sp.link)
-                                          ? sp.link
-                                          : `https://${sp.link}`
-                                      }
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="td-coupon-sponsor-link"
-                                    >
-                                      {sp.name} ↗
-                                    </a>
-                                  ) : (
-                                    <span className="td-coupon-sponsor-link">{sp.name}</span>
-                                  )}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                      {hasCouponData &&
+                        prizeTab === 'coupons' &&
+                        (() => {
+                          const ensureUrl = (link) => {
+                            if (!link) return undefined;
+                            return /^https?:\/\//i.test(link) ? link : `https://${link}`;
+                          };
+                          // Index-based sponsor brand colors (cycles for 3+ sponsors)
+                          const CHIP_COLORS = [
+                            {
+                              bg: 'rgba(20,83,45,0.5)',
+                              border: 'rgba(34,197,94,0.28)',
+                              label: '#4ade80',
+                            },
+                            {
+                              bg: 'rgba(88,28,135,0.45)',
+                              border: 'rgba(139,92,246,0.38)',
+                              label: '#a78bfa',
+                            },
+                            {
+                              bg: 'rgba(30,58,138,0.45)',
+                              border: 'rgba(96,165,250,0.32)',
+                              label: '#60a5fa',
+                            },
+                            {
+                              bg: 'rgba(120,53,15,0.45)',
+                              border: 'rgba(251,146,60,0.32)',
+                              label: '#fb923c',
+                            },
+                          ];
+                          const tierRings = [
+                            'rgba(234,179,8,0.4)',
+                            'rgba(180,180,180,0.2)',
+                            'rgba(249,115,22,0.3)',
+                          ];
 
-                          {/* Placement coupon rows — group same-rank tiers into one row */}
-                          {(() => {
-                            const grouped = [];
-                            (cd.tiers || []).forEach((tier) => {
-                              const existing = grouped.find((g) => g.rank === tier.rank);
-                              if (existing) {
-                                existing.coupons.push(...(tier.coupons || []));
-                              } else {
-                                grouped.push({
-                                  rank: tier.rank,
-                                  coupons: [...(tier.coupons || [])],
-                                });
-                              }
+                          // Group same-rank tiers
+                          const grouped = [];
+                          (cd.tiers || []).forEach((tier) => {
+                            const existing = grouped.find((g) => g.rank === tier.rank);
+                            if (existing) existing.coupons.push(...(tier.coupons || []));
+                            else
+                              grouped.push({ rank: tier.rank, coupons: [...(tier.coupons || [])] });
+                          });
+
+                          const renderChips = (coupons) =>
+                            (coupons || []).map((coupon, cIdx) => {
+                              const url = ensureUrl(coupon.link);
+                              const chip = CHIP_COLORS[cIdx % CHIP_COLORS.length];
+                              return (
+                                <a
+                                  key={cIdx}
+                                  href={url}
+                                  target={url ? '_blank' : undefined}
+                                  rel="noopener noreferrer"
+                                  className={`td-coupon-amount-chip${url ? ' clickable' : ''}`}
+                                  style={{ background: chip.bg, borderColor: chip.border }}
+                                >
+                                  <span
+                                    className="td-coupon-chip-sponsor"
+                                    style={{ color: chip.label }}
+                                  >
+                                    {coupon.name}
+                                  </span>
+                                  <span className="td-coupon-chip-amount">
+                                    {Number(coupon.amount).toLocaleString('en-IN')} coupons
+                                  </span>
+                                </a>
+                              );
                             });
-                            const ensureUrl = (link) => {
-                              if (!link) return undefined;
-                              return /^https?:\/\//i.test(link) ? link : `https://${link}`;
-                            };
-                            return grouped.map((tier, idx) => (
-                              <div key={tier.rank} className="td-coupon-tier">
-                                <p className="td-coupon-tier-rank">
-                                  {couponMedals[idx] || '🏆'} {tier.rank} Place
-                                </p>
-                                <div className="td-coupon-tier-chips">
-                                  {(tier.coupons || []).map((coupon, cIdx) => {
-                                    const url = ensureUrl(coupon.link);
-                                    return (
-                                      <a
-                                        key={cIdx}
-                                        href={url}
-                                        target={url ? '_blank' : undefined}
-                                        rel="noopener noreferrer"
-                                        className={`td-coupon-amount-chip${url ? ' clickable' : ''}`}
-                                      >
-                                        <span className="td-coupon-chip-sponsor">
-                                          {coupon.name}
-                                        </span>
-                                        <span className="td-coupon-chip-amount">
-                                          {Number(coupon.amount).toLocaleString('en-IN')} coupons
-                                        </span>
-                                      </a>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ));
-                          })()}
 
-                          <p className="td-coupon-footer">
-                            Tap a coupon to visit the partner site and redeem.
-                          </p>
-
-                          {/* Coupon special awards */}
-                          {(cd.special_awards || []).length > 0 && (
-                            <div className="td-special-awards">
-                              <p className="td-special-awards-heading">⭐ Special Awards</p>
-                              {(cd.special_awards || []).map((award, aIdx) => (
-                                <div key={aIdx} className="td-coupon-special-award">
-                                  <p className="td-coupon-special-name">{award.name}</p>
-                                  <div className="td-coupon-tier-chips">
-                                    {(award.coupons || []).map((coupon, cIdx) => {
-                                      const awardUrl = coupon.link
-                                        ? /^https?:\/\//i.test(coupon.link)
-                                          ? coupon.link
-                                          : `https://${coupon.link}`
-                                        : undefined;
-                                      return (
+                          return (
+                            <>
+                              {/* Powered by header */}
+                              {allCouponSponsors.length > 0 && (
+                                <div className="td-coupon-powered-by">
+                                  <span>Powered by</span>
+                                  {allCouponSponsors.map((sp, idx) => (
+                                    <span key={sp.name}>
+                                      {idx > 0 && (
+                                        <span className="td-coupon-powered-sep"> + </span>
+                                      )}
+                                      {sp.link ? (
                                         <a
-                                          key={cIdx}
-                                          href={awardUrl}
-                                          target={awardUrl ? '_blank' : undefined}
+                                          href={ensureUrl(sp.link)}
+                                          target="_blank"
                                           rel="noopener noreferrer"
-                                          className={`td-coupon-amount-chip${awardUrl ? ' clickable' : ''}`}
+                                          className="td-coupon-sponsor-link"
                                         >
-                                          <span className="td-coupon-chip-sponsor">
-                                            {coupon.name}
-                                          </span>
-                                          <span className="td-coupon-chip-amount">
-                                            {Number(coupon.amount).toLocaleString('en-IN')} coupons
-                                          </span>
+                                          {sp.name} ↗
                                         </a>
-                                      );
-                                    })}
+                                      ) : (
+                                        <span className="td-coupon-sponsor-link">{sp.name}</span>
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Placement tier cards */}
+                              {grouped.map((tier, idx) => (
+                                <div
+                                  key={tier.rank}
+                                  className="td-coupon-tier-card"
+                                  style={{
+                                    boxShadow: `0 0 0 1px ${tierRings[idx] || 'rgba(255,255,255,0.08)'}`,
+                                  }}
+                                >
+                                  <div className="td-coupon-tier-header">
+                                    <span>{couponMedals[idx] || '🏆'}</span>
+                                    <span className="td-coupon-tier-rank">{tier.rank} Place</span>
+                                  </div>
+                                  <div className="td-coupon-tier-chips">
+                                    {renderChips(tier.coupons)}
                                   </div>
                                 </div>
                               ))}
-                            </div>
-                          )}
-                        </>
-                      )}
+
+                              <p className="td-coupon-footer">
+                                Tap a coupon to visit the partner site and redeem.
+                              </p>
+
+                              {/* Coupon special awards */}
+                              {(cd.special_awards || []).length > 0 && (
+                                <div className="td-special-awards">
+                                  <p className="td-special-awards-heading">
+                                    <IconStar /> Special Awards
+                                  </p>
+                                  {(cd.special_awards || []).map((award, aIdx) => (
+                                    <div
+                                      key={aIdx}
+                                      className="td-coupon-tier-card"
+                                      style={{ boxShadow: '0 0 0 1px rgba(234,179,8,0.25)' }}
+                                    >
+                                      <div className="td-coupon-tier-header">
+                                        <span style={{ fontSize: 14 }}>⭐</span>
+                                        <span className="td-coupon-tier-rank">{award.name}</span>
+                                      </div>
+                                      <div className="td-coupon-tier-chips">
+                                        {renderChips(award.coupons)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                     </div>
                   );
                 })()}
@@ -1787,13 +1862,12 @@ const TournamentDetail = () => {
                 const roundNames = tournament.round_names || {};
                 const totalRounds = Object.keys(roundDates).length;
 
-                // Color palette per round index (0-based)
+                // Color palette per round index (0-based) — matches reference stage colors
                 const ROUND_COLORS = [
-                  '#7c3aed', // Round 1 — purple (Qualifiers)
-                  '#4c1d95', // Round 2 — dark purple (QF)
-                  '#a16207', // Round 3 — olive (Semi Finals)
-                  '#92400e', // Round 4 — dark gold (Finals)
-                  '#d97706', // Round 5+ — gold (Grand Finals)
+                  '#8b5cf6', // Round 1 — purple-500 (Qualifiers)
+                  '#6d28d9', // Round 2 — purple-700 (QF)
+                  '#fde047', // Round 3 — yellow-300 (Semi Finals)
+                  '#f59e0b', // Round 4 — amber-400 (Finals)
                 ];
 
                 // Build date → { label, color } map
@@ -1814,7 +1888,7 @@ const TournamentDetail = () => {
                 // Registration period
                 if (regStart && regEnd) {
                   eachDay(regStart, regEnd).forEach((d) => {
-                    dateMap[d] = { label: 'Reg Open', color: '#22c55e' };
+                    dateMap[d] = { label: 'Reg Open', color: '#10b981' };
                   });
                 }
 
@@ -1828,7 +1902,7 @@ const TournamentDetail = () => {
                   const isLast = rNum === Math.max(...roundNums);
                   const color = isLast
                     ? '#d97706'
-                    : ROUND_COLORS[Math.min(idx, ROUND_COLORS.length - 2)];
+                    : ROUND_COLORS[Math.min(idx, ROUND_COLORS.length - 1)];
                   const label = roundNames[String(rNum)] || `Round ${rNum}`;
                   eachDay(new Date(rd.start_date), new Date(rd.end_date)).forEach((d) => {
                     dateMap[d] = { label, color };
@@ -1842,7 +1916,7 @@ const TournamentDetail = () => {
                   if (spanEnd) {
                     eachDay(regStart, spanEnd).forEach((d) => {
                       if (!dateMap[d]) {
-                        dateMap[d] = { label: 'Rest', color: '#374151' };
+                        dateMap[d] = { label: 'Rest', color: '#6b7280' };
                       }
                     });
                   }
@@ -1869,8 +1943,8 @@ const TournamentDetail = () => {
                   months.push({ year: cur.getFullYear(), month: cur.getMonth() });
                   cur.setMonth(cur.getMonth() + 1);
                 }
-                // Pad with up to 2 empty months so the row looks filled
-                const targetMonths = Math.max(months.length, 3);
+                // Always show at least 2 months side by side
+                const targetMonths = Math.max(months.length, 2);
                 while (months.length < targetMonths) {
                   const last = months[months.length - 1];
                   const next = new Date(last.year, last.month + 1, 1);
@@ -1904,13 +1978,15 @@ const TournamentDetail = () => {
                 });
 
                 return (
-                  <>
-                    <p className="td-section-heading">📅 Tournament Calendar</p>
+                  <div className="td-calendar-outer">
+                    <div className="td-roadmap-outer-header">
+                      <IconCalendar />
+                      <span className="td-roadmap-outer-title">Tournament Calendar</span>
+                    </div>
                     <div className="td-calendar-months">
                       {months.map(({ year, month }) => {
                         const firstDay = new Date(year, month, 1).getDay();
                         const daysInMonth = new Date(year, month + 1, 0).getDate();
-                        // Build cells: leading empties + day numbers
                         const cells = Array(firstDay).fill(null);
                         for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
@@ -1934,11 +2010,12 @@ const TournamentDetail = () => {
                                   <div
                                     key={dateStr}
                                     className={`td-calendar-cell${evt ? ' td-calendar-cell-event' : ''}`}
+                                    title={evt ? evt.label : undefined}
                                     style={
                                       evt
                                         ? {
-                                            background: evt.color + '28',
-                                            borderColor: evt.color + '80',
+                                            background: evt.color + '40',
+                                            borderColor: evt.color + 'aa',
                                           }
                                         : {}
                                     }
@@ -1970,7 +2047,7 @@ const TournamentDetail = () => {
                         </span>
                       ))}
                     </div>
-                  </>
+                  </div>
                 );
               })()}
             </div>
@@ -2002,26 +2079,48 @@ const TournamentDetail = () => {
                 });
 
                 return (
-                  <>
-                    <p className="td-section-heading">🗺 Tournament Roadmap</p>
+                  <div className="td-roadmap-outer">
+                    <div className="td-roadmap-outer-header">
+                      <IconTrophy style={{ width: 15, height: 15, color: '#eab308' }} />
+                      <span className="td-roadmap-outer-title">Tournament Roadmap</span>
+                    </div>
                     <div className="td-roadmap-flow">
                       {stages.map((stage, idx) => (
                         <div key={stage.stageNum} className="td-roadmap-stage-wrap">
                           <div
                             className={`td-roadmap-card${stage.isLast ? ' td-roadmap-card-final' : ''}`}
                           >
-                            <p className="td-roadmap-stage-label">STAGE {stage.stageNum}</p>
-                            <p className="td-roadmap-name">{stage.stageName.toUpperCase()}</p>
-                            {stage.teams > 0 && (
-                              <span className="td-roadmap-teams-badge">{stage.teams} TEAMS</span>
-                            )}
-                            <p className="td-roadmap-advancement">{stage.advancement}</p>
+                            <div className="td-roadmap-card-inner">
+                              <div>
+                                <div className="td-roadmap-card-header">
+                                  <span className="td-roadmap-stage-label">
+                                    Stage {stage.stageNum}
+                                  </span>
+                                  {stage.teams > 0 && (
+                                    <span className="td-roadmap-teams-badge">
+                                      {stage.teams} Teams
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="td-roadmap-name">{stage.stageName}</p>
+                              </div>
+                              <p className="td-roadmap-advancement">{stage.advancement}</p>
+                            </div>
                           </div>
-                          {idx < stages.length - 1 && <span className="td-roadmap-arrow">›</span>}
+                          {idx < stages.length - 1 && (
+                            <IconChevronRight
+                              style={{
+                                width: 18,
+                                height: 18,
+                                color: 'hsl(270 60% 50% / 0.5)',
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
-                  </>
+                  </div>
                 );
               })()}
             </div>

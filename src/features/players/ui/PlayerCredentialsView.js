@@ -449,6 +449,49 @@ const CredentialCard = ({ registration }) => {
           </div>
         </div>
 
+        {/* Group + slot strip — sits between banner and body */}
+        {(() => {
+          const myGroupName = (currentGroups || []).reduce((found, g, gIdx) => {
+            if (found) return found;
+            const inGroup = (g.teams || []).some(
+              (t) => (t.team_name || '').toLowerCase() === registration.team_name.toLowerCase()
+            );
+            return inGroup ? g.group_name || `Group ${gIdx + 1}` : null;
+          }, null);
+          let mySlot = null;
+          let counter = 0;
+          for (const g of currentGroups || []) {
+            for (const t of g.teams || []) {
+              counter++;
+              if ((t.team_name || '').toLowerCase() === registration.team_name.toLowerCase()) {
+                mySlot = counter;
+                break;
+              }
+            }
+            if (mySlot) break;
+          }
+          const mySlotPadded = mySlot ? String(mySlot).padStart(2, '0') : null;
+          if (!myGroupName && !mySlotPadded) return null;
+          return (
+            <div className="credentials-group-strip">
+              <span className="credentials-group-strip-icon">☆</span>
+              <span>{registration.team_name}</span>
+              {myGroupName && (
+                <>
+                  <span className="credentials-group-strip-sep">·</span>
+                  <span>{myGroupName}</span>
+                </>
+              )}
+              {mySlotPadded && (
+                <>
+                  <span className="credentials-group-strip-sep">·</span>
+                  <span>Slot {mySlotPadded}</span>
+                </>
+              )}
+            </div>
+          );
+        })()}
+
         {/* ── Body ── */}
         <div className="credentials-body">
           {/* Round pills — only show if more than 1 round */}
@@ -465,40 +508,6 @@ const CredentialCard = ({ registration }) => {
               ))}
             </div>
           )}
-
-          {/* ── My group + slot chip ── */}
-          {(() => {
-            const myGroupName = (currentGroups || []).reduce((found, g, gIdx) => {
-              if (found) return found;
-              const inGroup = (g.teams || []).some(
-                (t) => (t.team_name || '').toLowerCase() === registration.team_name.toLowerCase()
-              );
-              return inGroup ? g.group_name || `Group ${gIdx + 1}` : null;
-            }, null);
-
-            let mySlot = null;
-            let counter = 0;
-            for (const g of currentGroups || []) {
-              for (const t of g.teams || []) {
-                counter++;
-                if ((t.team_name || '').toLowerCase() === registration.team_name.toLowerCase()) {
-                  mySlot = counter;
-                  break;
-                }
-              }
-              if (mySlot) break;
-            }
-            const mySlotPadded = mySlot ? String(mySlot).padStart(2, '0') : null;
-
-            if (!myGroupName && !mySlotPadded) return null;
-            return (
-              <div className="credentials-group-chip">
-                {registration.team_name}
-                {myGroupName ? ` · ${myGroupName}` : ''}
-                {mySlotPadded ? ` · Slot ${mySlotPadded}` : ''}
-              </div>
-            );
-          })()}
 
           {/* ── Credentials box ── */}
           <div className="credentials-creds-box">

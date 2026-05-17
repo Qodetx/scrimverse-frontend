@@ -164,6 +164,11 @@ const HomePage = () => {
     navigate(isHostPortal ? '/host/login' : '/player-auth');
   };
 
+  const handleSignUpClick = () => {
+    const isHostPortal = window.location.hostname.startsWith('host.');
+    navigate(isHostPortal ? '/host/register' : '/player/register');
+  };
+
   const handleViewTournament = (slide) => {
     if (slide.id) {
       navigate(`/tournaments/${slide.id}`);
@@ -235,15 +240,22 @@ const HomePage = () => {
                 Explore ScrimVerse
                 <ChevronRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </button>
-              {/* Returning users get a direct path to auth so the new
-                  guest-dashboard flow doesn't add friction for them. */}
+              {/* Returning users get a direct path to auth; new users get sign-up. */}
               {!isAuthenticated() && (
-                <button
-                  onClick={handleLoginClick}
-                  className="px-6 py-4 text-sm font-bold rounded-xl bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all inline-flex items-center"
-                >
-                  Login
-                </button>
+                <>
+                  <button
+                    onClick={handleLoginClick}
+                    className="px-6 py-4 text-sm font-bold rounded-xl border border-purple/50 hover:border-purple text-white bg-transparent hover:bg-purple/10 transition-all inline-flex items-center"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={handleSignUpClick}
+                    className="px-6 py-4 text-sm font-bold rounded-xl bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all inline-flex items-center"
+                  >
+                    Create an Account
+                  </button>
+                </>
               )}
             </div>
             <div className="relative mx-auto w-full max-w-sm pt-1 pointer-events-none">
@@ -280,14 +292,22 @@ const HomePage = () => {
                   Explore ScrimVerse
                   <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </button>
-                {/* Login fast-path for returning users (desktop). */}
+                {/* Login / sign-up fast-paths for unauthenticated users (desktop). */}
                 {!isAuthenticated() && (
-                  <button
-                    onClick={handleLoginClick}
-                    className="px-6 py-3 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all inline-flex items-center"
-                  >
-                    Login
-                  </button>
+                  <>
+                    <button
+                      onClick={handleLoginClick}
+                      className="px-6 py-3 text-sm font-bold rounded-full border border-purple/50 hover:border-purple text-white bg-transparent hover:bg-purple/10 transition-all inline-flex items-center"
+                    >
+                      Login
+                    </button>
+                    <button
+                      onClick={handleSignUpClick}
+                      className="px-6 py-3 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all inline-flex items-center"
+                    >
+                      Create an Account
+                    </button>
+                  </>
                 )}
               </div>
             </div>

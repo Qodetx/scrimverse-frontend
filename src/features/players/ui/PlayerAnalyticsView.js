@@ -182,17 +182,26 @@ const PlayerAnalyticsViewAuthenticated = () => {
           icon: Trophy,
           label: 'Tournament Wins',
           value: stats.total_wins || 0,
-          sub: `${stats.matches_played || 0} matches`,
+          sub: `${stats.total_tournaments || 0} tournaments`,
           subColor: 'an-sub-muted',
           iconColor: 'an-icon-yellow',
           bgColor: 'an-bg-yellow',
         },
         {
+          icon: Trophy,
+          label: 'Match Wins',
+          value: stats.match_wins || 0,
+          sub: `${stats.matches_played || 0} matches`,
+          subColor: 'an-sub-muted',
+          iconColor: 'an-icon-green',
+          bgColor: 'an-bg-green',
+        },
+        {
           icon: Target,
           label: 'Win Rate',
           value: stats.matches_played > 0 ? `${stats.win_rate}%` : 'N/A',
-          sub: `avg ${stats.avg_kill_points || 0} KP`,
-          subColor: 'an-sub-green',
+          sub: 'match win rate',
+          subColor: 'an-sub-muted',
           iconColor: 'an-icon-blue',
           bgColor: 'an-bg-blue',
         },
@@ -213,6 +222,15 @@ const PlayerAnalyticsViewAuthenticated = () => {
           subColor: stats.ranking > 0 ? 'an-sub-green' : 'an-sub-muted',
           iconColor: 'an-icon-purple-light',
           bgColor: 'an-bg-purple',
+        },
+        {
+          icon: Target,
+          label: 'K/D Ratio',
+          value: stats.matches_played > 0 ? (stats.avg_kill_points || 0).toFixed(1) : 'N/A',
+          sub: 'avg kills/match',
+          subColor: 'an-sub-muted',
+          iconColor: 'an-icon-yellow',
+          bgColor: 'an-bg-yellow',
         },
       ]
     : [];
@@ -272,25 +290,11 @@ const PlayerAnalyticsViewAuthenticated = () => {
       <div className="an-header">
         <h2 className="an-title">
           <BarChart3 size={20} className="an-title-icon" />
-          {analyticsTab === 'player' ? 'Player Analytics' : 'Team Analytics'}
+          Player Analytics
         </h2>
 
         <div className="an-header-actions">
-          {/* Tab switcher */}
-          <div className="an-tab-switcher">
-            <button
-              className={`an-tab-btn${analyticsTab === 'player' ? ' active' : ''}`}
-              onClick={() => setAnalyticsTab('player')}
-            >
-              Player
-            </button>
-            <button
-              className={`an-tab-btn${analyticsTab === 'team' ? ' active' : ''}`}
-              onClick={() => setAnalyticsTab('team')}
-            >
-              Team
-            </button>
-          </div>
+          {/* Tab switcher hidden — Team analytics removed for now */}
 
           {/* Game filter */}
           <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -325,8 +329,8 @@ const PlayerAnalyticsViewAuthenticated = () => {
             )}
           </div>
 
-          {/* Team selector in header — only when on Team tab and player has multiple teams */}
-          {analyticsTab === 'team' && !teamLoading && teamStatsData.length > 1 && (
+          {/* Team selector hidden — Team tab removed */}
+          {false && analyticsTab === 'team' && !teamLoading && teamStatsData.length > 1 && (
             <div style={{ position: 'relative' }} ref={teamDropdownRef}>
               <button className="an-filter-btn" onClick={() => setTeamDropdownOpen((v) => !v)}>
                 <Users size={13} />

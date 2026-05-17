@@ -870,6 +870,11 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
 
   const handleInviteByEmail = async () => {
     if (!inviteEmail.trim() || !team) return;
+    const currentEmail = user?.user?.email || '';
+    if (currentEmail && inviteEmail.trim().toLowerCase() === currentEmail.toLowerCase()) {
+      setInviteEmailError("You can't invite yourself to your own team.");
+      return;
+    }
     setInviteEmailLoading(true);
     setInviteEmailError('');
     try {
@@ -2584,7 +2589,10 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                   and resend if needed. Hidden once the invitee accepts (they
                   become a real TeamMember in the list above). */}
               {(team?.invited_members || []).map((inv) => {
-                const idLabel = inv.identifier || inv.display_name || 'Invitee';
+                const idLabel =
+                  inv.invite_type === 'link'
+                    ? 'Invite link'
+                    : inv.identifier || inv.display_name || 'Invitee';
                 const initials = (idLabel.replace(/^[@+]/, '').slice(0, 2) || '??').toUpperCase();
 
                 let methodIcon;

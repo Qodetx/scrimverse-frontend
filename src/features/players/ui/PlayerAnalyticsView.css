@@ -184,6 +184,9 @@
 .an-bg-purple {
   background: rgba(139, 92, 246, 0.1);
 }
+.an-bg-green {
+  background: rgba(34, 197, 94, 0.1);
+}
 
 .an-icon-yellow {
   color: #facc15;
@@ -196,6 +199,9 @@
 }
 .an-icon-purple-light {
   color: #a78bfa;
+}
+.an-icon-green {
+  color: #22c55e;
 }
 
 .an-stat-sub {

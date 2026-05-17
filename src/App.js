@@ -47,7 +47,18 @@ import PhoneSetupGuard from './features/auth/ui/PhoneSetupGuard';
 // Protects host-only pages: redirects unauthenticated users to host login,
 // non-host users to home, and unapproved hosts to verification-pending
 const HostOnlyRoute = ({ children }) => {
-  const { isAuthenticated, isHost, user } = useContext(AuthContext);
+  const { isAuthenticated, isHost, user, loading } = useContext(AuthContext);
+
+  // Wait for token verification to complete before making redirect decisions.
+  // Without this, a page refresh clears `user` momentarily and the guard
+  // incorrectly redirects an already-authenticated host to /host/login.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c]">
+        <div className="w-10 h-10 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated()) {
     return <Navigate to="/host/login" replace />;
