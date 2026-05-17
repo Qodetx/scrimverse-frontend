@@ -962,7 +962,13 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
     // For subsequent rounds, use selected_teams from prev round
     const prevKey = String(roundNumber - 1);
     const selected = tournament?.selected_teams?.[prevKey] || [];
-    return selected.map((t) => t.team_name || t.name || String(t));
+    return selected.map((t) => {
+      if (typeof t === 'number' || (typeof t === 'string' && !isNaN(t))) {
+        const reg = registrations.find((r) => r.id === Number(t));
+        return reg?.team_name || `Team ${t}`;
+      }
+      return t.team_name || t.name || String(t);
+    });
   };
 
   // Step 1: called by RoundConfigModal — compute groups preview, show GroupConfirmModal
