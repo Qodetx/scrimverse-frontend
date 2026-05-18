@@ -1690,11 +1690,10 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
             </button>
             <button
               onClick={handleEditToggle}
-              disabled={tournament.status !== 'upcoming' && !isEditing}
               className={`mt-action-btn ${isEditing ? 'active' : ''}`}
             >
               <Settings className="h-3.5 w-3.5" />
-              {isEditing ? 'Cancel Edit' : tournament.status === 'upcoming' ? 'Edit' : 'View'}
+              {isEditing ? 'Cancel Edit' : 'Edit'}
             </button>
             <button onClick={handleExportCSV} className="mt-action-btn">
               <Download className="h-3.5 w-3.5" />
@@ -1783,7 +1782,7 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                       className="w-full px-3 py-2.5 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       required
                     />
-                    {tournament.status === 'upcoming' && editData.rounds > 0 && (
+                    {editData.rounds > 0 && (
                       <button
                         type="button"
                         onClick={() => setShowRoundNamesModal(true)}

@@ -597,6 +597,7 @@ const PlayerPointsTableViewAuthenticated = () => {
           {/* Tournament dropdown */}
           <CustomDropdown
             align="right"
+            menuClassName="pt-dropdown-tournament-mobile"
             trigger={(open) => (
               <button
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"

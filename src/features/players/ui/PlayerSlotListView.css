@@ -1,5 +1,22 @@
 /* PlayerSlotListView.css */
 
+/* ── Controls row — always its own line on mobile, inline on desktop ─────── */
+
+.sl-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  /* Full width forces it to wrap to its own row inside the flex-wrap parent */
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .sl-controls-row {
+    width: auto;
+  }
+}
+
 /* ── My slot chip ────────────────────────────────────────────────────────── */
 
 .psl-my-slot-chip {
@@ -196,6 +213,54 @@
 
 .sl-community-dropdown-ig {
   border-top: 1px solid hsl(var(--border) / 0.3);
+}
+
+/* ── Tournament filter dropdown (fixed width so it never pushes other buttons off) ── */
+
+.sl-tournament-dropdown-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 120px;
+}
+
+@media (min-width: 480px) {
+  .sl-tournament-dropdown-wrap {
+    max-width: 180px;
+  }
+}
+
+.sl-tournament-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  width: 100%;
+  border-radius: 0.5rem;
+  font-size: 12px;
+  font-weight: 500;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.5);
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  min-width: 0;
+}
+
+.sl-tournament-filter-btn:hover {
+  background: hsl(var(--card) / 0.8);
+  border-color: hsl(var(--border) / 0.8);
+}
+
+.sl-tournament-filter-label {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
 }
 
 /* ── Watch Live button ───────────────────────────────────────────────────── */

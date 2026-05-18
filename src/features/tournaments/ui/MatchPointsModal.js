@@ -13,6 +13,7 @@ const MatchPointsModal = ({
 }) => {
   const [scores, setScores] = useState([]);
   const [winner, setWinner] = useState(null);
+  const [wwcdTeamId, setWwcdTeamId] = useState(null);
 
   useEffect(() => {
     if (isOpen && teams) {
@@ -29,6 +30,8 @@ const MatchPointsModal = ({
           };
         });
         setScores(preloaded);
+        const wwcdEntry = preloaded.find((s) => s.wins === 1);
+        setWwcdTeamId(wwcdEntry ? wwcdEntry.team_id : null);
       } else {
         const initialScores = teams.map((team) => ({
           team_id: team.id,
@@ -38,6 +41,7 @@ const MatchPointsModal = ({
           kill_points: '',
         }));
         setScores(initialScores);
+        setWwcdTeamId(null);
       }
       setWinner(null);
     }
@@ -97,7 +101,7 @@ const MatchPointsModal = ({
     } else {
       const processedScores = scores.map((score) => ({
         ...score,
-        wins: score.wins === '' ? 0 : Number(score.wins),
+        wins: score.team_id === wwcdTeamId ? 1 : 0,
         position_points: score.position_points === '' ? 0 : Number(score.position_points),
         kill_points: score.kill_points === '' ? 0 : Number(score.kill_points),
       }));
@@ -228,6 +232,7 @@ const MatchPointsModal = ({
                       <tr>
                         <th className="mpm-th mpm-th-num">#</th>
                         <th className="mpm-th mpm-th-team">Team Name</th>
+                        <th className="mpm-th mpm-th-wins">Wins</th>
                         <th className="mpm-th mpm-th-score">Placement</th>
                         <th className="mpm-th mpm-th-score">Kills</th>
                         <th className="mpm-th mpm-th-total">Total</th>
@@ -243,6 +248,22 @@ const MatchPointsModal = ({
                             <div className="mpm-team-cell">
                               <span className="mpm-team-name">{score.team_name}</span>
                             </div>
+                          </td>
+                          <td className="mpm-td mpm-td-wins">
+                            {readOnly ? (
+                              <span className="mpm-total">{score.wins === 1 ? 1 : 0}</span>
+                            ) : (
+                              <button
+                                type="button"
+                                className={`mpm-wins-btn ${wwcdTeamId === score.team_id ? 'mpm-wins-btn--active' : ''}`}
+                                onClick={() =>
+                                  setWwcdTeamId(wwcdTeamId === score.team_id ? null : score.team_id)
+                                }
+                                title="Mark as match winner"
+                              >
+                                {wwcdTeamId === score.team_id ? '1' : '0'}
+                              </button>
+                            )}
                           </td>
                           <td className="mpm-td mpm-td-score">
                             {readOnly ? (

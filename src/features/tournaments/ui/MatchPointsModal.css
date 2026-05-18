@@ -200,10 +200,14 @@
   padding-left: 1.5rem;
 }
 .mpm-th-team {
-  width: 50%;
+  width: 42%;
+}
+.mpm-th-wins {
+  width: 10%;
+  text-align: center;
 }
 .mpm-th-score {
-  width: 17.5%;
+  width: 15%;
   text-align: center;
 }
 .mpm-th-total {
@@ -235,6 +239,34 @@
 }
 .mpm-td-total {
   text-align: center;
+}
+.mpm-td-wins {
+  text-align: center;
+}
+
+/* Wins toggle — same look as mpm-input */
+.mpm-wins-btn {
+  width: 4.5rem;
+  height: 2.25rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 0.5rem;
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mpm-wins-btn:hover {
+  border-color: #444444;
+}
+.mpm-wins-btn--active {
+  border-color: #d97706;
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
 }
 
 /* Team cell content */
@@ -618,6 +650,9 @@
     font-size: 0.6rem;
   }
   .mpm-input {
+    width: 3rem;
+  }
+  .mpm-wins-btn {
     width: 3rem;
   }
 }

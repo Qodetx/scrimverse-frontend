@@ -584,7 +584,7 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
         </h2>
 
         {/* Right side controls */}
-        <div className="flex items-center gap-2">
+        <div className="sl-controls-row">
           {selectedReg?.tournament?.live_link && (
             <a
               href={selectedReg.tournament.live_link}
@@ -648,26 +648,10 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
           )}
 
           {/* Tournament dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setShowDropdown((v) => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={{
-                background: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border) / 0.5)',
-                color: 'hsl(var(--foreground))',
-                maxWidth: '16rem',
-              }}
-            >
+          <div className="sl-tournament-dropdown-wrap" ref={dropdownRef}>
+            <button onClick={() => setShowDropdown((v) => !v)} className="sl-tournament-filter-btn">
               <Gamepad2 size={13} style={{ flexShrink: 0 }} />
-              <span
-                style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  maxWidth: '11rem',
-                }}
-              >
+              <span className="sl-tournament-filter-label">
                 {tournamentName || 'Select Tournament'}
               </span>
               <ChevronDown

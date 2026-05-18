@@ -635,15 +635,37 @@
   /* General mobile safety for all dropdowns */
   .pt-dropdown-menu {
     max-width: calc(100vw - 32px) !important;
-    min-width: 10rem !important;
+    min-width: 8rem !important;
     max-height: 60vh !important;
   }
 
-  /* Fix LEFT dropdown from overflowing off-screen on mobile */
+  /* Group dropdown: open rightward (leftmost button) */
   .pt-dropdown-group-mobile {
     right: auto !important;
     left: 0 !important;
     width: 12rem !important;
+  }
+
+  /* Tournament dropdown: fixed narrow width, right-anchored, horizontal scroll for long names */
+  .pt-dropdown-tournament-mobile {
+    right: 0 !important;
+    left: auto !important;
+    width: 11rem !important;
+    min-width: 0 !important;
+    max-width: 11rem !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+  }
+
+  .pt-dropdown-tournament-mobile .pt-dropdown-option {
+    white-space: nowrap;
+  }
+
+  .pt-dropdown-tournament-mobile .pt-dropdown-option-label {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    flex: none !important;
   }
 }
 
