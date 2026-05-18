@@ -34,7 +34,10 @@ const roundRect = (ctx, x, y, w, h, r) => {
 
 // ─── BR / Multi-team Standings Image ────────────────────────────────────────
 
-export const generateStandingsImage = async ({
+const TEAMS_PAGE_1 = 15; // first page: full header
+const TEAMS_PAGE_N = 18; // subsequent pages: compact header
+
+const _renderStandingsPage = ({
   tournament,
   standings,
   viewMode,
@@ -42,207 +45,190 @@ export const generateStandingsImage = async ({
   selectedMatch,
   selectedGroup,
   getRoundLabel,
+  pageNum,
+  totalPages,
+  rankOffset,
 }) => {
-  await loadPremiumFonts();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const isFirstPage = pageNum === 1;
 
-  return new Promise((resolve, reject) => {
-    try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+  const W = 1080;
+  const PAD_X = 32;
+  const HEADER_H = isFirstPage ? 340 : 190;
+  const CARD_H_TOP3 = 92;
+  const CARD_H = 72;
+  const CARD_GAP = 6;
+  const FOOTER_H = 90;
+  const CARDS_PAD = 30;
+  const COL_HDR_H = 24;
 
-      // ── Layout ─────────────────────────────────────────────────────
-      const W = 1080;
-      const PAD_X = 32;
-      const HEADER_H = 340;
-      const CARD_H_TOP3 = 92;
-      const CARD_H = 72;
-      const CARD_GAP = 6;
-      const FOOTER_H = 90;
-      const CARDS_PAD = 30;
-      const COL_HDR_H = 24;
+  const cardHeights = standings.map((_, i) => (rankOffset + i < 3 ? CARD_H_TOP3 : CARD_H));
+  const totalCardsH =
+    cardHeights.reduce((s, h) => s + h, 0) + Math.max(0, standings.length - 1) * CARD_GAP;
+  const TOTAL_H = HEADER_H + COL_HDR_H + CARDS_PAD + totalCardsH + CARDS_PAD + FOOTER_H;
 
-      const cardHeights = standings.map((_, i) => (i < 3 ? CARD_H_TOP3 : CARD_H));
-      const totalCardsH =
-        cardHeights.reduce((s, h) => s + h, 0) + Math.max(0, standings.length - 1) * CARD_GAP;
-      const TOTAL_H = HEADER_H + COL_HDR_H + CARDS_PAD + totalCardsH + CARDS_PAD + FOOTER_H;
+  canvas.width = W;
+  canvas.height = TOTAL_H;
 
-      canvas.width = W;
-      canvas.height = TOTAL_H;
+  // Game accent
+  const gameName = (tournament?.game_name || '').toLowerCase();
+  let ACCENT = '#F59E0B',
+    ACCENT_R = 245,
+    ACCENT_G = 158,
+    ACCENT_B = 11;
+  if (gameName.includes('free fire') || gameName.includes('freefire')) {
+    ACCENT = '#EF4444';
+    ACCENT_R = 239;
+    ACCENT_G = 68;
+    ACCENT_B = 68;
+  } else if (gameName.includes('cod') || gameName.includes('call of duty')) {
+    ACCENT = '#22C55E';
+    ACCENT_R = 34;
+    ACCENT_G = 197;
+    ACCENT_B = 94;
+  } else if (gameName.includes('valorant')) {
+    ACCENT = '#FF4655';
+    ACCENT_R = 255;
+    ACCENT_G = 70;
+    ACCENT_B = 85;
+  }
+  const AC = (a) => `rgba(${ACCENT_R},${ACCENT_G},${ACCENT_B},${a})`;
 
-      // ── Game accent ─────────────────────────────────────────────────
-      const gameName = (tournament?.game_name || '').toLowerCase();
-      let ACCENT = '#F59E0B';
-      let ACCENT_R = 245,
-        ACCENT_G = 158,
-        ACCENT_B = 11;
-      if (gameName.includes('free fire') || gameName.includes('freefire')) {
-        ACCENT = '#EF4444';
-        ACCENT_R = 239;
-        ACCENT_G = 68;
-        ACCENT_B = 68;
-      } else if (gameName.includes('cod') || gameName.includes('call of duty')) {
-        ACCENT = '#22C55E';
-        ACCENT_R = 34;
-        ACCENT_G = 197;
-        ACCENT_B = 94;
-      } else if (gameName.includes('valorant')) {
-        ACCENT = '#FF4655';
-        ACCENT_R = 255;
-        ACCENT_G = 70;
-        ACCENT_B = 85;
+  // Background
+  ctx.fillStyle = '#02020E';
+  ctx.fillRect(0, 0, W, TOTAL_H);
+
+  // Hex grid (header area, fades at bottom)
+  const HEX_R = 42,
+    HEX_ROW_H = HEX_R * Math.sqrt(3),
+    HEX_COL_W = HEX_R * 1.5;
+  for (let col = -1; col <= Math.ceil(W / HEX_COL_W) + 2; col++) {
+    for (let row = -1; row <= Math.ceil((HEADER_H + 60) / HEX_ROW_H) + 2; row++) {
+      const cx = col * HEX_COL_W * 2;
+      const cy = row * HEX_ROW_H + (col % 2 !== 0 ? HEX_ROW_H / 2 : 0);
+      if (cy - HEX_R > HEADER_H + 40) continue;
+      const fadeAlpha = cy > HEADER_H - 60 ? (1 - (cy - (HEADER_H - 60)) / 100) * 0.06 : 0.06;
+      ctx.strokeStyle = `rgba(255,255,255,${Math.max(0, fadeAlpha).toFixed(3)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let a = 0; a < 6; a++) {
+        const angle = (Math.PI / 3) * a - Math.PI / 6;
+        const px = cx + HEX_R * Math.cos(angle);
+        const py = cy + HEX_R * Math.sin(angle);
+        a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
       }
-      const AC = (a) => `rgba(${ACCENT_R},${ACCENT_G},${ACCENT_B},${a})`;
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
 
-      // ── PROGRAMMATIC BACKGROUND ─────────────────────────────────────
-      // 1. Deep dark base
-      ctx.fillStyle = '#02020E';
-      ctx.fillRect(0, 0, W, TOTAL_H);
+  const blobTop = ctx.createRadialGradient(W / 2, -40, 0, W / 2, -40, W * 0.72);
+  blobTop.addColorStop(0, AC('0.32'));
+  blobTop.addColorStop(0.45, AC('0.10'));
+  blobTop.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = blobTop;
+  ctx.fillRect(0, 0, W, HEADER_H + 120);
 
-      // 2. Hexagonal grid overlay
-      const HEX_R = 42;
-      const HEX_ROW_H = HEX_R * Math.sqrt(3);
-      const HEX_COL_W = HEX_R * 1.5;
-      // Hex grid only in header area for visual separation
-      for (let col = -1; col <= Math.ceil(W / HEX_COL_W) + 2; col++) {
-        for (let row = -1; row <= Math.ceil((HEADER_H + 60) / HEX_ROW_H) + 2; row++) {
-          const cx = col * HEX_COL_W * 2;
-          const cy = row * HEX_ROW_H + (col % 2 !== 0 ? HEX_ROW_H / 2 : 0);
-          if (cy - HEX_R > HEADER_H + 40) continue;
-          const fadeAlpha = cy > HEADER_H - 60 ? (1 - (cy - (HEADER_H - 60)) / 100) * 0.06 : 0.06;
-          ctx.strokeStyle = `rgba(255,255,255,${Math.max(0, fadeAlpha).toFixed(3)})`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          for (let a = 0; a < 6; a++) {
-            const angle = (Math.PI / 3) * a - Math.PI / 6;
-            const px = cx + HEX_R * Math.cos(angle);
-            const py = cy + HEX_R * Math.sin(angle);
-            a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-          ctx.stroke();
-        }
-      }
+  const blobPurple = ctx.createRadialGradient(0, TOTAL_H * 0.65, 0, 0, TOTAL_H * 0.65, W * 0.55);
+  blobPurple.addColorStop(0, 'rgba(76,29,149,0.22)');
+  blobPurple.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = blobPurple;
+  ctx.fillRect(0, 0, W, TOTAL_H);
 
-      // 3. Accent blob — top center
-      const blobTop = ctx.createRadialGradient(W / 2, -40, 0, W / 2, -40, W * 0.72);
-      blobTop.addColorStop(0, AC('0.32'));
-      blobTop.addColorStop(0.45, AC('0.10'));
-      blobTop.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = blobTop;
-      ctx.fillRect(0, 0, W, HEADER_H + 120);
+  const blobBlue = ctx.createRadialGradient(W, TOTAL_H * 0.75, 0, W, TOTAL_H * 0.75, W * 0.5);
+  blobBlue.addColorStop(0, 'rgba(29,78,216,0.18)');
+  blobBlue.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = blobBlue;
+  ctx.fillRect(0, 0, W, TOTAL_H);
 
-      // 4. Purple depth blob — bottom left
-      const blobPurple = ctx.createRadialGradient(
-        0,
-        TOTAL_H * 0.65,
-        0,
-        0,
-        TOTAL_H * 0.65,
-        W * 0.55
-      );
-      blobPurple.addColorStop(0, 'rgba(76,29,149,0.22)');
-      blobPurple.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = blobPurple;
-      ctx.fillRect(0, 0, W, TOTAL_H);
+  const btmFade = ctx.createLinearGradient(0, TOTAL_H - 200, 0, TOTAL_H);
+  btmFade.addColorStop(0, 'rgba(2,2,14,0)');
+  btmFade.addColorStop(1, 'rgba(2,2,14,0.80)');
+  ctx.fillStyle = btmFade;
+  ctx.fillRect(0, TOTAL_H - 200, W, 200);
 
-      // 5. Blue blob — bottom right
-      const blobBlue = ctx.createRadialGradient(W, TOTAL_H * 0.75, 0, W, TOTAL_H * 0.75, W * 0.5);
-      blobBlue.addColorStop(0, 'rgba(29,78,216,0.18)');
-      blobBlue.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = blobBlue;
-      ctx.fillRect(0, 0, W, TOTAL_H);
+  const topBar = ctx.createLinearGradient(0, 0, W, 0);
+  topBar.addColorStop(0, AC('0'));
+  topBar.addColorStop(0.15, AC('1'));
+  topBar.addColorStop(0.85, AC('1'));
+  topBar.addColorStop(1, AC('0'));
+  ctx.fillStyle = topBar;
+  ctx.fillRect(0, 0, W, 5);
 
-      // 6. Bottom darkening vignette
-      const btmFade = ctx.createLinearGradient(0, TOTAL_H - 200, 0, TOTAL_H);
-      btmFade.addColorStop(0, 'rgba(2,2,14,0)');
-      btmFade.addColorStop(1, 'rgba(2,2,14,0.80)');
-      ctx.fillStyle = btmFade;
-      ctx.fillRect(0, TOTAL_H - 200, W, 200);
+  ctx.textBaseline = 'middle';
 
-      // 7. TOP accent bar (5px, full width, fades at edges)
-      const topBar = ctx.createLinearGradient(0, 0, W, 0);
-      topBar.addColorStop(0, AC('0'));
-      topBar.addColorStop(0.15, AC('1'));
-      topBar.addColorStop(0.85, AC('1'));
-      topBar.addColorStop(1, AC('0'));
-      ctx.fillStyle = topBar;
-      ctx.fillRect(0, 0, W, 5);
+  // SCRIMVERSE wordmark
+  const LOGO_Y = 54;
+  ctx.font = '800 30px "Outfit", sans-serif';
+  const swL = ctx.measureText('SCRIM').width;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'left';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = 14;
+  ctx.fillText('SCRIM', PAD_X, LOGO_Y);
+  ctx.fillStyle = '#C084FC';
+  ctx.fillText('VERSE', PAD_X + swL, LOGO_Y);
+  ctx.shadowBlur = 0;
 
-      ctx.textBaseline = 'middle';
+  // Game badge
+  const gameLabel = (tournament?.game_name || '').toUpperCase();
+  if (gameLabel) {
+    ctx.font = '700 12px "Inter", sans-serif';
+    ctx.letterSpacing = '2px';
+    const gbW = ctx.measureText(gameLabel).width + 28,
+      gbH = 28,
+      gbX = W - PAD_X - gbW;
+    ctx.strokeStyle = AC('0.55');
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = AC('0.10');
+    ctx.beginPath();
+    roundRect(ctx, gbX, LOGO_Y - gbH / 2, gbW, gbH, 4);
+    ctx.fill();
+    ctx.beginPath();
+    roundRect(ctx, gbX, LOGO_Y - gbH / 2, gbW, gbH, 4);
+    ctx.stroke();
+    ctx.fillStyle = ACCENT;
+    ctx.textAlign = 'center';
+    ctx.fillText(gameLabel, gbX + gbW / 2, LOGO_Y);
+    ctx.letterSpacing = '0px';
+  }
 
-      // ── HEADER ──────────────────────────────────────────────────────
+  // Stage info
+  let stageHeading = '';
+  let subtitleLabel = '';
+  if (viewMode === 'match') {
+    const rName = tournament?.round_names?.[String(selectedRound)] || getRoundLabel(selectedRound);
+    stageHeading = rName.toUpperCase();
+    subtitleLabel = `MATCH ${selectedMatch} STANDINGS`;
+  } else {
+    stageHeading = (
+      tournament?.round_names?.[String(selectedRound)] || getRoundLabel(selectedRound)
+    ).toUpperCase();
+    subtitleLabel = 'OVERALL STANDINGS';
+  }
 
-      // SCRIMVERSE wordmark — left
-      const LOGO_Y = 54;
-      ctx.font = '800 30px "Outfit", sans-serif';
-      const swL = ctx.measureText('SCRIM').width;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.textAlign = 'left';
-      ctx.shadowColor = 'rgba(0,0,0,0.9)';
-      ctx.shadowBlur = 14;
-      ctx.fillText('SCRIM', PAD_X, LOGO_Y);
-      ctx.fillStyle = '#C084FC';
-      ctx.fillText('VERSE', PAD_X + swL, LOGO_Y);
-      ctx.shadowBlur = 0;
-
-      // Game badge — right
-      const gameLabel = (tournament?.game_name || '').toUpperCase();
-      if (gameLabel) {
-        ctx.font = '700 12px "Inter", sans-serif';
-        ctx.letterSpacing = '2px';
-        const gbW = ctx.measureText(gameLabel).width + 28;
-        const gbH = 28;
-        const gbX = W - PAD_X - gbW;
-        ctx.strokeStyle = AC('0.55');
-        ctx.lineWidth = 1.5;
-        ctx.fillStyle = AC('0.10');
-        ctx.beginPath();
-        roundRect(ctx, gbX, LOGO_Y - gbH / 2, gbW, gbH, 4);
-        ctx.fill();
-        ctx.beginPath();
-        roundRect(ctx, gbX, LOGO_Y - gbH / 2, gbW, gbH, 4);
-        ctx.stroke();
-        ctx.fillStyle = ACCENT;
-        ctx.textAlign = 'center';
-        ctx.fillText(gameLabel, gbX + gbW / 2, LOGO_Y);
-        ctx.letterSpacing = '0px';
-      }
-
-      // Stage heading + subtitle
-      let stageHeading = '';
-      let subtitleLabel = '';
-      if (viewMode === 'match') {
-        const rName =
-          tournament?.round_names?.[String(selectedRound)] || getRoundLabel(selectedRound);
-        stageHeading = rName.toUpperCase();
-        subtitleLabel = `MATCH ${selectedMatch} STANDINGS`;
-      } else {
-        stageHeading = (
-          tournament?.round_names?.[String(selectedRound)] || getRoundLabel(selectedRound)
-        ).toUpperCase();
-        subtitleLabel = 'OVERALL STANDINGS';
-      }
-
-      const STAGE_Y = LOGO_Y + 150;
-      let headingSize = 112;
+  if (isFirstPage) {
+    // Full header
+    const STAGE_Y = LOGO_Y + 150;
+    let headingSize = 112;
+    ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
+    while (ctx.measureText(stageHeading).width > W - PAD_X * 4 && headingSize > 48) {
+      headingSize -= 4;
       ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
-      while (ctx.measureText(stageHeading).width > W - PAD_X * 4 && headingSize > 48) {
-        headingSize -= 4;
-        ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
-      }
-      ctx.shadowColor = AC('0.45');
-      ctx.shadowBlur = 70;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.textAlign = 'center';
-      ctx.fillText(stageHeading, W / 2, STAGE_Y);
-      ctx.shadowBlur = 0;
+    }
+    ctx.shadowColor = AC('0.45');
+    ctx.shadowBlur = 70;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.fillText(stageHeading, W / 2, STAGE_Y);
+    ctx.shadowBlur = 0;
 
-      // Decorative lines + diamond markers beside heading
-      const headW = ctx.measureText(stageHeading).width;
-      const DGAP = 28;
-      const lEndX = W / 2 - headW / 2 - DGAP;
-      const rStartX = W / 2 + headW / 2 + DGAP;
-
+    const headW = ctx.measureText(stageHeading).width;
+    const DGAP = 28,
+      lEndX = W / 2 - headW / 2 - DGAP,
+      rStartX = W / 2 + headW / 2 + DGAP;
+    if (lEndX > PAD_X + 30) {
       const drawDecLine = (x1, x2, toRight) => {
         const g = ctx.createLinearGradient(x1, 0, x2, 0);
         if (toRight) {
@@ -259,414 +245,453 @@ export const generateStandingsImage = async ({
         ctx.lineTo(x2, STAGE_Y);
         ctx.stroke();
       };
-      if (lEndX > PAD_X + 30) {
-        drawDecLine(PAD_X + 16, lEndX - 8, true);
-        drawDecLine(rStartX + 8, W - PAD_X - 16, false);
-        const drawDiamond = (cx, cy, size) => {
-          ctx.fillStyle = ACCENT;
-          ctx.shadowColor = ACCENT;
-          ctx.shadowBlur = 12;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy - size);
-          ctx.lineTo(cx + size, cy);
-          ctx.lineTo(cx, cy + size);
-          ctx.lineTo(cx - size, cy);
-          ctx.closePath();
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        };
-        drawDiamond(lEndX, STAGE_Y, 6);
-        drawDiamond(rStartX, STAGE_Y, 6);
-      }
+      drawDecLine(PAD_X + 16, lEndX - 8, true);
+      drawDecLine(rStartX + 8, W - PAD_X - 16, false);
+      const drawDiamond = (cx, cy, size) => {
+        ctx.fillStyle = ACCENT;
+        ctx.shadowColor = ACCENT;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size);
+        ctx.lineTo(cx + size, cy);
+        ctx.lineTo(cx, cy + size);
+        ctx.lineTo(cx - size, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      };
+      drawDiamond(lEndX, STAGE_Y, 6);
+      drawDiamond(rStartX, STAGE_Y, 6);
+    }
 
-      // Subtitle pill — outline style (different from old solid pill)
-      const SUBTITLE_Y = STAGE_Y + headingSize / 2 + 38;
-      ctx.font = '700 15px "Inter", sans-serif';
-      ctx.letterSpacing = '4px';
-      const stLabelW = ctx.measureText(subtitleLabel).width;
-      const stPillW = stLabelW + 56;
-      const stPillH = 34;
-      ctx.strokeStyle = AC('0.65');
+    const SUBTITLE_Y = STAGE_Y + headingSize / 2 + 38;
+    ctx.font = '700 15px "Inter", sans-serif';
+    ctx.letterSpacing = '4px';
+    const stLabelW = ctx.measureText(subtitleLabel).width;
+    const stPillW = stLabelW + 56,
+      stPillH = 34;
+    ctx.strokeStyle = AC('0.65');
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    roundRect(ctx, W / 2 - stPillW / 2, SUBTITLE_Y - stPillH / 2, stPillW, stPillH, 4);
+    ctx.stroke();
+    ctx.fillStyle = AC('0.08');
+    ctx.beginPath();
+    roundRect(ctx, W / 2 - stPillW / 2, SUBTITLE_Y - stPillH / 2, stPillW, stPillH, 4);
+    ctx.fill();
+    ctx.fillStyle = ACCENT;
+    ctx.textAlign = 'center';
+    ctx.fillText(subtitleLabel, W / 2, SUBTITLE_Y);
+    ctx.letterSpacing = '0px';
+
+    const INFO_Y = SUBTITLE_Y + 48;
+    const infoParts = [];
+    if (tournament?.game_name) infoParts.push(tournament.game_name.toUpperCase());
+    if (tournament?.title) {
+      const t = tournament.title.toUpperCase();
+      infoParts.push(t.length > 50 ? t.substring(0, 48) + '\u2026' : t);
+    }
+    if (selectedGroup?.group_name) infoParts.push(selectedGroup.group_name.toUpperCase());
+    ctx.fillStyle = 'rgba(255,255,255,0.32)';
+    ctx.font = '500 14px "Inter", sans-serif';
+    ctx.letterSpacing = '1.5px';
+    ctx.textAlign = 'center';
+    ctx.fillText(infoParts.join('   \u00b7   '), W / 2, INFO_Y);
+    ctx.letterSpacing = '0px';
+  } else {
+    // Compact header for page 2+
+    const STAGE_Y = 96;
+    let headingSize = 56;
+    ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
+    while (ctx.measureText(stageHeading).width > W - PAD_X * 4 && headingSize > 32) {
+      headingSize -= 2;
+      ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
+    }
+    ctx.shadowColor = AC('0.35');
+    ctx.shadowBlur = 40;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.fillText(stageHeading, W / 2, STAGE_Y);
+    ctx.shadowBlur = 0;
+
+    const pageBadge = `${subtitleLabel}   \u00b7   PAGE ${pageNum} OF ${totalPages}`;
+    ctx.font = '700 12px "Inter", sans-serif';
+    ctx.letterSpacing = '3px';
+    const pbW = ctx.measureText(pageBadge).width + 44,
+      pbH = 30;
+    const pbY = STAGE_Y + headingSize / 2 + 28;
+    ctx.strokeStyle = AC('0.55');
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = AC('0.08');
+    ctx.beginPath();
+    roundRect(ctx, W / 2 - pbW / 2, pbY - pbH / 2, pbW, pbH, 4);
+    ctx.fill();
+    ctx.beginPath();
+    roundRect(ctx, W / 2 - pbW / 2, pbY - pbH / 2, pbW, pbH, 4);
+    ctx.stroke();
+    ctx.fillStyle = ACCENT;
+    ctx.textAlign = 'center';
+    ctx.fillText(pageBadge, W / 2, pbY);
+    ctx.letterSpacing = '0px';
+  }
+
+  // Column headers
+  const RANK_ZONE_W = 96,
+    TOTAL_CHIP_W = 120,
+    STAT_W = 82;
+  const STATS_START_X = W - PAD_X - TOTAL_CHIP_W - STAT_W * 3 - 8;
+  const COL_WWCD = STATS_START_X + STAT_W * 0 + STAT_W / 2;
+  const COL_PP = STATS_START_X + STAT_W * 1 + STAT_W / 2;
+  const COL_FP = STATS_START_X + STAT_W * 2 + STAT_W / 2;
+  const COL_TOTAL_X = W - PAD_X - TOTAL_CHIP_W / 2;
+
+  const COL_HDR_Y = HEADER_H + 13;
+  ctx.font = '700 10px "Inter", sans-serif';
+  ctx.letterSpacing = '2.5px';
+  ctx.fillStyle = 'rgba(255,255,255,0.42)';
+  ctx.textAlign = 'center';
+  ctx.fillText('WWCD', COL_WWCD, COL_HDR_Y);
+  ctx.fillText('PP', COL_PP, COL_HDR_Y);
+  ctx.fillText('FP', COL_FP, COL_HDR_Y);
+  ctx.fillStyle = AC('0.75');
+  ctx.fillText('TOTAL', COL_TOTAL_X, COL_HDR_Y);
+  ctx.letterSpacing = '0px';
+
+  const MEDALS = [
+    { fill: '#F59E0B', stroke: '#FDE68A', shadow: 'rgba(245,158,11,', dark: '#1C1000' },
+    { fill: '#94A3B8', stroke: '#E2E8F0', shadow: 'rgba(148,163,184,', dark: '#0F1117' },
+    { fill: '#B45309', stroke: '#D97706', shadow: 'rgba(180,83,9,', dark: '#1A0C00' },
+  ];
+
+  let cardY = HEADER_H + COL_HDR_H + CARDS_PAD;
+  const BADGE_X_CENTER = PAD_X + 20 + RANK_ZONE_W / 2 - 10;
+
+  standings.forEach((team, i) => {
+    const actualRank = rankOffset + i + 1;
+    const isTop3 = actualRank <= 3;
+    const ch = isTop3 ? CARD_H_TOP3 : CARD_H;
+    const medal = isTop3 ? MEDALS[actualRank - 1] : null;
+    const mid = cardY + ch / 2;
+
+    if (isTop3) {
+      const cardBg = ctx.createLinearGradient(PAD_X, 0, W - PAD_X, 0);
+      cardBg.addColorStop(0, medal.shadow + '0.65)');
+      cardBg.addColorStop(0.09, medal.shadow + '0.38)');
+      cardBg.addColorStop(0.42, 'rgba(10,8,28,0.96)');
+      cardBg.addColorStop(1, 'rgba(6,5,18,0.98)');
+      ctx.fillStyle = cardBg;
+      ctx.beginPath();
+      roundRect(ctx, PAD_X, cardY, W - PAD_X * 2, ch, 10);
+      ctx.fill();
+      const lBorder = ctx.createLinearGradient(0, cardY, 0, cardY + ch);
+      lBorder.addColorStop(0, medal.stroke);
+      lBorder.addColorStop(1, medal.fill);
+      ctx.fillStyle = lBorder;
+      ctx.fillRect(PAD_X, cardY, 6, ch);
+      ctx.shadowColor = medal.shadow + '0.50)';
+      ctx.shadowBlur = 22;
+      ctx.strokeStyle = medal.shadow + '0.45)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      roundRect(ctx, W / 2 - stPillW / 2, SUBTITLE_Y - stPillH / 2, stPillW, stPillH, 4);
+      roundRect(ctx, PAD_X, cardY, W - PAD_X * 2, ch, 10);
       ctx.stroke();
-      ctx.fillStyle = AC('0.08');
-      ctx.beginPath();
-      roundRect(ctx, W / 2 - stPillW / 2, SUBTITLE_Y - stPillH / 2, stPillW, stPillH, 4);
-      ctx.fill();
-      ctx.fillStyle = ACCENT;
-      ctx.textAlign = 'center';
-      ctx.fillText(subtitleLabel, W / 2, SUBTITLE_Y);
-      ctx.letterSpacing = '0px';
-
-      // Info line
-      const INFO_Y = SUBTITLE_Y + 48;
-      const infoParts = [];
-      if (tournament?.game_name) infoParts.push(tournament.game_name.toUpperCase());
-      if (tournament?.title) {
-        const t = tournament.title.toUpperCase();
-        infoParts.push(t.length > 50 ? t.substring(0, 48) + '…' : t);
-      }
-      if (selectedGroup?.group_name) infoParts.push(selectedGroup.group_name.toUpperCase());
-      ctx.fillStyle = 'rgba(255,255,255,0.32)';
-      ctx.font = '500 14px "Inter", sans-serif';
-      ctx.letterSpacing = '1.5px';
-      ctx.textAlign = 'center';
-      ctx.fillText(infoParts.join('   ·   '), W / 2, INFO_Y);
-      ctx.letterSpacing = '0px';
-
-      // ── COLUMN HEADERS (floating above cards) ───────────────────────
-      const RANK_ZONE_W = 96;
-      const TOTAL_CHIP_W = 120;
-      const STAT_W = 82;
-      const STATS_START_X = W - PAD_X - TOTAL_CHIP_W - STAT_W * 3 - 8;
-      const COL_WWCD = STATS_START_X + STAT_W * 0 + STAT_W / 2;
-      const COL_PP = STATS_START_X + STAT_W * 1 + STAT_W / 2;
-      const COL_FP = STATS_START_X + STAT_W * 2 + STAT_W / 2;
-      const COL_TOTAL_X = W - PAD_X - TOTAL_CHIP_W / 2;
-
-      const COL_HDR_Y = HEADER_H + 13;
-      ctx.font = '700 10px "Inter", sans-serif';
-      ctx.letterSpacing = '2.5px';
-      ctx.fillStyle = 'rgba(255,255,255,0.42)';
-      ctx.textAlign = 'center';
-      ctx.fillText('WWCD', COL_WWCD, COL_HDR_Y);
-      ctx.fillText('PP', COL_PP, COL_HDR_Y);
-      ctx.fillText('FP', COL_FP, COL_HDR_Y);
-      ctx.fillStyle = AC('0.75');
-      ctx.fillText('TOTAL', COL_TOTAL_X, COL_HDR_Y);
-      ctx.letterSpacing = '0px';
-
-      // ── MEDALS ──────────────────────────────────────────────────────
-      const MEDALS = [
-        { fill: '#F59E0B', stroke: '#FDE68A', shadow: 'rgba(245,158,11,', dark: '#1C1000' },
-        { fill: '#94A3B8', stroke: '#E2E8F0', shadow: 'rgba(148,163,184,', dark: '#0F1117' },
-        { fill: '#B45309', stroke: '#D97706', shadow: 'rgba(180,83,9,', dark: '#1A0C00' },
-      ];
-
-      // ── TEAM CARDS ──────────────────────────────────────────────────
-      let cardY = HEADER_H + COL_HDR_H + CARDS_PAD;
-      const BADGE_X_CENTER = PAD_X + 20 + RANK_ZONE_W / 2 - 10;
-
-      standings.forEach((team, i) => {
-        const ch = i < 3 ? CARD_H_TOP3 : CARD_H;
-        const rank = i + 1;
-        const isTop3 = rank <= 3;
-        const medal = isTop3 ? MEDALS[i] : null;
-        const mid = cardY + ch / 2;
-
-        // ── Card background ──
-        if (isTop3) {
-          // Strong gradient from medal color left → near-black right
-          const cardBg = ctx.createLinearGradient(PAD_X, 0, W - PAD_X, 0);
-          cardBg.addColorStop(0, medal.shadow + '0.65)');
-          cardBg.addColorStop(0.09, medal.shadow + '0.38)');
-          cardBg.addColorStop(0.42, 'rgba(10,8,28,0.96)');
-          cardBg.addColorStop(1, 'rgba(6,5,18,0.98)');
-          ctx.fillStyle = cardBg;
-          ctx.beginPath();
-          roundRect(ctx, PAD_X, cardY, W - PAD_X * 2, ch, 10);
-          ctx.fill();
-
-          // Left accent strip — 6px wide, vibrant
-          const lBorder = ctx.createLinearGradient(0, cardY, 0, cardY + ch);
-          lBorder.addColorStop(0, medal.stroke);
-          lBorder.addColorStop(1, medal.fill);
-          ctx.fillStyle = lBorder;
-          ctx.fillRect(PAD_X, cardY, 6, ch);
-
-          // Outer glow border
-          ctx.shadowColor = medal.shadow + '0.50)';
-          ctx.shadowBlur = 22;
-          ctx.strokeStyle = medal.shadow + '0.45)';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          roundRect(ctx, PAD_X, cardY, W - PAD_X * 2, ch, 10);
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-
-          // Bottom separator line with medal glow
-          const sepG = ctx.createLinearGradient(PAD_X, 0, PAD_X + (W - PAD_X * 2), 0);
-          sepG.addColorStop(0, medal.shadow + '0.60)');
-          sepG.addColorStop(0.5, medal.shadow + '0.20)');
-          sepG.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.strokeStyle = sepG;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(PAD_X + 6, cardY + ch - 0.5);
-          ctx.lineTo(PAD_X + (W - PAD_X * 2), cardY + ch - 0.5);
-          ctx.stroke();
-        } else {
-          // Regular rows — clearly visible dark navy
-          ctx.fillStyle = i % 2 === 0 ? 'rgba(16,13,42,0.90)' : 'rgba(9,8,28,0.92)';
-          ctx.beginPath();
-          roundRect(ctx, PAD_X, cardY, W - PAD_X * 2, ch, 8);
-          ctx.fill();
-
-          // Left purple accent bar — 4px
-          const purpleBar = ctx.createLinearGradient(0, cardY, 0, cardY + ch);
-          purpleBar.addColorStop(0, 'rgba(139,92,246,0.80)');
-          purpleBar.addColorStop(1, 'rgba(109,40,217,0.50)');
-          ctx.fillStyle = purpleBar;
-          ctx.fillRect(PAD_X, cardY, 4, ch);
-
-          // Visible border
-          ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          roundRect(ctx, PAD_X, cardY, W - PAD_X * 2, ch, 8);
-          ctx.stroke();
-
-          // Bottom separator
-          ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(PAD_X + 4, cardY + ch - 0.5);
-          ctx.lineTo(PAD_X + (W - PAD_X * 2), cardY + ch - 0.5);
-          ctx.stroke();
-        }
-
-        ctx.textBaseline = 'middle';
-
-        // ── Rank badge ──
-        const BSIZE = isTop3 ? 26 : 20;
-        if (isTop3) {
-          ctx.shadowColor = medal.fill;
-          ctx.shadowBlur = 24;
-          const bGrad = ctx.createRadialGradient(
-            BADGE_X_CENTER - 8,
-            mid - 8,
-            0,
-            BADGE_X_CENTER,
-            mid,
-            BSIZE
-          );
-          bGrad.addColorStop(0, medal.stroke);
-          bGrad.addColorStop(1, medal.fill);
-          ctx.fillStyle = bGrad;
-          ctx.beginPath();
-          ctx.arc(BADGE_X_CENTER, mid, BSIZE, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          // Inner ring
-          ctx.strokeStyle = 'rgba(255,255,255,0.30)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(BADGE_X_CENTER, mid, BSIZE - 3, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.fillStyle = medal.dark;
-          ctx.font = '900 17px "Space Grotesk", sans-serif';
-        } else {
-          ctx.fillStyle = 'rgba(139,92,246,0.18)';
-          ctx.beginPath();
-          ctx.arc(BADGE_X_CENTER, mid, BSIZE, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(139,92,246,0.45)';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(BADGE_X_CENTER, mid, BSIZE, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.fillStyle = 'rgba(255,255,255,0.55)';
-          ctx.font = '600 14px "Space Grotesk", sans-serif';
-        }
-        ctx.textAlign = 'center';
-        ctx.fillText(String(rank).padStart(2, '0'), BADGE_X_CENTER, mid);
-
-        // Watermark rank number behind team name for top 3
-        if (isTop3) {
-          ctx.save();
-          ctx.globalAlpha = 0.055;
-          ctx.font = `900 110px "Outfit", sans-serif`;
-          ctx.fillStyle = medal.stroke;
-          ctx.textAlign = 'left';
-          ctx.fillText(String(rank), PAD_X + 76, mid + 10);
-          ctx.restore();
-        }
-
-        // ── Team name ──
-        const TEAM_NAME_X = PAD_X + RANK_ZONE_W + 4;
-        const maxTeamW = STATS_START_X - TEAM_NAME_X - 16;
-        ctx.textAlign = 'left';
-        ctx.fillStyle = isTop3 ? '#FFFFFF' : 'rgba(255,255,255,0.90)';
-        ctx.font = `${isTop3 ? '700' : '600'} ${isTop3 ? 24 : 21}px "Inter", sans-serif`;
-        if (isTop3) {
-          ctx.shadowColor = 'rgba(0,0,0,0.95)';
-          ctx.shadowBlur = 8;
-        }
-        const rawName = team.team_name || 'Unknown';
-        ctx.font = `${isTop3 ? '700' : '600'} ${isTop3 ? 24 : 21}px "Inter", sans-serif`;
-        let displayName = rawName;
-        while (ctx.measureText(displayName).width > maxTeamW && displayName.length > 4) {
-          displayName = displayName.substring(0, displayName.length - 1);
-        }
-        if (displayName.length < rawName.length) displayName += '…';
-        ctx.fillText(displayName, TEAM_NAME_X, mid);
-        ctx.shadowBlur = 0;
-
-        ctx.textAlign = 'center';
-
-        // ── WWCD ──
-        const wins = team.wins || 0;
-        if (wins > 0) {
-          ctx.shadowColor = 'rgba(74,222,128,0.7)';
-          ctx.shadowBlur = 12;
-          ctx.fillStyle = '#4ADE80';
-          ctx.font = `700 ${isTop3 ? 23 : 19}px "Space Grotesk", sans-serif`;
-          ctx.fillText(String(wins), COL_WWCD, mid);
-          ctx.shadowBlur = 0;
-        } else {
-          ctx.fillStyle = 'rgba(255,255,255,0.20)';
-          ctx.font = `400 ${isTop3 ? 20 : 17}px "Space Grotesk", sans-serif`;
-          ctx.fillText('—', COL_WWCD, mid);
-        }
-
-        // ── PP ──
-        const pp = team.position_points || 0;
-        ctx.font = `${isTop3 ? '600' : '500'} ${isTop3 ? 23 : 19}px "Space Grotesk", sans-serif`;
-        ctx.fillStyle = isTop3 ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.80)';
-        ctx.fillText(pp > 0 ? String(pp) : '—', COL_PP, mid);
-
-        // ── FP ──
-        const kills = team.kill_points || 0;
-        if (kills > 0) {
-          ctx.fillStyle = '#FCA5A5';
-          ctx.shadowColor = 'rgba(252,165,165,0.45)';
-          ctx.shadowBlur = 8;
-          ctx.font = `${isTop3 ? '600' : '500'} ${isTop3 ? 23 : 19}px "Space Grotesk", sans-serif`;
-          ctx.fillText(String(kills), COL_FP, mid);
-          ctx.shadowBlur = 0;
-        } else {
-          ctx.fillStyle = 'rgba(255,255,255,0.20)';
-          ctx.font = `400 ${isTop3 ? 20 : 17}px "Space Grotesk", sans-serif`;
-          ctx.fillText('—', COL_FP, mid);
-        }
-
-        // ── TOTAL chip ──
-        const total = team.total_points || 0;
-        const totalStr = String(total);
-        const tFontSz = isTop3 ? 28 : 21;
-        ctx.font = `${isTop3 ? '900' : '700'} ${tFontSz}px "Space Grotesk", sans-serif`;
-        const totalTxtW = ctx.measureText(totalStr).width;
-        const cW = Math.max(totalTxtW + 34, 68);
-        const cH = isTop3 ? 48 : 36;
-        const cX = COL_TOTAL_X - cW / 2;
-        const cY2 = mid - cH / 2;
-
-        const chipBg = ctx.createLinearGradient(cX, cY2, cX, cY2 + cH);
-        chipBg.addColorStop(0, isTop3 ? AC('0.48') : AC('0.22'));
-        chipBg.addColorStop(1, isTop3 ? AC('0.26') : AC('0.10'));
-        ctx.fillStyle = chipBg;
-        ctx.beginPath();
-        roundRect(ctx, cX, cY2, cW, cH, 9);
-        ctx.fill();
-
-        ctx.strokeStyle = isTop3 ? AC('0.88') : AC('0.38');
-        ctx.lineWidth = isTop3 ? 1.5 : 1;
-        ctx.beginPath();
-        roundRect(ctx, cX, cY2, cW, cH, 9);
-        ctx.stroke();
-
-        // Top highlight line inside chip
-        ctx.strokeStyle = 'rgba(255,255,255,0.14)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(cX + 10, cY2 + 1.5);
-        ctx.lineTo(cX + cW - 10, cY2 + 1.5);
-        ctx.stroke();
-
-        if (isTop3) {
-          ctx.shadowColor = ACCENT;
-          ctx.shadowBlur = 18;
-        }
-        ctx.fillStyle = isTop3 ? '#FEF3C7' : '#FCD34D';
-        ctx.textAlign = 'center';
-        ctx.fillText(totalStr, COL_TOTAL_X, mid);
-        ctx.shadowBlur = 0;
-
-        cardY += ch + CARD_GAP;
-      });
-
-      // ── FOOTER ──────────────────────────────────────────────────────
-      const FOOTER_START = HEADER_H + COL_HDR_H + CARDS_PAD + totalCardsH + CARDS_PAD;
-      const F_MID = FOOTER_START + FOOTER_H / 2;
-
-      // Footer accent separator
-      const footSep = ctx.createLinearGradient(PAD_X, 0, W - PAD_X, 0);
-      footSep.addColorStop(0, 'rgba(255,255,255,0)');
-      footSep.addColorStop(0.2, AC('0.55'));
-      footSep.addColorStop(0.8, AC('0.55'));
-      footSep.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.strokeStyle = footSep;
+      ctx.shadowBlur = 0;
+      const sepG = ctx.createLinearGradient(PAD_X, 0, PAD_X + W - PAD_X * 2, 0);
+      sepG.addColorStop(0, medal.shadow + '0.60)');
+      sepG.addColorStop(0.5, medal.shadow + '0.20)');
+      sepG.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.strokeStyle = sepG;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(PAD_X, FOOTER_START);
-      ctx.lineTo(W - PAD_X, FOOTER_START);
+      ctx.moveTo(PAD_X + 6, cardY + ch - 0.5);
+      ctx.lineTo(PAD_X + W - PAD_X * 2, cardY + ch - 0.5);
       ctx.stroke();
-
-      // SCRIMVERSE left
-      ctx.font = '800 26px "Outfit", sans-serif';
-      const swF = ctx.measureText('SCRIM').width;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0,0,0,0.9)';
-      ctx.shadowBlur = 10;
-      ctx.fillText('SCRIM', PAD_X, F_MID);
-      ctx.fillStyle = '#C084FC';
-      ctx.fillText('VERSE', PAD_X + swF, F_MID);
-      ctx.shadowBlur = 0;
-
-      // Centre watermark
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255,255,255,0.09)';
-      ctx.font = '500 11px "Inter", sans-serif';
-      ctx.letterSpacing = '4px';
-      ctx.fillText('SCRIMVERSE.COM', W / 2, F_MID);
-      ctx.letterSpacing = '0px';
-
-      // Social handles — right
-      const socials = [
-        { platform: 'INSTAGRAM', handle: '@scrimverse' },
-        { platform: 'YOUTUBE', handle: 'ScrimverseGG' },
-      ];
-      let sx = W - PAD_X;
-      socials.forEach((item, idx) => {
-        ctx.textAlign = 'right';
-        ctx.fillStyle = 'rgba(255,255,255,0.60)';
-        ctx.font = '500 13px "Inter", sans-serif';
-        const hW = ctx.measureText(item.handle).width;
-        ctx.fillText(item.handle, sx, F_MID + 11);
-        ctx.fillStyle = 'rgba(255,255,255,0.26)';
-        ctx.font = '700 9px "Inter", sans-serif';
-        ctx.letterSpacing = '1.5px';
-        const pW = ctx.measureText(item.platform).width;
-        ctx.fillText(item.platform, sx, F_MID - 11);
-        ctx.letterSpacing = '0px';
-        sx -= Math.max(hW, pW) + 28;
-        if (idx < socials.length - 1) {
-          ctx.strokeStyle = 'rgba(255,255,255,0.14)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(sx + 14, F_MID - 18);
-          ctx.lineTo(sx + 14, F_MID + 18);
-          ctx.stroke();
-        }
-      });
-
-      // BOTTOM accent bar
-      const btmBar = ctx.createLinearGradient(0, 0, W, 0);
-      btmBar.addColorStop(0, AC('0'));
-      btmBar.addColorStop(0.15, AC('1'));
-      btmBar.addColorStop(0.85, AC('1'));
-      btmBar.addColorStop(1, AC('0'));
-      ctx.fillStyle = btmBar;
-      ctx.fillRect(0, TOTAL_H - 5, W, 5);
-
-      resolve(canvas.toDataURL('image/png', 1.0));
-    } catch (e) {
-      reject(e);
+    } else {
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(16,13,42,0.90)' : 'rgba(9,8,28,0.92)';
+      ctx.beginPath();
+      roundRect(ctx, PAD_X, cardY, W - PAD_X * 2, ch, 8);
+      ctx.fill();
+      const purpleBar = ctx.createLinearGradient(0, cardY, 0, cardY + ch);
+      purpleBar.addColorStop(0, 'rgba(139,92,246,0.80)');
+      purpleBar.addColorStop(1, 'rgba(109,40,217,0.50)');
+      ctx.fillStyle = purpleBar;
+      ctx.fillRect(PAD_X, cardY, 4, ch);
+      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      roundRect(ctx, PAD_X, cardY, W - PAD_X * 2, ch, 8);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PAD_X + 4, cardY + ch - 0.5);
+      ctx.lineTo(PAD_X + W - PAD_X * 2, cardY + ch - 0.5);
+      ctx.stroke();
     }
+
+    ctx.textBaseline = 'middle';
+
+    const BSIZE = isTop3 ? 26 : 20;
+    if (isTop3) {
+      ctx.shadowColor = medal.fill;
+      ctx.shadowBlur = 24;
+      const bGrad = ctx.createRadialGradient(
+        BADGE_X_CENTER - 8,
+        mid - 8,
+        0,
+        BADGE_X_CENTER,
+        mid,
+        BSIZE
+      );
+      bGrad.addColorStop(0, medal.stroke);
+      bGrad.addColorStop(1, medal.fill);
+      ctx.fillStyle = bGrad;
+      ctx.beginPath();
+      ctx.arc(BADGE_X_CENTER, mid, BSIZE, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(BADGE_X_CENTER, mid, BSIZE - 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = medal.dark;
+      ctx.font = '900 17px "Space Grotesk", sans-serif';
+    } else {
+      ctx.fillStyle = 'rgba(139,92,246,0.18)';
+      ctx.beginPath();
+      ctx.arc(BADGE_X_CENTER, mid, BSIZE, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(139,92,246,0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(BADGE_X_CENTER, mid, BSIZE, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = '600 14px "Space Grotesk", sans-serif';
+    }
+    ctx.textAlign = 'center';
+    ctx.fillText(String(actualRank).padStart(2, '0'), BADGE_X_CENTER, mid);
+
+    if (isTop3) {
+      ctx.save();
+      ctx.globalAlpha = 0.055;
+      ctx.font = '900 110px "Outfit", sans-serif';
+      ctx.fillStyle = medal.stroke;
+      ctx.textAlign = 'left';
+      ctx.fillText(String(actualRank), PAD_X + 76, mid + 10);
+      ctx.restore();
+    }
+
+    const TEAM_NAME_X = PAD_X + RANK_ZONE_W + 4;
+    const maxTeamW = STATS_START_X - TEAM_NAME_X - 16;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = isTop3 ? '#FFFFFF' : 'rgba(255,255,255,0.90)';
+    if (isTop3) {
+      ctx.shadowColor = 'rgba(0,0,0,0.95)';
+      ctx.shadowBlur = 8;
+    }
+    const rawName = team.team_name || 'Unknown';
+    ctx.font = `${isTop3 ? '700' : '600'} ${isTop3 ? 24 : 21}px "Inter", sans-serif`;
+    let displayName = rawName;
+    while (ctx.measureText(displayName).width > maxTeamW && displayName.length > 4)
+      displayName = displayName.substring(0, displayName.length - 1);
+    if (displayName.length < rawName.length) displayName += '\u2026';
+    ctx.fillText(displayName, TEAM_NAME_X, mid);
+    ctx.shadowBlur = 0;
+
+    ctx.textAlign = 'center';
+
+    const wins = team.wins || 0;
+    if (wins > 0) {
+      ctx.shadowColor = 'rgba(74,222,128,0.7)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = '#4ADE80';
+      ctx.font = `700 ${isTop3 ? 23 : 19}px "Space Grotesk", sans-serif`;
+      ctx.fillText(String(wins), COL_WWCD, mid);
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.20)';
+      ctx.font = `400 ${isTop3 ? 20 : 17}px "Space Grotesk", sans-serif`;
+      ctx.fillText('\u2014', COL_WWCD, mid);
+    }
+
+    const pp = team.position_points || 0;
+    ctx.font = `${isTop3 ? '600' : '500'} ${isTop3 ? 23 : 19}px "Space Grotesk", sans-serif`;
+    ctx.fillStyle = isTop3 ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.80)';
+    ctx.fillText(pp > 0 ? String(pp) : '\u2014', COL_PP, mid);
+
+    const kills = team.kill_points || 0;
+    if (kills > 0) {
+      ctx.fillStyle = '#FCA5A5';
+      ctx.shadowColor = 'rgba(252,165,165,0.45)';
+      ctx.shadowBlur = 8;
+      ctx.font = `${isTop3 ? '600' : '500'} ${isTop3 ? 23 : 19}px "Space Grotesk", sans-serif`;
+      ctx.fillText(String(kills), COL_FP, mid);
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.20)';
+      ctx.font = `400 ${isTop3 ? 20 : 17}px "Space Grotesk", sans-serif`;
+      ctx.fillText('\u2014', COL_FP, mid);
+    }
+
+    const total = team.total_points || 0;
+    const totalStr = String(total);
+    const tFontSz = isTop3 ? 28 : 21;
+    ctx.font = `${isTop3 ? '900' : '700'} ${tFontSz}px "Space Grotesk", sans-serif`;
+    const totalTxtW = ctx.measureText(totalStr).width;
+    const cW = Math.max(totalTxtW + 34, 68),
+      cH = isTop3 ? 48 : 36;
+    const cX = COL_TOTAL_X - cW / 2,
+      cY2 = mid - cH / 2;
+    const chipBg = ctx.createLinearGradient(cX, cY2, cX, cY2 + cH);
+    chipBg.addColorStop(0, isTop3 ? AC('0.48') : AC('0.22'));
+    chipBg.addColorStop(1, isTop3 ? AC('0.26') : AC('0.10'));
+    ctx.fillStyle = chipBg;
+    ctx.beginPath();
+    roundRect(ctx, cX, cY2, cW, cH, 9);
+    ctx.fill();
+    ctx.strokeStyle = isTop3 ? AC('0.88') : AC('0.38');
+    ctx.lineWidth = isTop3 ? 1.5 : 1;
+    ctx.beginPath();
+    roundRect(ctx, cX, cY2, cW, cH, 9);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cX + 10, cY2 + 1.5);
+    ctx.lineTo(cX + cW - 10, cY2 + 1.5);
+    ctx.stroke();
+    if (isTop3) {
+      ctx.shadowColor = ACCENT;
+      ctx.shadowBlur = 18;
+    }
+    ctx.fillStyle = isTop3 ? '#FEF3C7' : '#FCD34D';
+    ctx.textAlign = 'center';
+    ctx.fillText(totalStr, COL_TOTAL_X, mid);
+    ctx.shadowBlur = 0;
+
+    cardY += ch + CARD_GAP;
+  });
+
+  // Footer
+  const FOOTER_START = HEADER_H + COL_HDR_H + CARDS_PAD + totalCardsH + CARDS_PAD;
+  const F_MID = FOOTER_START + FOOTER_H / 2;
+  const footSep = ctx.createLinearGradient(PAD_X, 0, W - PAD_X, 0);
+  footSep.addColorStop(0, 'rgba(255,255,255,0)');
+  footSep.addColorStop(0.2, AC('0.55'));
+  footSep.addColorStop(0.8, AC('0.55'));
+  footSep.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.strokeStyle = footSep;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD_X, FOOTER_START);
+  ctx.lineTo(W - PAD_X, FOOTER_START);
+  ctx.stroke();
+
+  ctx.font = '800 26px "Outfit", sans-serif';
+  const swF = ctx.measureText('SCRIM').width;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = 10;
+  ctx.fillText('SCRIM', PAD_X, F_MID);
+  ctx.fillStyle = '#C084FC';
+  ctx.fillText('VERSE', PAD_X + swF, F_MID);
+  ctx.shadowBlur = 0;
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.09)';
+  ctx.font = '500 11px "Inter", sans-serif';
+  ctx.letterSpacing = '4px';
+  ctx.fillText('SCRIMVERSE.COM', W / 2, F_MID);
+  ctx.letterSpacing = '0px';
+
+  const socials = [
+    { platform: 'INSTAGRAM', handle: '@scrimverse' },
+    { platform: 'YOUTUBE', handle: 'ScrimverseGG' },
+  ];
+  let sx = W - PAD_X;
+  socials.forEach((item, idx) => {
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.60)';
+    ctx.font = '500 13px "Inter", sans-serif';
+    const hW = ctx.measureText(item.handle).width;
+    ctx.fillText(item.handle, sx, F_MID + 11);
+    ctx.fillStyle = 'rgba(255,255,255,0.26)';
+    ctx.font = '700 9px "Inter", sans-serif';
+    ctx.letterSpacing = '1.5px';
+    const pW = ctx.measureText(item.platform).width;
+    ctx.fillText(item.platform, sx, F_MID - 11);
+    ctx.letterSpacing = '0px';
+    sx -= Math.max(hW, pW) + 28;
+    if (idx < socials.length - 1) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx + 14, F_MID - 18);
+      ctx.lineTo(sx + 14, F_MID + 18);
+      ctx.stroke();
+    }
+  });
+
+  const btmBar = ctx.createLinearGradient(0, 0, W, 0);
+  btmBar.addColorStop(0, AC('0'));
+  btmBar.addColorStop(0.15, AC('1'));
+  btmBar.addColorStop(0.85, AC('1'));
+  btmBar.addColorStop(1, AC('0'));
+  ctx.fillStyle = btmBar;
+  ctx.fillRect(0, TOTAL_H - 5, W, 5);
+
+  return canvas.toDataURL('image/png', 1.0);
+};
+
+// Returns string[] — always an array (1 item for ≤15 teams, multiple pages for larger rosters)
+export const generateStandingsImage = async ({
+  tournament,
+  standings,
+  viewMode,
+  selectedRound,
+  selectedMatch,
+  selectedGroup,
+  getRoundLabel,
+}) => {
+  await loadPremiumFonts();
+
+  const chunks = [];
+  if (standings.length <= TEAMS_PAGE_1) {
+    chunks.push(standings);
+  } else {
+    chunks.push(standings.slice(0, TEAMS_PAGE_1));
+    let i = TEAMS_PAGE_1;
+    while (i < standings.length) {
+      chunks.push(standings.slice(i, i + TEAMS_PAGE_N));
+      i += TEAMS_PAGE_N;
+    }
+  }
+
+  const totalPages = chunks.length;
+  const baseParams = {
+    tournament,
+    viewMode,
+    selectedRound,
+    selectedMatch,
+    selectedGroup,
+    getRoundLabel,
+  };
+  let rankOffset = 0;
+
+  return chunks.map((chunk, p) => {
+    const url = _renderStandingsPage({
+      ...baseParams,
+      standings: chunk,
+      pageNum: p + 1,
+      totalPages,
+      rankOffset,
+    });
+    rankOffset += chunk.length;
+    return url;
   });
 };
 

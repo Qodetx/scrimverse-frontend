@@ -329,7 +329,7 @@ const PlayerPointsTableViewAuthenticated = () => {
     if (downloading || displayStandings.length === 0) return;
     setDownloading(true);
     try {
-      const dataUrl = await generateStandingsImage({
+      const dataUrls = await generateStandingsImage({
         tournament,
         standings: displayStandings,
         viewMode,
@@ -339,18 +339,29 @@ const PlayerPointsTableViewAuthenticated = () => {
         getRoundLabel: (rn) => getRoundLabel(tournament, rn),
       });
 
-      const fileName = `points-table-${(tournamentTitle || 'tournament')
+      const baseFileName = `points-table-${(tournamentTitle || 'tournament')
         .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9_.-]/gi, '_')}.png`;
+        .replace(/[^a-z0-9_.-]/gi, '_')}`;
 
-      const link = document.createElement('a');
-      link.download = fileName;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const totalPages = dataUrls.length;
+      for (let idx = 0; idx < totalPages; idx++) {
+        const fileName =
+          totalPages === 1 ? baseFileName + '.png' : `${baseFileName}_p${idx + 1}.png`;
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrls[idx];
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        if (idx < totalPages - 1) {
+          await new Promise((r) => setTimeout(r, 300));
+        }
+      }
 
-      showToast('Points table downloaded!', 'success');
+      showToast(
+        totalPages > 1 ? `Downloaded ${totalPages} pages!` : 'Points table downloaded!',
+        'success'
+      );
     } catch (err) {
       console.error('Download error:', err);
       showToast('Failed to download points table', 'error');

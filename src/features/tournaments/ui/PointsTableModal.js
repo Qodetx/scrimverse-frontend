@@ -289,14 +289,25 @@ const PointsTableModal = ({
 
     setDownloading(true);
     try {
-      let imageDataUrl;
+      const baseFileName =
+        `${tournament?.title || 'Tournament'}_${getRoundLabel(selectedRound)}_${viewMode === 'match' ? `Match${selectedMatch}` : 'Results'}_${selectedGroup?.group_name || 'Standings'}`.replace(
+          /[^a-z0-9_.-]/gi,
+          '_'
+        );
+
+      const dataUrlToBlob = (dataUrl) => {
+        const byteString = atob(dataUrl.split(',')[1]);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+        return new Blob([ab], { type: 'image/png' });
+      };
 
       if (is5v5) {
-        // 5v5 mode: generate lobby-based image with all lobbies
+        // 5v5: single image
         const lobbies =
           viewMode === 'match' ? get5v5LobbyResults(selectedMatch) : get5v5CumulativeResults();
-
-        imageDataUrl = await generate5v5Image({
+        const imageDataUrl = await generate5v5Image({
           tournament,
           lobbies,
           viewMode,
@@ -304,14 +315,32 @@ const PointsTableModal = ({
           selectedMatch,
           getRoundLabel,
         });
+        const blob = dataUrlToBlob(imageDataUrl);
+        const fileName = baseFileName + '.png';
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile && navigator.share && navigator.canShare) {
+          const file = new File([blob], fileName, { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: fileName });
+            return;
+          }
+        }
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = blobUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       } else {
-        // BR mode: generate table-based standings image
+        // BR mode: may return multiple pages
         const allStandings =
           viewMode === 'match'
             ? getMatchStandings(selectedGroup, selectedMatch)
             : getGroupCumulativeStandings(selectedGroup);
 
-        imageDataUrl = await generateStandingsImage({
+        const imageDataUrls = await generateStandingsImage({
           tournament,
           standings: allStandings,
           viewMode,
@@ -320,50 +349,42 @@ const PointsTableModal = ({
           selectedGroup,
           getRoundLabel,
         });
-      }
 
-      // Download the image — use Blob for better mobile compatibility
-      const fileName =
-        `${tournament?.title || 'Tournament'}_${getRoundLabel(selectedRound)}_${viewMode === 'match' ? `Match${selectedMatch}` : 'Results'}_${selectedGroup?.group_name || 'Standings'}.png`.replace(
-          /[^a-z0-9_.-]/gi,
-          '_'
-        );
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const totalPages = imageDataUrls.length;
 
-      // Convert data URL to Blob for cross-browser/mobile support
-      const byteString = atob(imageDataUrl.split(',')[1]);
-      const mimeType = 'image/png';
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      const blob = new Blob([ab], { type: mimeType });
-      const blobUrl = URL.createObjectURL(blob);
+        // Try mobile Web Share with all pages at once
+        if (isMobile && navigator.share && navigator.canShare) {
+          const files = imageDataUrls.map((dataUrl, idx) => {
+            const blob = dataUrlToBlob(dataUrl);
+            const name =
+              totalPages === 1 ? baseFileName + '.png' : `${baseFileName}_p${idx + 1}.png`;
+            return new File([blob], name, { type: 'image/png' });
+          });
+          if (navigator.canShare({ files })) {
+            await navigator.share({ files, title: baseFileName });
+            return;
+          }
+        }
 
-      // Check if mobile (touch device) — try share API first, then fallback
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-      if (isMobile && navigator.share && navigator.canShare) {
-        // Use Web Share API on mobile for native share sheet
-        const file = new File([blob], fileName, { type: mimeType });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: fileName });
-          URL.revokeObjectURL(blobUrl);
-          setDownloading(false);
-          return;
+        // Desktop / fallback: download each page with 300ms delay between
+        for (let idx = 0; idx < imageDataUrls.length; idx++) {
+          const fileName =
+            totalPages === 1 ? baseFileName + '.png' : `${baseFileName}_p${idx + 1}.png`;
+          const blob = dataUrlToBlob(imageDataUrls[idx]);
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = fileName;
+          link.href = blobUrl;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+          if (idx < imageDataUrls.length - 1) {
+            await new Promise((r) => setTimeout(r, 300));
+          }
         }
       }
-
-      // Fallback: standard link download (works on desktop and most Android Chrome)
-      const link = document.createElement('a');
-      link.download = fileName;
-      link.href = blobUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Clean up blob URL after a short delay
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     } catch (error) {
       console.error('Error downloading image:', error);
     } finally {
