@@ -154,6 +154,54 @@
   }
 }
 
+/* Hero layout: single column on mobile, 2-column grid on desktop */
+.td-hero-single-col {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* Desktop: switch to CSS grid — stats block moves to right column */
+@media (min-width: 768px) {
+  .td-hero-single-col {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 32px;
+    row-gap: 12px;
+    align-items: start;
+  }
+
+  /* All direct children default to left column */
+  .td-hero-single-col > * {
+    grid-column: 1;
+  }
+
+  /* Stats block: right column, spans all rows, bottom-aligned */
+  .td-hero-single-col > .td-hero-stats-block {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: end;
+  }
+}
+
+/* Stats block: flex column on all sizes */
+.td-hero-stats-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .td-hero-stats-block {
+    width: auto;
+    min-width: 200px;
+  }
+}
+
 /* ---- Status Badge ---- */
 .td-badge {
   display: inline-flex;
@@ -273,9 +321,11 @@
 .td-stat-boxes {
   display: flex;
   gap: 10px;
+  width: 100%;
 }
 
 .td-stat-box {
+  flex: 1;
   background: hsl(220 10% 10% / 0.85);
   backdrop-filter: blur(10px);
   border: 1px solid hsl(0 0% 100% / 0.1);
@@ -338,7 +388,13 @@
   text-decoration: none;
   color: #fff;
   align-self: flex-start;
-  width: fit-content;
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .td-watch-live-btn {
+    width: fit-content;
+  }
 }
 
 .td-watch-live-btn:hover {
@@ -388,6 +444,25 @@
   gap: 10px;
 }
 
+/* Mobile-only duplicate of actions rendered below stat boxes */
+.td-hero-mobile-actions {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  /* Hide original actions in left column on mobile */
+  .td-actions-inner {
+    display: none;
+  }
+  /* Show the duplicate below Watch Live */
+  .td-hero-mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+}
+
 /* ---- Join Button ---- */
 .td-join-btn {
   display: inline-flex;
@@ -406,6 +481,13 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   flex: none;
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .td-join-btn {
+    width: auto;
+  }
 }
 
 .td-join-btn:hover:not(:disabled) {
@@ -436,6 +518,13 @@
   font-weight: 600;
   white-space: nowrap;
   flex: none;
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .td-reg-status {
+    width: auto;
+  }
 }
 
 .td-reg-status-pending {
@@ -547,12 +636,10 @@
   }
 }
 
+/* Mobile: 3-column grid so all 6 tabs show in 2 rows without scrolling */
 .td-tab-list {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   padding: 6px;
   background: hsl(220 10% 10% / 0.6);
@@ -562,17 +649,26 @@
   margin-bottom: 20px;
 }
 
-.td-tab-list::-webkit-scrollbar {
-  display: none;
+/* Desktop: single-row flex, all tabs fill the bar equally */
+@media (min-width: 640px) {
+  .td-tab-list {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .td-tab-list::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-/* Mobile: buttons shrink to content, bar scrolls */
 .td-tab-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 8px 10px;
+  padding: 10px 6px;
   border-radius: 10px;
   border: none;
   background: transparent;
@@ -583,11 +679,10 @@
   letter-spacing: 0.05em;
   cursor: pointer;
   transition: all 0.2s ease;
-  flex-shrink: 0;
   white-space: nowrap;
+  width: 100%;
 }
 
-/* Desktop: buttons fill the full bar equally */
 @media (min-width: 640px) {
   .td-tab-btn {
     flex: 1;
@@ -613,6 +708,22 @@
 }
 @media (min-width: 640px) {
   .td-tab-btn svg {
+    display: inline;
+  }
+}
+
+/* Short label visible on small screens, full label on large screens */
+.td-tab-label-short {
+  display: inline;
+}
+.td-tab-label-full {
+  display: none;
+}
+@media (min-width: 640px) {
+  .td-tab-label-short {
+    display: none;
+  }
+  .td-tab-label-full {
     display: inline;
   }
 }
@@ -905,9 +1016,9 @@
 }
 
 .td-prize-tab-btn.active {
-  background: hsl(220 15% 10%);
-  color: hsl(220 5% 94%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, hsl(270 50% 18%), hsl(270 60% 22%));
+  color: hsl(270 60% 88%);
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.35);
 }
 
 /* ── Special Awards (cash) ───────────────────────────────────────────────── */
@@ -970,11 +1081,11 @@
   gap: 6px;
   font-size: 11px;
   font-weight: 600;
-  color: hsl(220 5% 55%);
+  color: hsl(270 30% 70%);
   margin-bottom: 14px;
   padding: 8px 12px;
-  background: hsl(220 10% 10%);
-  border: 1px solid hsl(220 5% 18%);
+  background: hsl(270 40% 12%);
+  border: 1px solid hsl(270 50% 25% / 0.5);
   border-radius: 8px;
   flex-wrap: wrap;
 }
@@ -994,18 +1105,38 @@
   color: hsl(270 60% 80%);
 }
 
-/* Full-width placement card */
+/* Full-width placement card — purple glassmorphism matching roadmap */
 .td-coupon-tier-card {
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  position: relative;
+  border-radius: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  background: linear-gradient(
+    135deg,
+    rgba(9, 9, 11, 0.82) 0%,
+    rgba(9, 9, 11, 0.45) 55%,
+    hsl(270 60% 50% / 0.22) 100%
+  );
+  backdrop-filter: blur(12px);
   overflow: hidden;
   margin-bottom: 10px;
-  transition: background 0.15s;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.td-coupon-tier-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: radial-gradient(circle at top right, hsl(270 60% 50% / 0.18), transparent 65%);
+  pointer-events: none;
 }
 
 .td-coupon-tier-card:hover {
-  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 4px 20px hsl(270 60% 50% / 0.2);
 }
 
 .td-coupon-tier-header {
@@ -1013,13 +1144,15 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px 9px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+  position: relative;
+  z-index: 1;
 }
 
 .td-coupon-tier-rank {
   font-size: 13px;
   font-weight: 700;
-  color: hsl(220 5% 82%);
+  color: hsl(270 60% 85%);
   margin: 0;
 }
 
@@ -1028,6 +1161,8 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Horizontal chip — flex: 1 so each sponsor fills equal space */
@@ -1044,6 +1179,13 @@
   text-decoration: none;
   cursor: default;
   transition: opacity 0.2s;
+}
+
+@media (max-width: 480px) {
+  .td-coupon-amount-chip {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 .td-coupon-amount-chip.clickable {
@@ -1079,12 +1221,28 @@
 /* ── Calendar Tab ────────────────────────────────────────────────────────── */
 
 .td-calendar-outer {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(9, 9, 11, 0.85) 0%,
+    rgba(9, 9, 11, 0.5) 50%,
+    hsl(270 60% 50% / 0.2) 100%
+  );
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
   padding: 16px 20px 20px;
   overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.td-calendar-outer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: radial-gradient(circle at top right, hsl(270 60% 50% / 0.15), transparent 60%);
+  pointer-events: none;
 }
 
 @media (max-width: 560px) {
@@ -1115,7 +1273,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: hsl(220 5% 55%);
+  color: hsl(270 60% 72%);
   margin-bottom: 10px;
   text-align: center;
 }

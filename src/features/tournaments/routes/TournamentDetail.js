@@ -924,7 +924,7 @@ const TournamentDetail = () => {
                 </div>
               </div>
 
-              {/* Sponsors strip — inside hero below action buttons */}
+              {/* Sponsors strip */}
               {tournament.sponsors && tournament.sponsors.length > 0 && (
                 <div className="td-hero-sponsors">
                   <span className="td-hero-sponsors-label">✦ Sponsored by</span>
@@ -970,7 +970,6 @@ const TournamentDetail = () => {
                 </div>
               </div>
 
-              {/* Watch Live */}
               {tournament.live_link && (
                 <a
                   href={tournament.live_link}
@@ -984,6 +983,24 @@ const TournamentDetail = () => {
                   <IconExternalLink />
                 </a>
               )}
+
+              {/* Mobile-only: registration + share shown after stat boxes */}
+              <div className="td-hero-mobile-actions">
+                {renderRegistrationButton()}
+                <div className="td-action-tags">
+                  <button className="td-share-btn" onClick={() => setShowShareModal(true)}>
+                    <IconShare /> Share
+                  </button>
+                  {tournament.map_name && (
+                    <span className="td-tag-pill">
+                      <IconMapPin /> {tournament.map_name}
+                    </span>
+                  )}
+                  <span className="td-tag-pill">
+                    <IconTarget /> {tournament.region || 'India'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1004,7 +1021,9 @@ const TournamentDetail = () => {
               className={`td-tab-btn${activeTab === 'schedule' ? ' active' : ''}`}
               onClick={() => setActiveTab('schedule')}
             >
-              <IconClock /> Schedule &amp; Prizes
+              <IconClock />
+              <span className="td-tab-label-full">Schedule &amp; Prizes</span>
+              <span className="td-tab-label-short">Schedule</span>
             </button>
             <button
               role="tab"
@@ -1025,14 +1044,18 @@ const TournamentDetail = () => {
               className={`td-tab-btn${activeTab === 'briefing' ? ' active' : ''}`}
               onClick={() => setActiveTab('briefing')}
             >
-              <IconShield /> Briefing &amp; Rules
+              <IconShield />
+              <span className="td-tab-label-full">Briefing &amp; Rules</span>
+              <span className="td-tab-label-short">Briefing</span>
             </button>
             <button
               role="tab"
               className={`td-tab-btn${activeTab === 'host' ? ' active' : ''}`}
               onClick={() => setActiveTab('host')}
             >
-              <IconUsers /> Host Details
+              <IconUsers />
+              <span className="td-tab-label-full">Host Details</span>
+              <span className="td-tab-label-short">Host</span>
             </button>
             {tournament.sponsors && tournament.sponsors.length > 0 && (
               <button

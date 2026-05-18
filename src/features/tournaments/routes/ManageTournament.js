@@ -125,6 +125,7 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
   const [roundNames, setRoundNames] = useState({});
   const [showRoundNamesModal, setShowRoundNamesModal] = useState(false);
   const [roundDates, setRoundDates] = useState({});
+  const [editRoundQualifying, setEditRoundQualifying] = useState({}); // { "1": 16, "2": 8, ... }
   const [editPrizeDistribution, setEditPrizeDistribution] = useState([]);
   const [editSpecialAwards, setEditSpecialAwards] = useState([]);
   const [editCouponTiers, setEditCouponTiers] = useState([]);
@@ -476,6 +477,14 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
             : response.data.tournament.round_dates || {};
         setRoundDates(initialRoundDates);
 
+        // Init qualifying_teams per round
+        const initialQualifying = {};
+        (response.data.tournament.rounds || []).forEach((r) => {
+          if (r.qualifying_teams !== undefined)
+            initialQualifying[String(r.round)] = r.qualifying_teams;
+        });
+        setEditRoundQualifying(initialQualifying);
+
         // Parse prize_distribution
         const pd = response.data.tournament.prize_distribution;
         if (pd && typeof pd === 'object' && Object.keys(pd).length > 0) {
@@ -668,6 +677,11 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       setBannerPreview(tournament.banner_image || null);
       setRoundNames(tournament.round_names || {});
       setRoundDates(tournament.round_dates || {});
+      const resetQualifying = {};
+      (tournament.rounds || []).forEach((r) => {
+        if (r.qualifying_teams !== undefined) resetQualifying[String(r.round)] = r.qualifying_teams;
+      });
+      setEditRoundQualifying(resetQualifying);
       // Reset prize distribution
       const pd = tournament.prize_distribution;
       if (pd && typeof pd === 'object' && Object.keys(pd).length > 0) {
@@ -748,15 +762,33 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       formData.append('rules', editData.rules);
       formData.append('live_link', editData.live_link || '');
 
-      // Add rounds data (number of rounds)
-      if (editData.rounds && editData.rounds !== tournament.rounds?.length) {
-        // Generate rounds structure based on number of rounds
-        const roundsData = Array.from({ length: editData.rounds }, (_, i) => ({
-          round: i + 1,
-          ...(i === 0
-            ? { max_teams: parseInt(tournament.max_participants) || 0 }
-            : { qualifying_teams: 1 }),
-        }));
+      // Add rounds data — always send if count changed OR if qualifying_teams changed
+      const existingRounds = tournament.rounds || [];
+      const roundCountChanged = editData.rounds && editData.rounds !== existingRounds.length;
+      const qualifyingChanged = Object.keys(editRoundQualifying).some((rn) => {
+        const orig = existingRounds.find((r) => String(r.round) === rn);
+        return (
+          orig && String(orig.qualifying_teams ?? '') !== String(editRoundQualifying[rn] ?? '')
+        );
+      });
+
+      if (roundCountChanged || qualifyingChanged) {
+        const count = editData.rounds || existingRounds.length;
+        const roundsData = Array.from({ length: count }, (_, i) => {
+          const rn = i + 1;
+          const existing = existingRounds.find((r) => r.round === rn) || {};
+          const qt = editRoundQualifying[String(rn)];
+          return {
+            round: rn,
+            ...(rn === 1
+              ? { max_teams: parseInt(tournament.max_participants) || existing.max_teams || 0 }
+              : {}),
+            ...(existing.max_teams && rn !== 1 ? { max_teams: existing.max_teams } : {}),
+            ...(existing.max_matches ? { max_matches: existing.max_matches } : {}),
+            qualifying_teams:
+              qt !== undefined && qt !== '' ? Number(qt) : (existing.qualifying_teams ?? 1),
+          };
+        });
         formData.append('rounds', JSON.stringify(roundsData));
       }
 
@@ -1899,6 +1931,33 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                                         Offline
                                       </option>
                                     </select>
+                                  </div>
+                                  {/* Teams that qualify from this round (shown on Roadmap) */}
+                                  <div className="mt-3">
+                                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
+                                      Teams that qualify (shown on Roadmap)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={editRoundQualifying[String(rn)] ?? ''}
+                                      onChange={(e) =>
+                                        setEditRoundQualifying((prev) => ({
+                                          ...prev,
+                                          [String(rn)]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder={
+                                        rn === (editData.rounds || tournament.rounds?.length)
+                                          ? '0 (final round)'
+                                          : 'e.g. 16'
+                                      }
+                                      className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                                    />
+                                    <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-1">
+                                      How many teams advance from this round. Set 0 for the final
+                                      round.
+                                    </p>
                                   </div>
                                 </div>
                               );
