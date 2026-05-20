@@ -352,9 +352,35 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
       const width = 1080;
       const headerHeight = 300;
       const rowHeight = 70;
+      const groupLabelHeight = 40;
       const footerHeight = 100;
       const sidePadding = 60;
-      const totalHeight = headerHeight + slots.length * rowHeight + footerHeight + 20;
+
+      // Group slots by group name, restart slot counter per group
+      const groupedSlots = [];
+      let currentGroup = null;
+      slots.forEach((slot) => {
+        if (slot.groupName !== currentGroup) {
+          currentGroup = slot.groupName;
+          groupedSlots.push({ type: 'header', label: slot.groupName });
+        }
+        groupedSlots.push({ type: 'row', ...slot });
+      });
+      // Recalculate per-group slot numbers
+      let groupSlotCounter = 1;
+      groupedSlots.forEach((item) => {
+        if (item.type === 'header') {
+          groupSlotCounter = 1;
+          return;
+        }
+        item.slotNumber = groupSlotCounter++;
+      });
+
+      const rowsH = groupedSlots.reduce(
+        (sum, item) => sum + (item.type === 'header' ? groupLabelHeight : rowHeight),
+        0
+      );
+      const totalHeight = headerHeight + rowsH + footerHeight + 20;
 
       canvas.width = width;
       canvas.height = totalHeight;
@@ -413,39 +439,60 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
       ctx.lineTo(width / 2 + 50, 258);
       ctx.stroke();
 
-      // 5. Slot rows
-      slots.forEach(({ slotNumber, teamName: tName }, i) => {
-        const ry = headerHeight + i * rowHeight;
-        const isMine = myTeamName && tName.trim().toLowerCase() === myTeamName.trim().toLowerCase();
-        const rowMidY = ry + rowHeight / 2;
+      // 5. Grouped slot rows
+      let curY = headerHeight;
+      groupedSlots.forEach((item) => {
+        if (item.type === 'header') {
+          // Group label row
+          ctx.textAlign = 'left';
+          ctx.fillStyle = 'rgba(139,92,246,0.85)';
+          ctx.font = '700 13px "Inter", sans-serif';
+          ctx.letterSpacing = '2px';
+          ctx.fillText(item.label.toUpperCase(), sidePadding, curY + groupLabelHeight / 2);
+          ctx.letterSpacing = '0px';
+          // separator line
+          ctx.strokeStyle = 'rgba(139,92,246,0.3)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(sidePadding + 120, curY + groupLabelHeight / 2);
+          ctx.lineTo(width - sidePadding, curY + groupLabelHeight / 2);
+          ctx.stroke();
+          curY += groupLabelHeight;
+        } else {
+          const { slotNumber, teamName: tName } = item;
+          const isMine =
+            myTeamName && tName.trim().toLowerCase() === myTeamName.trim().toLowerCase();
+          const rowMidY = curY + rowHeight / 2;
 
-        ctx.fillStyle = isMine ? 'rgba(245,158,11,0.15)' : 'rgba(0,0,0,0.45)';
-        ctx.beginPath();
-        ctx.roundRect(sidePadding, ry + 6, width - sidePadding * 2, rowHeight - 12, 8);
-        ctx.fill();
+          ctx.fillStyle = isMine ? 'rgba(245,158,11,0.15)' : 'rgba(0,0,0,0.45)';
+          ctx.beginPath();
+          ctx.roundRect(sidePadding, curY + 6, width - sidePadding * 2, rowHeight - 12, 8);
+          ctx.fill();
 
-        ctx.strokeStyle = isMine ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.06)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(sidePadding, ry + 6, width - sidePadding * 2, rowHeight - 12, 8);
-        ctx.stroke();
+          ctx.strokeStyle = isMine ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.06)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(sidePadding, curY + 6, width - sidePadding * 2, rowHeight - 12, 8);
+          ctx.stroke();
 
-        ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.font = '700 18px "Inter", sans-serif';
-        ctx.fillText(String(slotNumber).padStart(2, '0'), sidePadding + 24, rowMidY);
+          ctx.textAlign = 'left';
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.font = '700 18px "Inter", sans-serif';
+          ctx.fillText(String(slotNumber).padStart(2, '0'), sidePadding + 24, rowMidY);
 
-        ctx.fillStyle = isMine ? '#FCD34D' : '#FFFFFF';
-        ctx.font = '700 22px "Inter", sans-serif';
-        const displayName = tName.length > 38 ? tName.substring(0, 36) + '...' : tName;
-        ctx.fillText(displayName, sidePadding + 80, rowMidY);
+          ctx.fillStyle = isMine ? '#FCD34D' : '#FFFFFF';
+          ctx.font = '700 22px "Inter", sans-serif';
+          const displayName = tName.length > 38 ? tName.substring(0, 36) + '...' : tName;
+          ctx.fillText(displayName, sidePadding + 80, rowMidY);
 
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#4ADE80';
-        ctx.font = '700 13px "Inter", sans-serif';
-        ctx.letterSpacing = '1px';
-        ctx.fillText('CONFIRMED', width - sidePadding - 24, rowMidY);
-        ctx.letterSpacing = '0px';
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#4ADE80';
+          ctx.font = '700 13px "Inter", sans-serif';
+          ctx.letterSpacing = '1px';
+          ctx.fillText('CONFIRMED', width - sidePadding - 24, rowMidY);
+          ctx.letterSpacing = '0px';
+          curY += rowHeight;
+        }
       });
 
       // 6. Footer

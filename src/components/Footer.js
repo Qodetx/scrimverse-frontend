@@ -72,7 +72,6 @@ const Footer = () => {
                 { to: '/help', label: 'Help Center' },
                 { to: '/contact', label: 'Contact Us' },
                 { to: '/report-issue', label: 'Report Issue' },
-                { to: '/player-guidelines', label: 'Player Guidelines' },
               ].map((link) => (
                 <li key={link.to}>
                   <Link

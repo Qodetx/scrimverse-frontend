@@ -228,10 +228,6 @@ const HomePage = () => {
               thousands of players competing for glory and prizes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-purple" />
-                <span className="text-xs font-bold text-foreground/80">SCRIMVERSE</span>
-              </div>
               <button
                 onClick={handleExploreClick}
                 className="px-6 py-4 text-sm font-bold rounded-xl bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all group inline-flex items-center"
@@ -240,22 +236,13 @@ const HomePage = () => {
                 Explore ScrimVerse
                 <ChevronRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </button>
-              {/* Returning users get a direct path to auth; new users get sign-up. */}
               {!isAuthenticated() && (
-                <>
-                  <button
-                    onClick={handleLoginClick}
-                    className="px-6 py-4 text-sm font-bold rounded-xl border border-purple/50 hover:border-purple text-white bg-transparent hover:bg-purple/10 transition-all inline-flex items-center"
-                  >
-                    Login
-                  </button>
-                  <button
-                    onClick={handleSignUpClick}
-                    className="px-6 py-4 text-sm font-bold rounded-xl bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all inline-flex items-center"
-                  >
-                    Create an Account
-                  </button>
-                </>
+                <button
+                  onClick={handleLoginClick}
+                  className="px-6 py-4 text-sm font-bold rounded-xl border border-purple/50 hover:border-purple text-white bg-transparent hover:bg-purple/10 transition-all inline-flex items-center"
+                >
+                  Login
+                </button>
               )}
             </div>
             <div className="relative mx-auto w-full max-w-sm pt-1 pointer-events-none">
@@ -282,9 +269,6 @@ const HomePage = () => {
                 thousands of players competing for glory and prizes.
               </p>
               <div className="flex flex-wrap items-center gap-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-foreground/80">SCRIMVERSE</span>
-                </div>
                 <button
                   onClick={handleExploreClick}
                   className="px-6 py-3 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all group inline-flex items-center"
@@ -292,22 +276,13 @@ const HomePage = () => {
                   Explore ScrimVerse
                   <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </button>
-                {/* Login / sign-up fast-paths for unauthenticated users (desktop). */}
                 {!isAuthenticated() && (
-                  <>
-                    <button
-                      onClick={handleLoginClick}
-                      className="px-6 py-3 text-sm font-bold rounded-full border border-purple/50 hover:border-purple text-white bg-transparent hover:bg-purple/10 transition-all inline-flex items-center"
-                    >
-                      Login
-                    </button>
-                    <button
-                      onClick={handleSignUpClick}
-                      className="px-6 py-3 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all inline-flex items-center"
-                    >
-                      Create an Account
-                    </button>
-                  </>
+                  <button
+                    onClick={handleLoginClick}
+                    className="px-6 py-3 text-sm font-bold rounded-full border border-purple/50 hover:border-purple text-white bg-transparent hover:bg-purple/10 transition-all inline-flex items-center"
+                  >
+                    Login
+                  </button>
                 )}
               </div>
             </div>

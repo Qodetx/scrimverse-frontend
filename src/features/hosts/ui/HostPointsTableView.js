@@ -14,6 +14,7 @@ import {
 import { tournamentAPI } from '../../../utils/api';
 import { AuthContext } from '../../../context/AuthContext';
 import { useToast } from '../../../hooks/useToast';
+import { generateStandingsImage } from '../../tournaments/ui/standingsImageGenerator';
 import './HostPointsTableView.css';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -263,48 +264,53 @@ const HostPointsTableView = () => {
   // ── download ──────────────────────────────────────────────────────────────
 
   const handleDownload = useCallback(async () => {
-    if (!cardRef.current || downloading) return;
+    if (downloading || standings.length === 0) return;
     setDownloading(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: null,
-        scale: window.devicePixelRatio || 1,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
+      const dataUrls = await generateStandingsImage({
+        tournament,
+        standings,
+        viewMode: 'br',
+        selectedRound,
+        selectedMatch: selectedMatchNum,
+        selectedGroup,
+        getRoundLabel: (rn) => getRoundLabel(tournament, rn),
       });
-
-      const dataUrl = canvas.toDataURL('image/png');
-      const fileName = `points-table-${(tournamentTitle || 'tournament')
+      const baseFileName = `points-table-${(tournamentTitle || 'tournament')
         .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9_.-]/gi, '_')}.png`;
-
-      const byteString = atob(dataUrl.split(',')[1]);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
+        .replace(/[^a-z0-9_.-]/gi, '_')}`;
+      const totalPages = dataUrls.length;
+      for (let idx = 0; idx < totalPages; idx++) {
+        const fileName =
+          totalPages === 1 ? baseFileName + '.png' : `${baseFileName}_p${idx + 1}.png`;
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrls[idx];
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        if (idx < totalPages - 1) await new Promise((r) => setTimeout(r, 300));
       }
-      const blob = new Blob([ab], { type: 'image/png' });
-      const blobUrl = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.download = fileName;
-      link.href = blobUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-
-      showToast('Points table downloaded!', 'success');
+      showToast(
+        totalPages > 1 ? `Downloaded ${totalPages} pages!` : 'Points table downloaded!',
+        'success'
+      );
     } catch (err) {
       console.error('Download error:', err);
       showToast('Failed to download points table', 'error');
     } finally {
       setDownloading(false);
     }
-  }, [cardRef, downloading, tournamentTitle, showToast]);
+  }, [
+    downloading,
+    standings,
+    tournament,
+    selectedRound,
+    selectedMatchNum,
+    selectedGroup,
+    tournamentTitle,
+    showToast,
+  ]);
 
   // ── loading state ─────────────────────────────────────────────────────────
 

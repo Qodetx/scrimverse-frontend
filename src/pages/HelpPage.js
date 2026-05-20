@@ -143,12 +143,6 @@ const HelpPage = () => {
       link: '/report-issue',
       icon: AlertCircle,
     },
-    {
-      title: 'Player Guidelines',
-      description: 'Learn our community rules',
-      link: '/player-guidelines',
-      icon: BookOpen,
-    },
   ];
 
   const toggleAccordion = (categoryIndex, faqIndex) => {
