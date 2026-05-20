@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { authAPI } from '../utils/api';
 
 export const AuthContext = createContext();
 
@@ -28,19 +29,17 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserData = async (game = 'ALL') => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/accounts/me/`, {
-        headers: {
-          Authorization: `Bearer ${tokens.access}`,
-          'ngrok-skip-browser-warning': 'true',
-        },
-        params: {
-          game: game,
-        },
-      });
+      const response = await authAPI.getCurrentUser(game);
       setUser(response.data);
     } catch (error) {
-      console.error('Error fetching user data:', error);
-      logout();
+      // Only logout if the server explicitly rejected authentication (401)
+      // after the refresh interceptor already tried and failed.
+      // Network errors, timeouts, or server errors should NOT log the user out.
+      if (error.response?.status === 401) {
+        logout();
+      } else {
+        console.warn('fetchUserData failed (non-auth error), keeping session:', error.message);
+      }
     } finally {
       setLoading(false);
     }

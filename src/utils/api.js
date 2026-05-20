@@ -72,7 +72,7 @@ api.interceptors.response.use(
 
         const newTokens = {
           access: response.data.access,
-          refresh: tokens.refresh,
+          refresh: response.data.refresh || tokens.refresh,
         };
 
         localStorage.setItem('tokens', JSON.stringify(newTokens));
