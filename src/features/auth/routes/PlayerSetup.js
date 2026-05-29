@@ -4,7 +4,7 @@ import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
 
 const PlayerSetup = () => {
-  const { fetchUserData } = useContext(AuthContext);
+  const { fetchUserData, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const nextPath = location.state?.next || '/player/dashboard';
@@ -210,6 +210,18 @@ const PlayerSetup = () => {
             </div>
           </div>
         )}
+        <p className="text-center text-sm text-white/40 mt-6">
+          <button
+            type="button"
+            className="text-purple-400 hover:text-purple-300 underline"
+            onClick={() => {
+              logout();
+              navigate('/player/login');
+            }}
+          >
+            Try a different account
+          </button>
+        </p>
       </div>
     </div>
   );

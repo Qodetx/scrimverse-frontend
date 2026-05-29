@@ -881,3 +881,69 @@ html.dashboard-active body {
     font-size: 1.5rem;
   }
 }
+
+/* ── MOBILE BOTTOM NAV ───────────────────────────────────────────────────── */
+.pd-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 45;
+  height: 56px;
+  background: #0d0d1a;
+  border-top: 1px solid rgba(192, 132, 252, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 4px;
+}
+
+.pd-bottom-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 3px;
+  height: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.15s ease;
+  padding: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.pd-bottom-nav-tab:active {
+  color: rgba(192, 132, 252, 0.8);
+}
+
+.pd-bottom-nav-tab.active {
+  color: #c084fc;
+}
+
+.pd-bottom-nav-tab.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: #c084fc;
+  border-radius: 0 0 3px 3px;
+}
+
+.pd-bottom-nav-label {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+@media (min-width: 768px) {
+  .pd-bottom-nav {
+    display: none;
+  }
+}

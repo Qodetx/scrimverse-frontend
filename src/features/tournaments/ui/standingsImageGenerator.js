@@ -1,5 +1,21 @@
 // Scrimverse Standings Image Generator — NEON LEAGUE Edition
 
+import pointsTableBg from '../../../assets/pointtablenew.png';
+
+// ─── Custom background image calibration (pointtablenew.png 1086×1449 → scaled to 1080×1441) ─
+const BG_TITLE_Y = 355; // Center Y of dynamic title text
+const BG_TABLE_ROW_START_Y = 570; // Center Y of first data row (slot 1 center = 545+49/2)
+const BG_ROW_H = 49; // Height of each row slot in the background image
+const BG_MAX_ROWS_PG1 = 12; // Rows available on page 1 with custom bg
+
+// Column center X positions (image is 1086px → 1080px canvas, near 1:1 scale):
+const BG_COL_RANK_X = 185; // # column
+const BG_COL_TEAM_LEFT_X = 252; // Team name left-align start
+const BG_COL_WWCD_X = 586; // WWCD column center
+const BG_COL_PP_X = 682; // PP column center
+const BG_COL_KP_X = 798; // KP column center
+const BG_COL_TOTAL_X = 900; // TOTAL column center
+
 const BACKGROUND_IMAGE_URL = '/standings-bg.jpeg';
 const UPLOADED_BG =
   'https://scrimverse-public.s3.ap-south-1.amazonaws.com/media/uploaded_media_1769422838293.jpg';
@@ -48,6 +64,7 @@ const _renderStandingsPage = ({
   pageNum,
   totalPages,
   rankOffset,
+  bgImage,
 }) => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -94,6 +111,180 @@ const _renderStandingsPage = ({
     ACCENT_B = 85;
   }
   const AC = (a) => `rgba(${ACCENT_R},${ACCENT_G},${ACCENT_B},${a})`;
+
+  // ── Custom background image path (page 1 only) ──────────────────────────
+  if (bgImage && isFirstPage) {
+    const imgScaledH = Math.round((bgImage.naturalHeight / bgImage.naturalWidth) * W);
+    canvas.height = imgScaledH;
+    ctx.drawImage(bgImage, 0, 0, W, imgScaledH);
+
+    // Stage heading
+    let stageHeading = '';
+    let subtitleLabel = '';
+    if (viewMode === 'match') {
+      const rName =
+        tournament?.round_names?.[String(selectedRound)] || getRoundLabel(selectedRound);
+      stageHeading = rName.toUpperCase();
+      subtitleLabel = `MATCH ${selectedMatch} STANDINGS`;
+    } else {
+      stageHeading = (
+        tournament?.round_names?.[String(selectedRound)] || getRoundLabel(selectedRound)
+      ).toUpperCase();
+      subtitleLabel = 'OVERALL STANDINGS';
+    }
+
+    ctx.textBaseline = 'middle';
+    let headingSize = 112;
+    ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
+    while (ctx.measureText(stageHeading).width > W - PAD_X * 4 && headingSize > 48) {
+      headingSize -= 4;
+      ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
+    }
+    ctx.shadowColor = AC('0.45');
+    ctx.shadowBlur = 70;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.fillText(stageHeading, W / 2, BG_TITLE_Y);
+    ctx.shadowBlur = 0;
+
+    // Decorative lines + diamonds flanking title
+    const headW = ctx.measureText(stageHeading).width;
+    const DGAP = 28,
+      lEndX = W / 2 - headW / 2 - DGAP,
+      rStartX = W / 2 + headW / 2 + DGAP;
+    if (lEndX > PAD_X + 30) {
+      const drawDecLine = (x1, x2, toRight) => {
+        const g = ctx.createLinearGradient(x1, 0, x2, 0);
+        if (toRight) {
+          g.addColorStop(0, 'rgba(255,255,255,0)');
+          g.addColorStop(1, AC('0.75'));
+        } else {
+          g.addColorStop(0, AC('0.75'));
+          g.addColorStop(1, 'rgba(255,255,255,0)');
+        }
+        ctx.strokeStyle = g;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, BG_TITLE_Y);
+        ctx.lineTo(x2, BG_TITLE_Y);
+        ctx.stroke();
+      };
+      drawDecLine(PAD_X + 16, lEndX - 8, true);
+      drawDecLine(rStartX + 8, W - PAD_X - 16, false);
+      const drawDiamond = (cx, cy) => {
+        ctx.fillStyle = ACCENT;
+        ctx.shadowColor = ACCENT;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 6);
+        ctx.lineTo(cx + 6, cy);
+        ctx.lineTo(cx, cy + 6);
+        ctx.lineTo(cx - 6, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      };
+      drawDiamond(lEndX, BG_TITLE_Y);
+      drawDiamond(rStartX, BG_TITLE_Y);
+    }
+
+    // Subtitle badge
+    const stPillY = BG_TITLE_Y + headingSize / 2 + 22;
+    ctx.font = '700 15px "Inter", sans-serif';
+    ctx.letterSpacing = '4px';
+    const stLabelW = ctx.measureText(subtitleLabel).width;
+    const stPillW = stLabelW + 56,
+      stPillH = 34;
+    ctx.strokeStyle = AC('0.65');
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    roundRect(ctx, W / 2 - stPillW / 2, stPillY - stPillH / 2, stPillW, stPillH, 4);
+    ctx.stroke();
+    ctx.fillStyle = AC('0.08');
+    ctx.beginPath();
+    roundRect(ctx, W / 2 - stPillW / 2, stPillY - stPillH / 2, stPillW, stPillH, 4);
+    ctx.fill();
+    ctx.fillStyle = ACCENT;
+    ctx.textAlign = 'center';
+    ctx.fillText(subtitleLabel, W / 2, stPillY);
+    ctx.letterSpacing = '0px';
+
+    // Tournament info line
+    const infoParts = [];
+    if (tournament?.game_name) infoParts.push(tournament.game_name.toUpperCase());
+    if (tournament?.title) {
+      const t = tournament.title.toUpperCase();
+      infoParts.push(t.length > 50 ? t.substring(0, 48) + '…' : t);
+    }
+    if (selectedGroup?.group_name) infoParts.push(selectedGroup.group_name.toUpperCase());
+    if (infoParts.length > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.font = '500 14px "Inter", sans-serif';
+      ctx.letterSpacing = '1.5px';
+      ctx.textAlign = 'center';
+      ctx.fillText(infoParts.join('   ·   '), W / 2, stPillY + 32);
+      ctx.letterSpacing = '0px';
+    }
+
+    // Data rows
+    standings.forEach((team, i) => {
+      const actualRank = rankOffset + i + 1;
+      const rowMidY = BG_TABLE_ROW_START_Y + i * BG_ROW_H + BG_ROW_H / 2;
+      const medalColor =
+        actualRank === 1
+          ? '#F59E0B'
+          : actualRank === 2
+            ? '#94A3B8'
+            : actualRank === 3
+              ? '#B45309'
+              : null;
+
+      // Rank
+      ctx.font = medalColor ? '800 19px "Inter", sans-serif' : '700 16px "Inter", sans-serif';
+      ctx.fillStyle = medalColor || 'rgba(255,255,255,0.60)';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(actualRank), BG_COL_RANK_X, rowMidY);
+
+      // Team name
+      ctx.font = '600 17px "Inter", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.90)';
+      ctx.textAlign = 'left';
+      const rawName = (team.team_name || '—').toUpperCase();
+      ctx.fillText(
+        rawName.length > 22 ? rawName.substring(0, 21) + '…' : rawName,
+        BG_COL_TEAM_LEFT_X,
+        rowMidY
+      );
+
+      // WWCD
+      ctx.textAlign = 'center';
+      ctx.font = '700 16px "Inter", sans-serif';
+      ctx.fillStyle = (team.wwcd ?? 0) > 0 ? '#4ade80' : 'rgba(255,255,255,0.55)';
+      ctx.fillText(String(team.wwcd ?? 0), BG_COL_WWCD_X, rowMidY);
+
+      // PP
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.fillText(String(team.position_points ?? 0), BG_COL_PP_X, rowMidY);
+
+      // KP
+      ctx.fillText(String(team.kill_points ?? 0), BG_COL_KP_X, rowMidY);
+
+      // Total
+      ctx.font = '800 17px "Inter", sans-serif';
+      ctx.fillStyle =
+        actualRank === 1
+          ? '#FDE68A'
+          : actualRank === 2
+            ? '#E2E8F0'
+            : actualRank === 3
+              ? '#D97706'
+              : '#C084FC';
+      ctx.fillText(String(team.total_points ?? 0), BG_COL_TOTAL_X, rowMidY);
+    });
+
+    return canvas.toDataURL('image/png', 1.0);
+  }
+  // ── End custom background path ───────────────────────────────────────────
 
   // Background
   ctx.fillStyle = '#02020E';
@@ -659,12 +850,27 @@ export const generateStandingsImage = async ({
 }) => {
   await loadPremiumFonts();
 
+  // Load custom background image for page 1
+  let bgImage = null;
+  try {
+    bgImage = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = pointsTableBg;
+    });
+  } catch {
+    // fallback to procedural rendering if image fails
+  }
+
+  const pg1Max = bgImage ? BG_MAX_ROWS_PG1 : TEAMS_PAGE_1;
+
   const chunks = [];
-  if (standings.length <= TEAMS_PAGE_1) {
+  if (standings.length <= pg1Max) {
     chunks.push(standings);
   } else {
-    chunks.push(standings.slice(0, TEAMS_PAGE_1));
-    let i = TEAMS_PAGE_1;
+    chunks.push(standings.slice(0, pg1Max));
+    let i = pg1Max;
     while (i < standings.length) {
       chunks.push(standings.slice(i, i + TEAMS_PAGE_N));
       i += TEAMS_PAGE_N;
@@ -689,6 +895,7 @@ export const generateStandingsImage = async ({
       pageNum: p + 1,
       totalPages,
       rankOffset,
+      bgImage: p === 0 ? bgImage : null,
     });
     rankOffset += chunk.length;
     return url;

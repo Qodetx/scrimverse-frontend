@@ -245,14 +245,6 @@ const HomePage = () => {
                 </button>
               )}
             </div>
-            <div className="relative mx-auto w-full max-w-sm pt-1 pointer-events-none">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-light/20 via-purple/10 to-transparent rounded-2xl blur-3xl" />
-              <img
-                src={heroComposite}
-                alt="Gaming Characters Composite"
-                className="relative z-10 w-full h-auto object-contain drop-shadow-2xl"
-              />
-            </div>
           </div>
 
           {/* Desktop */}

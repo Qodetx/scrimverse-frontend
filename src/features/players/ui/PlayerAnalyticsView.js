@@ -411,7 +411,15 @@ const PlayerAnalyticsViewAuthenticated = () => {
                     </div>
                     <span className={`an-stat-sub ${s.subColor}`}>{s.sub}</span>
                   </div>
-                  <div className="an-stat-value">{s.value}</div>
+                  <div className="an-stat-value">
+                    {s.label === 'K/D Ratio' ? (
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#c084fc' }}>
+                        Coming Soon
+                      </span>
+                    ) : (
+                      s.value
+                    )}
+                  </div>
                   <div className="an-stat-label">{s.label}</div>
                 </div>
               ))}

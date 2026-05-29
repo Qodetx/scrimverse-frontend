@@ -1366,7 +1366,7 @@ const PlayerDashboard = () => {
           </div>
 
           {/* scrollable content area */}
-          <div className="flex-1 overflow-y-auto pt-14 md:pt-0">
+          <div className="flex-1 overflow-y-auto pt-14 md:pt-0 pb-16 md:pb-0">
             <div className={`p-4 md:p-6 lg:p-8 relative${showGrid ? ' grid-bg' : ''}`}>
               {activeView === 'overview' ? (
                 <PlayerOverviewView />
@@ -1477,6 +1477,27 @@ const PlayerDashboard = () => {
           </div>
         </aside>
       </div>
+
+      {/* ── MOBILE BOTTOM NAV ──────────────────────────────────────────────── */}
+      <nav className="pd-bottom-nav md:hidden">
+        {[
+          { id: 'credentials', label: 'ID', icon: Key },
+          { id: 'slot-list', label: 'Slots', icon: ListOrdered },
+          { id: 'points-table', label: 'Points', icon: Table2 },
+          { id: 'analytics', label: 'Stats', icon: BarChart3 },
+          { id: 'team', label: 'Team', icon: Users },
+          { id: 'leaderboards', label: 'Ranks', icon: TrendingUp },
+        ].map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            className={`pd-bottom-nav-tab${activeView === id ? ' active' : ''}`}
+            onClick={() => setActiveView(id)}
+          >
+            <Icon size={20} />
+            <span className="pd-bottom-nav-label">{label}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* ── MODALS ─────────────────────────────────────────────────────────── */}
 
