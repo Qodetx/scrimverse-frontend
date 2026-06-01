@@ -102,27 +102,6 @@ const HomePage = () => {
     }
   };
 
-  // Auto-unmute on first user interaction (browsers block autoplay with audio)
-  useEffect(() => {
-    const unmute = () => {
-      if (videoRef.current && videoRef.current.muted) {
-        videoRef.current.muted = false;
-        setIsMuted(false);
-      }
-      document.removeEventListener('click', unmute);
-      document.removeEventListener('keydown', unmute);
-      document.removeEventListener('touchstart', unmute);
-    };
-    document.addEventListener('click', unmute);
-    document.addEventListener('keydown', unmute);
-    document.addEventListener('touchstart', unmute);
-    return () => {
-      document.removeEventListener('click', unmute);
-      document.removeEventListener('keydown', unmute);
-      document.removeEventListener('touchstart', unmute);
-    };
-  }, []);
-
   const nextSlide = () => setCurrentSlide((p) => (p + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((p) => (p - 1 + slides.length) % slides.length);
 
@@ -236,8 +215,9 @@ const HomePage = () => {
 
       {/* HERO SECTION — calc(100vh - navbar~56px - marquee~44px) = fits in one screen */}
       <section
-        className="relative flex items-start overflow-hidden"
+        className="relative flex items-start overflow-hidden cursor-pointer"
         style={{ minHeight: 'calc(100vh - 100px)', height: 'calc(100vh - 100px)' }}
+        onClick={toggleMute}
       >
         {/* Video background */}
         <video
@@ -252,7 +232,10 @@ const HomePage = () => {
         />
         {/* Mute / Unmute toggle */}
         <button
-          onClick={toggleMute}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleMute();
+          }}
           className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/80 hover:text-white transition-all"
           style={{
             background: 'rgba(0,0,0,0.45)',
@@ -297,7 +280,10 @@ const HomePage = () => {
               The ultimate platform for competitive gaming tournaments and scrimmages. Join
               thousands of players competing for glory and prizes.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <div
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 onClick={handleExploreClick}
                 className="px-6 py-4 text-sm font-bold rounded-xl bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all group inline-flex items-center"
@@ -330,7 +316,10 @@ const HomePage = () => {
                 The ultimate platform for competitive gaming tournaments and scrimmages. Join
                 thousands of players competing for glory and prizes.
               </p>
-              <div className="flex flex-wrap items-center gap-4 pt-2">
+              <div
+                className="flex flex-wrap items-center gap-4 pt-2"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   onClick={handleExploreClick}
                   className="px-6 py-3 text-sm font-bold rounded-full bg-gradient-to-r from-purple to-purple-dark hover:from-purple-light hover:to-purple text-white border-0 shadow-lg shadow-purple/30 transition-all group inline-flex items-center"
