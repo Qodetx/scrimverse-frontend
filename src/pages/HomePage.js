@@ -10,6 +10,8 @@ import {
   Mail,
   Sparkles,
   Loader2,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -90,6 +92,36 @@ const HomePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slides, setSlides] = useState(STATIC_SLIDES);
   const [loadingTournaments, setLoadingTournaments] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef(null);
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
+    }
+  };
+
+  // Auto-unmute on first user interaction (browsers block autoplay with audio)
+  useEffect(() => {
+    const unmute = () => {
+      if (videoRef.current && videoRef.current.muted) {
+        videoRef.current.muted = false;
+        setIsMuted(false);
+      }
+      document.removeEventListener('click', unmute);
+      document.removeEventListener('keydown', unmute);
+      document.removeEventListener('touchstart', unmute);
+    };
+    document.addEventListener('click', unmute);
+    document.addEventListener('keydown', unmute);
+    document.addEventListener('touchstart', unmute);
+    return () => {
+      document.removeEventListener('click', unmute);
+      document.removeEventListener('keydown', unmute);
+      document.removeEventListener('touchstart', unmute);
+    };
+  }, []);
 
   const nextSlide = () => setCurrentSlide((p) => (p + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((p) => (p - 1 + slides.length) % slides.length);
@@ -209,6 +241,7 @@ const HomePage = () => {
       >
         {/* Video background */}
         <video
+          ref={videoRef}
           autoPlay
           muted
           loop
@@ -217,6 +250,20 @@ const HomePage = () => {
           style={{ objectPosition: 'center top' }}
           src="/hero-bg.mp4"
         />
+        {/* Mute / Unmute toggle */}
+        <button
+          onClick={toggleMute}
+          className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/80 hover:text-white transition-all"
+          style={{
+            background: 'rgba(0,0,0,0.45)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.15)',
+          }}
+          title={isMuted ? 'Unmute video' : 'Mute video'}
+        >
+          {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          {isMuted ? 'Unmute' : 'Mute'}
+        </button>
         {/* Left-heavy gradient: readable text on left, clear video on right */}
         <div
           className="absolute inset-0"
