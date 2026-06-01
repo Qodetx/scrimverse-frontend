@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import heroComposite from '../assets/hero-gaming-composite.png';
+
 import heroBgmiAction from '../assets/hero-bgmi-action.jpg';
 import heroBgmi from '../assets/hero-bgmi.webp';
 import heroValorant from '../assets/hero-valorant.jpg';
@@ -202,19 +202,42 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION — calc(100vh - navbar~56px - marquee~44px) = fits in one screen */}
       <section
-        className="relative min-h-screen flex items-center overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(135deg, hsl(0 0% 5%) 0%, hsl(265 60% 12%) 40%, hsl(280 70% 18%) 60%, hsl(265 50% 8%) 100%)',
-        }}
+        className="relative flex items-start overflow-hidden"
+        style={{ minHeight: 'calc(100vh - 100px)', height: 'calc(100vh - 100px)' }}
       >
-        <div className="absolute top-20 right-10 w-[400px] h-[400px] bg-purple/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[300px] bg-purple-dark/20 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute top-1/2 right-1/4 w-[200px] h-[200px] bg-purple-light/10 rounded-full blur-[80px] pointer-events-none" />
+        {/* Video background */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: 'center top' }}
+          src="/hero-bg.mp4"
+        />
+        {/* Left-heavy gradient: readable text on left, clear video on right */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(to right, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.68) 28%, rgba(10,0,30,0.42) 52%, rgba(0,0,0,0.10) 72%, rgba(0,0,0,0.02) 100%)',
+          }}
+        />
+        {/* Top/bottom fade to blend edges into page */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(to bottom, rgba(0,0,0,0.38) 0%, transparent 10%, transparent 82%, rgba(0,0,0,0.50) 100%)',
+          }}
+        />
+        {/* Purple glow accent on right */}
+        <div className="absolute top-10 right-0 w-[500px] h-[500px] bg-purple/10 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[250px] bg-purple-dark/20 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 md:px-12 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 md:px-12 w-full pt-10 sm:pt-14">
           {/* Mobile */}
           <div className="block lg:hidden space-y-4 text-center py-4">
             <h1 className="text-5xl sm:text-6xl font-black uppercase tracking-tighter leading-[0.9]">
@@ -247,10 +270,10 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Desktop */}
-          <div className="hidden lg:grid items-center gap-10 grid-cols-[1.1fr_0.9fr]">
+          {/* Desktop — left content only, video fills the right */}
+          <div className="hidden lg:block">
             <div className="max-w-2xl space-y-6 md:space-y-8">
-              <h1 className="text-5xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.9]">
+              <h1 className="text-5xl md:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.9]">
                 <span className="block text-foreground">WHERE GAMERS</span>
                 <span className="block bg-gradient-to-r from-purple-light via-purple to-purple-dark bg-clip-text text-transparent">
                   COMPETE & CONQUER
@@ -277,15 +300,6 @@ const HomePage = () => {
                   </button>
                 )}
               </div>
-            </div>
-
-            <div className="relative mx-auto w-full max-w-[560px] pointer-events-none">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-light/20 via-purple/10 to-transparent rounded-full blur-3xl" />
-              <img
-                src={heroComposite}
-                alt="Gaming Characters Composite"
-                className="relative z-10 w-full h-auto object-contain drop-shadow-2xl"
-              />
             </div>
           </div>
         </div>
