@@ -140,9 +140,17 @@ const _renderStandingsPage = ({
       headingSize -= 4;
       ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
     }
-    ctx.shadowColor = AC('0.45');
+    ctx.shadowColor = 'rgba(147,51,234,0.65)';
     ctx.shadowBlur = 70;
-    ctx.fillStyle = '#FFFFFF';
+    const titleGrad = ctx.createLinearGradient(
+      0,
+      BG_TITLE_Y - headingSize / 2,
+      0,
+      BG_TITLE_Y + headingSize / 2
+    );
+    titleGrad.addColorStop(0, '#FFFFFF');
+    titleGrad.addColorStop(1, '#9333EA');
+    ctx.fillStyle = titleGrad;
     ctx.textAlign = 'center';
     ctx.fillText(stageHeading, W / 2, BG_TITLE_Y);
     ctx.shadowBlur = 0;

@@ -1481,7 +1481,7 @@ const PlayerDashboard = () => {
       {/* ── MOBILE BOTTOM NAV ──────────────────────────────────────────────── */}
       <nav className="pd-bottom-nav md:hidden">
         {[
-          { id: 'credentials', label: 'ID', icon: Key },
+          { id: 'credentials', label: 'IDP', icon: Key },
           { id: 'slot-list', label: 'Slots', icon: ListOrdered },
           { id: 'points-table', label: 'Points', icon: Table2 },
           { id: 'analytics', label: 'Stats', icon: BarChart3 },
