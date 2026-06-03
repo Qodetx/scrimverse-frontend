@@ -1880,24 +1880,6 @@ const TournamentDetail = () => {
           {activeTab === 'calendar' && (
             <div className="td-tab-panel" role="tabpanel">
               {(() => {
-                const regStart = tournament.registration_start
-                  ? parseLocal(tournament.registration_start)
-                  : null;
-                const regEnd = tournament.registration_end
-                  ? parseLocal(tournament.registration_end)
-                  : null;
-                const roundDates = tournament.round_dates || {};
-                const roundNames = tournament.round_names || {};
-                const totalRounds = Object.keys(roundDates).length;
-
-                // Color palette per round index (0-based) — matches reference stage colors
-                const ROUND_COLORS = [
-                  '#8b5cf6', // Round 1 — purple-500 (Qualifiers)
-                  '#6d28d9', // Round 2 — purple-700 (QF)
-                  '#fde047', // Round 3 — yellow-300 (Semi Finals)
-                  '#f59e0b', // Round 4 — amber-400 (Finals)
-                ];
-
                 // Parse a date string in LOCAL time (avoids UTC-shift bug in IST)
                 const parseLocal = (s) => {
                   if (!s) return null;
@@ -1906,6 +1888,23 @@ const TournamentDetail = () => {
                     ? new Date(str + 'T00:00:00')
                     : new Date(str);
                 };
+
+                const regStart = tournament.registration_start
+                  ? parseLocal(tournament.registration_start)
+                  : null;
+                const regEnd = tournament.registration_end
+                  ? parseLocal(tournament.registration_end)
+                  : null;
+                const roundDates = tournament.round_dates || {};
+                const roundNames = tournament.round_names || {};
+
+                // Color palette per round index (0-based) — matches reference stage colors
+                const ROUND_COLORS = [
+                  '#8b5cf6', // Round 1 — purple-500 (Qualifiers)
+                  '#6d28d9', // Round 2 — purple-700 (QF)
+                  '#fde047', // Round 3 — yellow-300 (Semi Finals)
+                  '#f59e0b', // Round 4 — amber-400 (Finals)
+                ];
                 // Format a Date as YYYY-MM-DD using local components (not UTC)
                 const toLocalISO = (d) =>
                   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
