@@ -800,7 +800,12 @@ const TournamentDetail = () => {
   const fmtDate = (dateStr) => {
     if (!dateStr) return '—';
     try {
-      return new Date(dateStr).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+      // Append T00:00:00 for date-only strings so JS parses in local time, not UTC
+      const normalized = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? dateStr + 'T00:00:00' : dateStr;
+      return new Date(normalized).toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
     } catch {
       return dateStr;
     }
@@ -1876,10 +1881,10 @@ const TournamentDetail = () => {
             <div className="td-tab-panel" role="tabpanel">
               {(() => {
                 const regStart = tournament.registration_start
-                  ? new Date(tournament.registration_start)
+                  ? parseLocal(tournament.registration_start)
                   : null;
                 const regEnd = tournament.registration_end
-                  ? new Date(tournament.registration_end)
+                  ? parseLocal(tournament.registration_end)
                   : null;
                 const roundDates = tournament.round_dates || {};
                 const roundNames = tournament.round_names || {};
@@ -1893,16 +1898,28 @@ const TournamentDetail = () => {
                   '#f59e0b', // Round 4 — amber-400 (Finals)
                 ];
 
+                // Parse a date string in LOCAL time (avoids UTC-shift bug in IST)
+                const parseLocal = (s) => {
+                  if (!s) return null;
+                  const str = typeof s === 'string' ? s : s.toISOString().slice(0, 10);
+                  return /^\d{4}-\d{2}-\d{2}$/.test(str)
+                    ? new Date(str + 'T00:00:00')
+                    : new Date(str);
+                };
+                // Format a Date as YYYY-MM-DD using local components (not UTC)
+                const toLocalISO = (d) =>
+                  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
                 // Build date → { label, color } map
                 const dateMap = {};
                 const eachDay = (start, end) => {
                   const days = [];
-                  const cur = new Date(start);
+                  const cur = parseLocal(typeof start === 'string' ? start : toLocalISO(start));
                   cur.setHours(0, 0, 0, 0);
-                  const endD = new Date(end);
+                  const endD = parseLocal(typeof end === 'string' ? end : toLocalISO(end));
                   endD.setHours(0, 0, 0, 0);
                   while (cur <= endD) {
-                    days.push(cur.toISOString().slice(0, 10));
+                    days.push(toLocalISO(cur));
                     cur.setDate(cur.getDate() + 1);
                   }
                   return days;
@@ -1927,7 +1944,7 @@ const TournamentDetail = () => {
                     ? '#d97706'
                     : ROUND_COLORS[Math.min(idx, ROUND_COLORS.length - 1)];
                   const label = roundNames[String(rNum)] || `Round ${rNum}`;
-                  eachDay(new Date(rd.start_date), new Date(rd.end_date)).forEach((d) => {
+                  eachDay(rd.start_date, rd.end_date).forEach((d) => {
                     dateMap[d] = { label, color };
                   });
                 });
@@ -1935,7 +1952,7 @@ const TournamentDetail = () => {
                 // Rest days: days between rounds that are in the tournament span but have no event
                 if (roundNums.length > 0 && regStart) {
                   const lastRound = roundDates[String(Math.max(...roundNums))];
-                  const spanEnd = lastRound?.end_date ? new Date(lastRound.end_date) : regEnd;
+                  const spanEnd = lastRound?.end_date ? parseLocal(lastRound.end_date) : regEnd;
                   if (spanEnd) {
                     eachDay(regStart, spanEnd).forEach((d) => {
                       if (!dateMap[d]) {

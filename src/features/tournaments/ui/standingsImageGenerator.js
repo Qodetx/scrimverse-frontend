@@ -4,17 +4,17 @@ import pointsTableBg from '../../../assets/pointtablenew.png';
 
 // ─── Custom background image calibration (pointtablenew.png 1086×1449 → scaled to 1080×1441) ─
 const BG_TITLE_Y = 355; // Center Y of dynamic title text
-const BG_TABLE_ROW_START_Y = 570; // Center Y of first data row (slot 1 center = 545+49/2)
-const BG_ROW_H = 49; // Height of each row slot in the background image
-const BG_MAX_ROWS_PG1 = 12; // Rows available on page 1 with custom bg
+const BG_TABLE_ROW_START_Y = 602.5; // Center Y of first data row
+const BG_ROW_H = 34.05; // Height of each row slot in the background image
+const BG_MAX_ROWS_PG1 = 20; // Rows available on page 1 with custom bg
 
 // Column center X positions (image is 1086px → 1080px canvas, near 1:1 scale):
 const BG_COL_RANK_X = 185; // # column
 const BG_COL_TEAM_LEFT_X = 252; // Team name left-align start
-const BG_COL_WWCD_X = 586; // WWCD column center
-const BG_COL_PP_X = 682; // PP column center
-const BG_COL_KP_X = 798; // KP column center
-const BG_COL_TOTAL_X = 900; // TOTAL column center
+const BG_COL_WWCD_X = 590; // WWCD column center
+const BG_COL_PP_X = 690; // PP column center
+const BG_COL_KP_X = 794; // KP column center
+const BG_COL_TOTAL_X = 898; // TOTAL column center
 
 const BACKGROUND_IMAGE_URL = '/standings-bg.jpeg';
 const UPLOADED_BG =
@@ -112,8 +112,8 @@ const _renderStandingsPage = ({
   }
   const AC = (a) => `rgba(${ACCENT_R},${ACCENT_G},${ACCENT_B},${a})`;
 
-  // ── Custom background image path (page 1 only) ──────────────────────────
-  if (bgImage && isFirstPage) {
+  // ── Custom background image path ────────────────────────────────────────
+  if (bgImage) {
     const imgScaledH = Math.round((bgImage.naturalHeight / bgImage.naturalWidth) * W);
     canvas.height = imgScaledH;
     ctx.drawImage(bgImage, 0, 0, W, imgScaledH);
@@ -131,6 +131,10 @@ const _renderStandingsPage = ({
         tournament?.round_names?.[String(selectedRound)] || getRoundLabel(selectedRound)
       ).toUpperCase();
       subtitleLabel = 'OVERALL STANDINGS';
+    }
+
+    if (totalPages > 1) {
+      subtitleLabel += `   ·   PAGE ${pageNum} OF ${totalPages}`;
     }
 
     ctx.textBaseline = 'middle';
@@ -237,7 +241,7 @@ const _renderStandingsPage = ({
     // Data rows
     standings.forEach((team, i) => {
       const actualRank = rankOffset + i + 1;
-      const rowMidY = BG_TABLE_ROW_START_Y + i * BG_ROW_H + BG_ROW_H / 2;
+      const rowMidY = BG_TABLE_ROW_START_Y + i * BG_ROW_H;
       const medalColor =
         actualRank === 1
           ? '#F59E0B'
@@ -872,6 +876,7 @@ export const generateStandingsImage = async ({
   }
 
   const pg1Max = bgImage ? BG_MAX_ROWS_PG1 : TEAMS_PAGE_1;
+  const pgNMax = bgImage ? BG_MAX_ROWS_PG1 : TEAMS_PAGE_N;
 
   const chunks = [];
   if (standings.length <= pg1Max) {
@@ -880,8 +885,8 @@ export const generateStandingsImage = async ({
     chunks.push(standings.slice(0, pg1Max));
     let i = pg1Max;
     while (i < standings.length) {
-      chunks.push(standings.slice(i, i + TEAMS_PAGE_N));
-      i += TEAMS_PAGE_N;
+      chunks.push(standings.slice(i, i + pgNMax));
+      i += pgNMax;
     }
   }
 
@@ -903,7 +908,7 @@ export const generateStandingsImage = async ({
       pageNum: p + 1,
       totalPages,
       rankOffset,
-      bgImage: p === 0 ? bgImage : null,
+      bgImage: bgImage,
     });
     rankOffset += chunk.length;
     return url;
