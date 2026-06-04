@@ -481,7 +481,8 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
             ref={(el) => {
               inputRefs.current[i] = el;
             }}
-            type={inviteMode === 'email' ? 'email' : 'text'}
+            type={inviteMode === 'phone' ? 'tel' : inviteMode === 'email' ? 'email' : 'text'}
+            inputMode={inviteMode === 'phone' ? 'numeric' : undefined}
             className={`jt-input${fieldErrors[i] ? ' input-error' : ''}${selectedUsernames[i] ? ' input-selected' : ''}`}
             placeholder={
               inviteMode === 'phone'
