@@ -113,9 +113,15 @@ export const authAPI = {
   changePassword: (data) => api.post('/accounts/change-password/', data),
   sendOTP: (purpose, phone) => api.post('/accounts/send-otp/', { purpose, phone }),
   updatePhone: (phone, otp) => api.patch('/accounts/update-phone/', { phone, otp }),
+  updatePhoneMsg91: (phone, accessToken) =>
+    api.patch('/accounts/update-phone-msg91/', { phone, access_token: accessToken }),
   sendRegistrationOTP: (phone) => api.post('/accounts/send-registration-otp/', { phone }),
   verifyRegistrationOTP: (phone, otp) =>
     api.post('/accounts/verify-registration-otp/', { phone, otp }),
+  // Phone-based auth (OTP login + signup, no email/password)
+  sendPhoneAuthOTP: (phone_number) => api.post('/accounts/send-phone-auth-otp/', { phone_number }),
+  phoneLogin: (phone_number, otp) => api.post('/accounts/phone-login/', { phone_number, otp }),
+  phoneRegister: (data) => api.post('/accounts/phone-register/', data),
   exportData: () => api.get('/accounts/export-data/', { responseType: 'blob' }),
   requestDataExport: () => api.post('/accounts/request-data-export/'),
   getDataExport: (token) => api.get(`/accounts/data-export/${token}/`),

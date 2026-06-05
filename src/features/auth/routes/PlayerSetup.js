@@ -1,7 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
+import useMSG91OTP from '../../../hooks/useMSG91OTP';
 
 const PlayerSetup = () => {
   const { fetchUserData, logout } = useContext(AuthContext);
@@ -11,23 +12,28 @@ const PlayerSetup = () => {
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState('');
+  const [countdown, setCountdown] = useState(0);
 
-  const startCountdown = () => {
-    setCountdown(600);
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const {
+    sendOTP,
+    verifyOTP,
+    retryOTP,
+    sending,
+    verifying,
+    otpSent,
+    otpVerified,
+    accessToken,
+    error: otpHookError,
+    reset: resetOTP,
+  } = useMSG91OTP();
 
   const handleSendOTP = async () => {
     setError('');
@@ -35,37 +41,32 @@ const PlayerSetup = () => {
       setError('Enter a valid 10-digit phone number');
       return;
     }
-    setLoading(true);
     try {
-      await authAPI.sendOTP('phone_change', phoneNumber);
-      setOtpSent(true);
-      setOtp('');
-      startCountdown();
+      await sendOTP(phoneNumber);
+      setCountdown(60);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
-    } finally {
-      setLoading(false);
+      setError(err.message || 'Failed to send OTP. Please try again.');
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerifyOTP = async () => {
     setError('');
-    setLoading(true);
+    if (!otp || otp.length !== 6) {
+      setError('Enter the 6-digit OTP');
+      return;
+    }
     try {
-      await authAPI.updatePhone(phoneNumber, otp);
+      const token = await verifyOTP(otp);
+      // Save phone + MSG91 access token to backend
+      setLoading(true);
+      await authAPI.updatePhoneMsg91(phoneNumber, token);
       await fetchUserData();
       navigate(nextPath, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
+      setError(err.response?.data?.error || err.message || 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatCountdown = () => {
-    const m = Math.floor(countdown / 60);
-    const s = String(countdown % 60).padStart(2, '0');
-    return `${m}:${s}`;
   };
 
   return (
@@ -134,10 +135,10 @@ const PlayerSetup = () => {
             <button
               type="button"
               onClick={handleSendOTP}
-              disabled={loading || phoneNumber.length !== 10}
+              disabled={sending || phoneNumber.length !== 10}
               className="w-full py-3.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
+              {sending ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Sending...
@@ -156,7 +157,7 @@ const PlayerSetup = () => {
                 type="button"
                 className="text-primary hover:underline text-sm"
                 onClick={() => {
-                  setOtpSent(false);
+                  resetOTP();
                   setOtp('');
                   setError('');
                 }}
@@ -176,15 +177,16 @@ const PlayerSetup = () => {
                 maxLength="6"
                 className="block w-full px-4 py-3.5 bg-[#0a0a0c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-center text-xl tracking-widest"
               />
+              {otpHookError && <p className="text-xs text-red-400">{otpHookError}</p>}
             </div>
 
             <button
               type="button"
-              onClick={handleVerify}
-              disabled={loading || otp.length !== 6}
+              onClick={handleVerifyOTP}
+              disabled={loading || verifying || otp.length !== 6}
               className="w-full py-3.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
+              {loading || verifying ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Verifying...
@@ -196,13 +198,16 @@ const PlayerSetup = () => {
 
             <div className="text-center text-sm text-gray-500">
               {countdown > 0 ? (
-                `Resend OTP in ${formatCountdown()}`
+                <span>Resend OTP in {countdown}s</span>
               ) : (
                 <button
                   type="button"
                   className="text-primary hover:underline"
-                  onClick={handleSendOTP}
-                  disabled={loading}
+                  onClick={() => {
+                    retryOTP();
+                    setCountdown(60);
+                  }}
+                  disabled={sending}
                 >
                   Resend OTP
                 </button>

@@ -1795,7 +1795,7 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                   style={{
                     position: 'absolute',
                     top: 'calc(100% + 6px)',
-                    right: 0,
+                    left: 0,
                     width: '280px',
                     maxHeight: '320px',
                     background: 'hsl(var(--card))',

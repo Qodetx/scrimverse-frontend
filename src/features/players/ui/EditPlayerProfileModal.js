@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import useMSG91OTP from '../../../hooks/useMSG91OTP';
 import {
   X,
   Camera,
@@ -101,11 +102,20 @@ const EditPlayerProfileModal = ({
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // OTP state for phone change
-  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  // OTP state for phone change — using MSG91 widget
+  const {
+    sendOTP: msg91Send,
+    verifyOTP: msg91Verify,
+    retryOTP: msg91Retry,
+    sending: phoneOtpLoading,
+    verifying: phoneOtpVerifying,
+    otpSent: phoneOtpSent,
+    error: msg91Error,
+    accessToken: msg91Token,
+    reset: resetMsg91,
+  } = useMSG91OTP();
   const [phoneOtp, setPhoneOtp] = useState('');
   const [phoneOtpCountdown, setPhoneOtpCountdown] = useState(0);
-  const [phoneOtpLoading, setPhoneOtpLoading] = useState(false);
   const [isChangingPhone, setIsChangingPhone] = useState(false);
 
   // OTP state for password change
@@ -147,8 +157,9 @@ const EditPlayerProfileModal = ({
       }
       setPasswords({ current: '', newPass: '', confirm: '' });
       setIsChangingPhone(false);
-      setPhoneOtpSent(false);
+      resetMsg91();
       setPhoneOtp('');
+      setPhoneOtpCountdown(0);
       setError('');
       setSuccess('');
       setActiveTab('profile');
@@ -268,18 +279,19 @@ const EditPlayerProfileModal = ({
   };
 
   const handleSendPhoneOTP = async () => {
-    setPhoneOtpLoading(true);
     setError('');
     setSuccess('');
+    const phone = formData.phone_number?.trim();
+    if (!phone || phone.length !== 10) {
+      setError('Enter a valid 10-digit phone number.');
+      return;
+    }
     try {
-      await authAPI.sendOTP('phone_change', formData.phone_number);
-      setPhoneOtpSent(true);
-      setPhoneOtpCountdown(600);
+      await msg91Send(phone);
+      setPhoneOtpCountdown(60);
       setPhoneOtp('');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
-    } finally {
-      setPhoneOtpLoading(false);
+      setError(err.message || 'Failed to send OTP. Please try again.');
     }
   };
 
@@ -568,7 +580,7 @@ const EditPlayerProfileModal = ({
                       value={formData.phone_number}
                       onChange={(e) => {
                         handleChange(e);
-                        setPhoneOtpSent(false);
+                        resetMsg91();
                         setPhoneOtp('');
                       }}
                       maxLength="15"
@@ -595,8 +607,9 @@ const EditPlayerProfileModal = ({
                               ...prev,
                               phone_number: player?.phone_number || '',
                             }));
-                            setPhoneOtpSent(false);
+                            resetMsg91();
                             setPhoneOtp('');
+                            setPhoneOtpCountdown(0);
                           }}
                         >
                           Cancel
@@ -612,7 +625,7 @@ const EditPlayerProfileModal = ({
                         type="button"
                         className="ps-link-btn"
                         onClick={() => {
-                          setPhoneOtpSent(false);
+                          resetMsg91();
                           setPhoneOtp('');
                         }}
                       >
@@ -633,34 +646,41 @@ const EditPlayerProfileModal = ({
                         type="button"
                         className="ps-otp-btn ps-otp-btn--narrow"
                         onClick={async () => {
-                          setPhoneOtpLoading(true);
                           setError('');
                           try {
-                            await authAPI.updatePhone(formData.phone_number, phoneOtp);
+                            const token = await msg91Verify(phoneOtp);
+                            await authAPI.updatePhoneMsg91(formData.phone_number, token);
                             setSuccess('Phone number verified successfully!');
-                            setPhoneOtpSent(false);
+                            resetMsg91();
                             setPhoneOtp('');
                             setIsChangingPhone(false);
                             setPhoneVerifiedLocally(true);
                             onPhoneVerified?.();
                           } catch (err) {
-                            setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
-                          } finally {
-                            setPhoneOtpLoading(false);
+                            setError(
+                              err.response?.data?.error ||
+                                err.message ||
+                                'Invalid OTP. Please try again.'
+                            );
                           }
                         }}
-                        disabled={phoneOtpLoading || phoneOtp.length !== 6}
+                        disabled={phoneOtpLoading || phoneOtpVerifying || phoneOtp.length !== 6}
                       >
-                        {phoneOtpLoading ? 'Verifying...' : 'Verify & Save Phone'}
+                        {phoneOtpLoading || phoneOtpVerifying
+                          ? 'Verifying...'
+                          : 'Verify & Save Phone'}
                       </button>
                       <span className="ps-otp-timer">
                         {phoneOtpCountdown > 0 ? (
-                          `Resend in ${Math.floor(phoneOtpCountdown / 60)}:${String(phoneOtpCountdown % 60).padStart(2, '0')}`
+                          `Resend in ${phoneOtpCountdown}s`
                         ) : (
                           <button
                             type="button"
                             className="ps-link-btn"
-                            onClick={handleSendPhoneOTP}
+                            onClick={() => {
+                              msg91Retry();
+                              setPhoneOtpCountdown(60);
+                            }}
                           >
                             Resend OTP
                           </button>

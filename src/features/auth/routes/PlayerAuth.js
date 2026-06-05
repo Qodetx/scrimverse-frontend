@@ -1,7 +1,17 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Users, Mail, Lock, ArrowLeft, Gamepad2, Trophy, Swords, BarChart3 } from 'lucide-react';
+import {
+  Users,
+  Mail,
+  Lock,
+  ArrowLeft,
+  Gamepad2,
+  Trophy,
+  Swords,
+  BarChart3,
+  Phone,
+} from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
 
@@ -28,6 +38,18 @@ const PlayerAuth = () => {
   const [otpHighlight, setOtpHighlight] = useState(false);
   const otpInputRef = React.useRef(null);
 
+  // Phone auth state (completely separate from email state)
+  const [authMethod, setAuthMethod] = React.useState('email'); // 'phone' | 'email'
+  const [phoneNum, setPhoneNum] = React.useState('');
+  const [phoneOtpSent, setPhoneOtpSent] = React.useState(false);
+  const [phoneOtp, setPhoneOtp] = React.useState('');
+  const [phoneOtpLoading, setPhoneOtpLoading] = React.useState(false);
+  const [phoneCountdown, setPhoneCountdown] = React.useState(0);
+  const [isNewPhoneUser, setIsNewPhoneUser] = React.useState(false);
+  const [phoneUsername, setPhoneUsername] = React.useState('');
+  const [phoneError, setPhoneError] = React.useState('');
+  const [phoneLoading, setPhoneLoading] = React.useState(false);
+
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,12 +65,19 @@ const PlayerAuth = () => {
     (typeof window !== 'undefined' && localStorage.getItem('post_verify_redirect')) ||
     '/player/dashboard';
 
-  // Countdown timer for OTP resend
+  // Countdown timer for email-flow OTP resend
   React.useEffect(() => {
     if (otpCountdown <= 0) return;
     const timer = setTimeout(() => setOtpCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [otpCountdown]);
+
+  // Countdown timer for phone auth OTP resend
+  React.useEffect(() => {
+    if (phoneCountdown <= 0) return;
+    const timer = setTimeout(() => setPhoneCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phoneCountdown]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -122,7 +151,7 @@ const PlayerAuth = () => {
         login(response.data.user, response.data.tokens);
         // If phone not verified redirect to setup; replace:true removes auth page from history
         const destination =
-          response.data.user?.user?.phone_verified === false ? '/player/setup' : nextPath;
+          response.data.user?.phone_verified === false ? '/player/setup' : nextPath;
         // Consume the post-login redirect key so it doesn't persist into the
         // next session and bounce the user somewhere stale on a future login.
         try {
@@ -212,6 +241,63 @@ const PlayerAuth = () => {
     }
   };
 
+  const handleSendPhoneOTP = async () => {
+    setPhoneError('');
+    const digits = phoneNum.replace(/\D/g, '');
+    if (digits.length !== 10) {
+      setPhoneError('Enter a valid 10-digit mobile number.');
+      return;
+    }
+    setPhoneOtpLoading(true);
+    try {
+      const res = await authAPI.sendPhoneAuthOTP(digits);
+      setPhoneOtpSent(true);
+      setIsNewPhoneUser(res.data.is_new_user);
+      setPhoneCountdown(60);
+    } catch (err) {
+      setPhoneError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
+    } finally {
+      setPhoneOtpLoading(false);
+    }
+  };
+
+  const handlePhoneSubmit = async () => {
+    setPhoneError('');
+    if (!phoneOtp || phoneOtp.length !== 6) {
+      setPhoneError('Enter the 6-digit OTP.');
+      return;
+    }
+    if (isNewPhoneUser && !phoneUsername.trim()) {
+      setPhoneError('Please choose a username.');
+      return;
+    }
+    setPhoneLoading(true);
+    try {
+      const digits = phoneNum.replace(/\D/g, '');
+      let response;
+      if (isNewPhoneUser) {
+        response = await authAPI.phoneRegister({
+          phone_number: digits,
+          otp: phoneOtp,
+          username: phoneUsername.trim(),
+        });
+      } else {
+        response = await authAPI.phoneLogin(digits, phoneOtp);
+      }
+      login(response.data.user, response.data.tokens);
+      try {
+        localStorage.removeItem('post_verify_redirect');
+      } catch {
+        /* ignore */
+      }
+      navigate(nextPath, { replace: true });
+    } catch (err) {
+      setPhoneError(err.response?.data?.error || 'Something went wrong. Please try again.');
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setLoading(true);
@@ -225,7 +311,7 @@ const PlayerAuth = () => {
         // If phone not verified (new Google signup or existing user without phone),
         // redirect to setup page before allowing dashboard access.
         const destination =
-          response.data.user?.user?.phone_verified === false ? '/player/setup' : nextPath;
+          response.data.user?.phone_verified === false ? '/player/setup' : nextPath;
         try {
           localStorage.removeItem('post_verify_redirect');
         } catch {
@@ -319,274 +405,480 @@ const PlayerAuth = () => {
         <div className="flex-1 flex flex-col justify-center px-8 pb-4 max-w-xl mx-auto w-full">
           <div className="w-full">
             <div className="cyber-card border border-primary/30 p-6">
-              {/* Header — no icon */}
-              <div className="flex flex-col items-center mb-5">
+              {/* Header */}
+              <div className="flex flex-col items-center mb-4">
                 <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                  {isLogin ? 'Player Sign In' : 'Create Player Account'}
+                  {authMethod === 'phone'
+                    ? isNewPhoneUser && phoneOtpSent
+                      ? 'Create Account'
+                      : 'Welcome'
+                    : isLogin
+                      ? 'Player Sign In'
+                      : 'Create Player Account'}
                 </h1>
                 <p className="text-muted-foreground mt-1 text-center text-sm">
-                  {isLogin
-                    ? 'Welcome back! Sign in to access your tournaments'
-                    : 'Join ScrimVerse to compete in tournaments'}
+                  {authMethod === 'phone'
+                    ? 'Enter your mobile number to continue'
+                    : isLogin
+                      ? 'Welcome back! Sign in to access your tournaments'
+                      : 'Join ScrimVerse to compete in tournaments'}
                 </p>
               </div>
 
+              {/* Auth method tabs — Phone tab hidden until SMS is re-enabled */}
+
               <div className="space-y-4">
-                {/* Google Sign In Button */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => googleLogin()}
-                    className="w-full py-2.5 px-4 border border-border rounded-lg font-medium text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-center gap-3"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    {isLogin ? 'Continue with Google' : 'Sign up with Google'}
-                  </button>
-                </div>
-
-                {/* Divider */}
-                <div className="relative flex items-center py-1">
-                  <div className="flex-grow border-t border-border"></div>
-                  <span className="flex-shrink mx-4 text-muted-foreground text-xs uppercase tracking-widest font-bold">
-                    or continue with email
-                  </span>
-                  <div className="flex-grow border-t border-border"></div>
-                </div>
-
-                {/* Error message */}
-                {error && (
-                  <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm font-medium">
-                    {error}
-                  </div>
-                )}
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-3">
-                  {/* Username field (register only) */}
-                  {!isLogin && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Username</label>
-                      <div className="relative">
-                        <Gamepad2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <input
-                          name="username"
-                          type="text"
-                          required={!isLogin}
-                          value={formData.username}
-                          onChange={handleChange}
-                          placeholder="Choose a username"
-                          className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                        />
+                {/* ── PHONE TAB ──────────────────────────────────────────── */}
+                {authMethod === 'phone' && (
+                  <div className="space-y-3">
+                    {phoneError && (
+                      <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm font-medium">
+                        {phoneError}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Email field */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <input
-                        name="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="you@example.com"
-                        className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Phone field (register only) */}
-                  {!isLogin && (
+                    {/* Phone number + Send OTP */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Phone Number</label>
+                      <label className="text-sm font-medium text-foreground">Mobile Number</label>
                       <div className="flex gap-2">
                         <div className="relative flex-1">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <input
-                            name="phone_number"
                             type="tel"
-                            required={!isLogin}
-                            value={formData.phone_number}
-                            onChange={handleChange}
-                            placeholder="10-digit number"
+                            inputMode="numeric"
+                            value={phoneNum}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setPhoneNum(val);
+                              if (phoneOtpSent) {
+                                setPhoneOtpSent(false);
+                                setPhoneOtp('');
+                                setIsNewPhoneUser(false);
+                                setPhoneUsername('');
+                              }
+                            }}
+                            placeholder="10-digit mobile number"
                             maxLength="10"
-                            disabled={otpVerified}
-                            ref={!otpSent ? otpInputRef : null}
-                            className={`block w-full px-4 py-2.5 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all disabled:opacity-50 ${otpHighlight && !otpSent ? 'border-destructive ring-2 ring-destructive/30' : 'border-border'}`}
+                            disabled={phoneOtpSent}
+                            className="block w-full pl-9 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all disabled:opacity-60"
                           />
                         </div>
-                        {!otpVerified && (
-                          <button
-                            type="button"
-                            onClick={handleSendOTP}
-                            disabled={
-                              otpLoading ||
-                              otpCountdown > 0 ||
-                              formData.phone_number.trim().length !== 10
-                            }
-                            className="px-4 py-2.5 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                          >
-                            {otpLoading
-                              ? '...'
-                              : otpCountdown > 0
-                                ? `${otpCountdown}s`
-                                : otpSent
-                                  ? 'Resend'
-                                  : 'Send OTP'}
-                          </button>
-                        )}
-                        {otpVerified && (
-                          <div className="flex items-center px-3 text-green-500 text-sm font-bold whitespace-nowrap">
-                            Verified
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={
+                            phoneOtpSent
+                              ? () => {
+                                  setPhoneOtpSent(false);
+                                  setPhoneOtp('');
+                                  setPhoneCountdown(0);
+                                  setIsNewPhoneUser(false);
+                                  setPhoneUsername('');
+                                }
+                              : handleSendPhoneOTP
+                          }
+                          disabled={
+                            phoneOtpLoading ||
+                            (!phoneOtpSent && phoneCountdown > 0) ||
+                            (!phoneOtpSent && phoneNum.replace(/\D/g, '').length !== 10)
+                          }
+                          className="px-4 py-2.5 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                          {phoneOtpLoading
+                            ? '...'
+                            : phoneOtpSent
+                              ? 'Change'
+                              : phoneCountdown > 0
+                                ? `${phoneCountdown}s`
+                                : 'Send OTP'}
+                        </button>
                       </div>
                     </div>
-                  )}
 
-                  {/* OTP Input — only show after OTP is sent and before verified */}
-                  {!isLogin && otpSent && !otpVerified && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Enter OTP</label>
-                      <div className="flex gap-2">
+                    {/* OTP input — shown after OTP sent */}
+                    {phoneOtpSent && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">
+                          Enter OTP{' '}
+                          <span className="text-muted-foreground font-normal text-xs">
+                            (sent to +91{phoneNum})
+                          </span>
+                        </label>
                         <input
                           type="text"
                           inputMode="numeric"
-                          value={otpCode}
-                          onChange={(e) => {
-                            setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6));
-                            setOtpHighlight(false);
-                          }}
+                          value={phoneOtp}
+                          onChange={(e) =>
+                            setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
+                          }
                           placeholder="6-digit OTP"
                           maxLength="6"
-                          ref={otpSent ? otpInputRef : null}
-                          className={`block flex-1 px-4 py-3 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${otpHighlight && otpSent ? 'border-destructive ring-2 ring-destructive/30' : 'border-border'}`}
+                          className="block w-full px-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                         />
-                        <button
-                          type="button"
-                          onClick={handleVerifyOTP}
-                          disabled={otpLoading || otpCode.length !== 6}
-                          className="px-4 py-2.5 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                        >
-                          {otpLoading ? '...' : 'Verify'}
-                        </button>
+                        <div className="flex justify-between items-center">
+                          <p className="text-xs text-muted-foreground">Valid for 10 minutes</p>
+                          {phoneCountdown > 0 ? (
+                            <span className="text-xs text-muted-foreground">
+                              Resend in {phoneCountdown}s
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleSendPhoneOTP}
+                              disabled={phoneOtpLoading}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Resend OTP
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        OTP sent to +91{formData.phone_number}. Valid for 10 minutes.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Password field */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <input
-                        name="password"
-                        type="password"
-                        required
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="••••••••"
-                        className={`block w-full pl-10 pr-4 py-3 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${passwordError && !passwordError.includes('match') ? 'border-destructive' : 'border-border'}`}
-                      />
-                    </div>
-                    {passwordError && !passwordError.includes('match') && (
-                      <p className="text-xs text-destructive mt-1">{passwordError}</p>
                     )}
-                  </div>
 
-                  {/* Confirm Password field (register only) */}
-                  {!isLogin && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">
-                        Confirm Password
-                      </label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <input
-                          name="password2"
-                          type="password"
-                          required={!isLogin}
-                          value={formData.password2}
-                          onChange={handleChange}
-                          placeholder="••••••••"
-                          className={`block w-full pl-10 pr-4 py-3 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${passwordError && passwordError.includes('match') ? 'border-destructive' : 'border-border'}`}
-                        />
+                    {/* Username — only for new users */}
+                    {phoneOtpSent && isNewPhoneUser && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">
+                          Choose a Username
+                        </label>
+                        <div className="relative">
+                          <Gamepad2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <input
+                            type="text"
+                            value={phoneUsername}
+                            onChange={(e) => setPhoneUsername(e.target.value)}
+                            placeholder="Your gamer tag"
+                            className="block w-full pl-9 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Letters, numbers, _ and - only. Min 3 characters.
+                        </p>
                       </div>
-                      {passwordError && passwordError.includes('match') && (
-                        <p className="text-xs text-destructive mt-1">{passwordError}</p>
-                      )}
-                    </div>
-                  )}
+                    )}
 
-                  {/* Forgot password (login only) */}
-                  {isLogin && (
-                    <div className="flex justify-end">
-                      <Link
-                        to="/forgot-password?type=player"
-                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    {/* Submit */}
+                    {phoneOtpSent && (
+                      <button
+                        type="button"
+                        onClick={handlePhoneSubmit}
+                        disabled={
+                          phoneLoading ||
+                          phoneOtp.length !== 6 ||
+                          (isNewPhoneUser && !phoneUsername.trim())
+                        }
+                        className="gaming-button w-full py-2.5 px-4 rounded-lg font-bold text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Forgot password?
-                      </Link>
+                        {phoneLoading
+                          ? isNewPhoneUser
+                            ? 'Creating Account...'
+                            : 'Signing in...'
+                          : isNewPhoneUser
+                            ? 'Create Account'
+                            : 'Sign In'}
+                      </button>
+                    )}
+
+                    {/* Divider before Google */}
+                    <div className="relative flex items-center py-1">
+                      <div className="flex-grow border-t border-border"></div>
+                      <span className="flex-shrink mx-4 text-muted-foreground text-xs uppercase tracking-widest font-bold">
+                        or
+                      </span>
+                      <div className="flex-grow border-t border-border"></div>
                     </div>
-                  )}
 
-                  {/* Submit button */}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="gaming-button w-full py-2.5 px-4 rounded-lg font-bold text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading
-                      ? isLogin
-                        ? 'Signing in...'
-                        : 'Creating Account...'
-                      : isLogin
-                        ? 'Sign In'
-                        : 'Register'}
-                  </button>
-                </form>
-
-                {/* Sign up/in link */}
-                <div className="text-center pt-1">
-                  <p className="text-sm text-muted-foreground">
-                    {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                    {/* Google button */}
                     <button
                       type="button"
-                      onClick={() => {
-                        setIsLogin(!isLogin);
-                        setError('');
-                        setOtpSent(false);
-                        setOtpVerified(false);
-                        setOtpCode('');
-                      }}
-                      className="font-bold text-primary hover:text-primary/80 transition-colors"
+                      onClick={() => googleLogin()}
+                      className="w-full py-2.5 px-4 border border-border rounded-lg font-medium text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-center gap-3"
                     >
-                      {isLogin ? 'Sign up' : 'Sign in'}
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          fill="#4285F4"
+                        />
+                        <path
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          fill="#34A853"
+                        />
+                        <path
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                          fill="#FBBC05"
+                        />
+                        <path
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                          fill="#EA4335"
+                        />
+                      </svg>
+                      Continue with Google
                     </button>
-                  </p>
-                </div>
+                  </div>
+                )}
+
+                {/* ── EMAIL TAB ──────────────────────────────────────────── */}
+                {authMethod === 'email' && (
+                  <>
+                    {/* Google Sign In Button */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => googleLogin()}
+                        className="w-full py-2.5 px-4 border border-border rounded-lg font-medium text-foreground hover:bg-secondary/50 transition-colors flex items-center justify-center gap-3"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            fill="#4285F4"
+                          />
+                          <path
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            fill="#34A853"
+                          />
+                          <path
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                            fill="#FBBC05"
+                          />
+                          <path
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                            fill="#EA4335"
+                          />
+                        </svg>
+                        {isLogin ? 'Continue with Google' : 'Sign up with Google'}
+                      </button>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="relative flex items-center py-1">
+                      <div className="flex-grow border-t border-border"></div>
+                      <span className="flex-shrink mx-4 text-muted-foreground text-xs uppercase tracking-widest font-bold">
+                        or continue with email
+                      </span>
+                      <div className="flex-grow border-t border-border"></div>
+                    </div>
+
+                    {/* Error message */}
+                    {error && (
+                      <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm font-medium">
+                        {error}
+                      </div>
+                    )}
+
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                      {/* Username field (register only) */}
+                      {!isLogin && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-foreground">Username</label>
+                          <div className="relative">
+                            <Gamepad2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <input
+                              name="username"
+                              type="text"
+                              required={!isLogin}
+                              value={formData.username}
+                              onChange={handleChange}
+                              placeholder="Choose a username"
+                              className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Email field */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">Email</label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <input
+                            name="email"
+                            type="email"
+                            required
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="you@example.com"
+                            className="block w-full pl-10 pr-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Phone field (register only) */}
+                      {!isLogin && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-foreground">
+                            Phone Number
+                          </label>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <input
+                                name="phone_number"
+                                type="tel"
+                                required={!isLogin}
+                                value={formData.phone_number}
+                                onChange={handleChange}
+                                placeholder="10-digit number"
+                                maxLength="10"
+                                disabled={otpVerified}
+                                ref={!otpSent ? otpInputRef : null}
+                                className={`block w-full px-4 py-2.5 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all disabled:opacity-50 ${otpHighlight && !otpSent ? 'border-destructive ring-2 ring-destructive/30' : 'border-border'}`}
+                              />
+                            </div>
+                            {!otpVerified && (
+                              <button
+                                type="button"
+                                onClick={handleSendOTP}
+                                disabled={
+                                  otpLoading ||
+                                  otpCountdown > 0 ||
+                                  formData.phone_number.trim().length !== 10
+                                }
+                                className="px-4 py-2.5 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                              >
+                                {otpLoading
+                                  ? '...'
+                                  : otpCountdown > 0
+                                    ? `${otpCountdown}s`
+                                    : otpSent
+                                      ? 'Resend'
+                                      : 'Send OTP'}
+                              </button>
+                            )}
+                            {otpVerified && (
+                              <div className="flex items-center px-3 text-green-500 text-sm font-bold whitespace-nowrap">
+                                Verified
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* OTP Input — only show after OTP is sent and before verified */}
+                      {!isLogin && otpSent && !otpVerified && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-foreground">Enter OTP</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={otpCode}
+                              onChange={(e) => {
+                                setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                                setOtpHighlight(false);
+                              }}
+                              placeholder="6-digit OTP"
+                              maxLength="6"
+                              ref={otpSent ? otpInputRef : null}
+                              className={`block flex-1 px-4 py-3 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${otpHighlight && otpSent ? 'border-destructive ring-2 ring-destructive/30' : 'border-border'}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleVerifyOTP}
+                              disabled={otpLoading || otpCode.length !== 6}
+                              className="px-4 py-2.5 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                            >
+                              {otpLoading ? '...' : 'Verify'}
+                            </button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            OTP sent to +91{formData.phone_number}. Valid for 10 minutes.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Password field */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">Password</label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <input
+                            name="password"
+                            type="password"
+                            required
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="••••••••"
+                            className={`block w-full pl-10 pr-4 py-3 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${passwordError && !passwordError.includes('match') ? 'border-destructive' : 'border-border'}`}
+                          />
+                        </div>
+                        {passwordError && !passwordError.includes('match') && (
+                          <p className="text-xs text-destructive mt-1">{passwordError}</p>
+                        )}
+                      </div>
+
+                      {/* Confirm Password field (register only) */}
+                      {!isLogin && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-foreground">
+                            Confirm Password
+                          </label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <input
+                              name="password2"
+                              type="password"
+                              required={!isLogin}
+                              value={formData.password2}
+                              onChange={handleChange}
+                              placeholder="••••••••"
+                              className={`block w-full pl-10 pr-4 py-3 bg-secondary border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${passwordError && passwordError.includes('match') ? 'border-destructive' : 'border-border'}`}
+                            />
+                          </div>
+                          {passwordError && passwordError.includes('match') && (
+                            <p className="text-xs text-destructive mt-1">{passwordError}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Forgot password (login only) */}
+                      {isLogin && (
+                        <div className="flex justify-end">
+                          <Link
+                            to="/forgot-password?type=player"
+                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Forgot password?
+                          </Link>
+                        </div>
+                      )}
+
+                      {/* Submit button */}
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="gaming-button w-full py-2.5 px-4 rounded-lg font-bold text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading
+                          ? isLogin
+                            ? 'Signing in...'
+                            : 'Creating Account...'
+                          : isLogin
+                            ? 'Sign In'
+                            : 'Register'}
+                      </button>
+                    </form>
+
+                    {/* Sign up/in link */}
+                    <div className="text-center pt-1">
+                      <p className="text-sm text-muted-foreground">
+                        {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsLogin(!isLogin);
+                            setError('');
+                            setOtpSent(false);
+                            setOtpVerified(false);
+                            setOtpCode('');
+                          }}
+                          className="font-bold text-primary hover:text-primary/80 transition-colors"
+                        >
+                          {isLogin ? 'Sign up' : 'Sign in'}
+                        </button>
+                      </p>
+                    </div>
+                  </>
+                )}
+                {/* ── END EMAIL TAB ── */}
               </div>
             </div>
           </div>

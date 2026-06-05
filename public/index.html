@@ -26,6 +26,22 @@
   <!-- PhonePe Payment Gateway Script -->
   <script src="https://mercury.phonepe.com/web/bundle/checkout.js"></script>
 
+  <!-- MSG91 OTP Widget -->
+  <script>
+    var configuration = {
+      widgetId: "3666646a6e72343734383136",
+      tokenAuth: "522691T0XAhKMWz6a2150dfP1",
+      exposeMethods: true,
+      success: function(data) {
+        if (window.__msg91OtpSuccess) window.__msg91OtpSuccess(data);
+      },
+      failure: function(error) {
+        if (window.__msg91OtpFailure) window.__msg91OtpFailure(error);
+      }
+    };
+  </script>
+  <script type="text/javascript" src="https://verify.msg91.com/otp-provider.js" onload="initSendOTP(configuration)"></script>
+
   <title>Scrimverse - Gaming Management System</title>
 
   <!-- Matomo -->

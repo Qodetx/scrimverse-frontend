@@ -1,10 +1,11 @@
-import React, { useState, useContext, useEffect, useCallback } from 'react';
+import React, { useState, useContext, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Users, Mail, Lock, Phone, User, ArrowLeft } from 'lucide-react';
 import { AuthContext } from '../../../context/AuthContext';
 import { authAPI } from '../../../utils/api';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
+import useMSG91OTP from '../../../hooks/useMSG91OTP';
 
 const PlayerRegister = () => {
   const [formData, setFormData] = useState({
@@ -16,38 +17,31 @@ const PlayerRegister = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // OTP state
-  const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [otpVerifiedToken, setOtpVerifiedToken] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpCountdown, setOtpCountdown] = useState(0);
   const [otpError, setOtpError] = useState('');
   const phoneFieldRef = React.useRef(null);
+
+  const {
+    sendOTP,
+    verifyOTP,
+    retryOTP,
+    sending,
+    verifying,
+    otpSent,
+    otpVerified,
+    accessToken,
+    error: otpHookError,
+    reset: resetOTP,
+  } = useMSG91OTP();
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const nextPath = location.state?.next || '/player/dashboard';
 
-  // Countdown timer for OTP resend
-  useEffect(() => {
-    if (otpCountdown <= 0) return;
-    const timer = setTimeout(() => setOtpCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [otpCountdown]);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Reset OTP state if phone number changes
-    if (e.target.name === 'phone_number') {
-      setOtpSent(false);
-      setOtpVerified(false);
-      setOtpVerifiedToken('');
-      setOtpCode('');
-    }
+    if (e.target.name === 'phone_number') resetOTP();
   };
 
   const handleSendOTP = useCallback(async () => {
@@ -57,18 +51,12 @@ const PlayerRegister = () => {
       setError('Please enter a valid 10-digit phone number.');
       return;
     }
-
-    setOtpLoading(true);
     try {
-      await authAPI.sendRegistrationOTP(phone);
-      setOtpSent(true);
-      setOtpCountdown(60);
+      await sendOTP(phone);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
-    } finally {
-      setOtpLoading(false);
+      setError(err.message || 'Failed to send OTP. Please try again.');
     }
-  }, [formData.phone_number]);
+  }, [formData.phone_number, sendOTP]);
 
   const handleVerifyOTP = useCallback(async () => {
     setError('');
@@ -76,19 +64,13 @@ const PlayerRegister = () => {
       setError('Please enter the 6-digit OTP.');
       return;
     }
-
-    setOtpLoading(true);
     try {
-      const res = await authAPI.verifyRegistrationOTP(formData.phone_number.trim(), otpCode);
-      setOtpVerified(true);
-      setOtpVerifiedToken(res.data.otp_verified_token);
+      await verifyOTP(otpCode);
       setOtpError('');
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
-    } finally {
-      setOtpLoading(false);
+      setError(err.message || 'Invalid OTP. Please try again.');
     }
-  }, [formData.phone_number, otpCode]);
+  }, [otpCode, verifyOTP]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -99,7 +81,7 @@ const PlayerRegister = () => {
       return;
     }
 
-    if (!otpVerified || !otpVerifiedToken) {
+    if (!otpVerified || !accessToken) {
       const msg = otpSent
         ? 'Please enter the OTP sent to your phone and click Verify.'
         : 'Please send and verify the OTP for your phone number.';
@@ -108,35 +90,22 @@ const PlayerRegister = () => {
       return;
     }
     setOtpError('');
-
     setLoading(true);
 
     try {
-      const payload = { ...formData, otp_verified_token: otpVerifiedToken };
-      console.log('[DEBUG] Registration payload:', payload); // Debug log
+      const payload = { ...formData, msg91_access_token: accessToken };
       const response = await authAPI.playerRegister(payload);
-      // If backend returns tokens (auto-login), use them
       if (response.data?.tokens && response.data?.user) {
         login(response.data.user, response.data.tokens);
         navigate(nextPath);
       } else {
-        // Otherwise redirect to login so user can verify and then login
         navigate('/player/login', { state: { next: nextPath } });
       }
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Registration failed. Please try again.';
       setError(errorMsg);
-
-      // If token expired, allow user to resend OTP without losing form data
-      if (
-        errorMsg.includes('Phone verification expired') ||
-        errorMsg.includes('otp_verified_token')
-      ) {
-        setOtpVerified(false);
-        setOtpVerifiedToken('');
-        setOtpCode('');
-        setOtpSent(false);
-        // Phone field will unlock, user can click "Send OTP" again
+      if (errorMsg.includes('Phone verification expired') || errorMsg.includes('access_token')) {
+        resetOTP();
       }
     } finally {
       setLoading(false);
@@ -300,26 +269,16 @@ const PlayerRegister = () => {
                       {!otpVerified && (
                         <button
                           type="button"
-                          onClick={handleSendOTP}
-                          disabled={
-                            otpLoading ||
-                            otpCountdown > 0 ||
-                            formData.phone_number.trim().length !== 10
-                          }
+                          onClick={otpSent ? retryOTP : handleSendOTP}
+                          disabled={sending || formData.phone_number.trim().length !== 10}
                           className="px-4 py-3 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
-                          {otpLoading
-                            ? '...'
-                            : otpCountdown > 0
-                              ? `${otpCountdown}s`
-                              : otpSent
-                                ? 'Resend'
-                                : 'Send OTP'}
+                          {sending ? '...' : otpSent ? 'Resend' : 'Send OTP'}
                         </button>
                       )}
                       {otpVerified && (
                         <div className="flex items-center px-3 text-green-500 text-sm font-bold whitespace-nowrap">
-                          Verified
+                          ✓ Verified
                         </div>
                       )}
                     </div>
@@ -345,15 +304,16 @@ const PlayerRegister = () => {
                         <button
                           type="button"
                           onClick={handleVerifyOTP}
-                          disabled={otpLoading || otpCode.length !== 6}
+                          disabled={verifying || otpCode.length !== 6}
                           className="px-4 py-3 bg-secondary hover:bg-secondary/80 border border-border text-foreground text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
-                          {otpLoading ? '...' : 'Verify'}
+                          {verifying ? '...' : 'Verify'}
                         </button>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         OTP sent to +91{formData.phone_number}. Valid for 10 minutes.
                       </p>
+                      {otpHookError && <p className="text-xs text-destructive">{otpHookError}</p>}
                     </div>
                   )}
 

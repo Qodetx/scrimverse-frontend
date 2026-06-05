@@ -40,7 +40,7 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
 
   // ── New team / BR flow form state ──
   const [newTeamName, setNewTeamName] = useState('');
-  const [inviteMode, setInviteMode] = useState('phone');
+  const [inviteMode, setInviteMode] = useState('username');
   const [teammates, setTeammates] = useState([]);
   const [selectedUsernames, setSelectedUsernames] = useState([]);
   const [suggestions, setSuggestions] = useState({});
@@ -439,15 +439,17 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
   const InviteModeToggle = ({ mode, setMode }) => (
     <div className="jt-invite-toggle">
       {[
-        { mode: 'phone', icon: Phone, label: 'Phone' },
-        { mode: 'email', icon: Mail, label: 'Email' },
-        { mode: 'username', icon: AtSign, label: 'Username' },
-      ].map(({ mode: m, icon: Icon, label }) => (
+        { mode: 'phone', icon: Phone, label: 'Phone', disabled: true },
+        { mode: 'email', icon: Mail, label: 'Email', disabled: false },
+        { mode: 'username', icon: AtSign, label: 'Username', disabled: false },
+      ].map(({ mode: m, icon: Icon, label, disabled }) => (
         <button
           key={m}
           type="button"
-          className={`jt-invite-btn${mode === m ? ' active' : ''}`}
-          onClick={() => setMode(m)}
+          className={`jt-invite-btn${mode === m ? ' active' : ''}${disabled ? ' disabled' : ''}`}
+          onClick={() => !disabled && setMode(m)}
+          disabled={disabled}
+          title={disabled ? 'Phone invite temporarily unavailable' : undefined}
         >
           <Icon size={14} />
           {label}
