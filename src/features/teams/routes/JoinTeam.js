@@ -22,7 +22,7 @@ export default function JoinTeam() {
   // If authenticated but phone not verified, redirect to setup first then come back
   useEffect(() => {
     if (loading) return;
-    if (isAuthenticated() && !user?.user?.phone_verified) {
+    if (isAuthenticated() && !(user?.phone_verified ?? user?.user?.phone_verified)) {
       navigate('/player/setup', { state: { next: `/join-team/${token}` }, replace: true });
     }
   }, [loading, token]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -74,7 +74,7 @@ export default function JoinTeam() {
       return;
     }
 
-    if (!user?.user?.phone_verified) {
+    if (!(user?.phone_verified ?? user?.user?.phone_verified)) {
       navigate('/player/setup', { state: { next: `/join-team/${token}` } });
       return;
     }

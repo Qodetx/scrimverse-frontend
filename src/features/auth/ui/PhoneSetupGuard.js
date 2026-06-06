@@ -10,7 +10,7 @@ const PhoneSetupGuard = ({ children }) => {
 
   if (loading) return null;
   if (!isAuthenticated() || !isPlayer()) return children;
-  if (!user?.user?.phone_verified)
+  if (!(user?.phone_verified ?? user?.user?.phone_verified))
     return (
       <Navigate to="/player/setup" state={{ next: location.pathname + location.search }} replace />
     );

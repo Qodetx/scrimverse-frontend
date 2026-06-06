@@ -155,7 +155,7 @@ const PlayerSetup = () => {
               OTP sent to <span className="text-white font-medium">{phoneNumber}</span>.{' '}
               <button
                 type="button"
-                className="text-primary hover:underline text-sm"
+                className="text-purple-400 hover:text-purple-300 underline text-sm"
                 onClick={() => {
                   resetOTP();
                   setOtp('');

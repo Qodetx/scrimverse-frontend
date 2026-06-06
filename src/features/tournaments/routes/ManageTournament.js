@@ -126,6 +126,7 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
   const [showRoundNamesModal, setShowRoundNamesModal] = useState(false);
   const [roundDates, setRoundDates] = useState({});
   const [editRoundQualifying, setEditRoundQualifying] = useState({}); // { "1": 16, "2": 8, ... }
+  const [editRoundMatches, setEditRoundMatches] = useState({}); // { "1": 4, "2": 3, ... }
   const [editPrizeDistribution, setEditPrizeDistribution] = useState([]);
   const [editSpecialAwards, setEditSpecialAwards] = useState([]);
   const [editCouponTiers, setEditCouponTiers] = useState([]);
@@ -479,11 +480,14 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
 
         // Init qualifying_teams per round
         const initialQualifying = {};
+        const initialMatches = {};
         (response.data.tournament.rounds || []).forEach((r) => {
           if (r.qualifying_teams !== undefined)
             initialQualifying[String(r.round)] = r.qualifying_teams;
+          if (r.max_matches !== undefined) initialMatches[String(r.round)] = r.max_matches;
         });
         setEditRoundQualifying(initialQualifying);
+        setEditRoundMatches(initialMatches);
 
         // Parse prize_distribution
         const pd = response.data.tournament.prize_distribution;
@@ -678,10 +682,13 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       setRoundNames(tournament.round_names || {});
       setRoundDates(tournament.round_dates || {});
       const resetQualifying = {};
+      const resetMatches = {};
       (tournament.rounds || []).forEach((r) => {
         if (r.qualifying_teams !== undefined) resetQualifying[String(r.round)] = r.qualifying_teams;
+        if (r.max_matches !== undefined) resetMatches[String(r.round)] = r.max_matches;
       });
       setEditRoundQualifying(resetQualifying);
+      setEditRoundMatches(resetMatches);
       // Reset prize distribution
       const pd = tournament.prize_distribution;
       if (pd && typeof pd === 'object' && Object.keys(pd).length > 0) {
@@ -762,7 +769,7 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       formData.append('rules', editData.rules);
       formData.append('live_link', editData.live_link || '');
 
-      // Add rounds data — always send if count changed OR if qualifying_teams changed
+      // Add rounds data — always send if count, qualifying, or matches changed
       const existingRounds = tournament.rounds || [];
       const roundCountChanged = editData.rounds && editData.rounds !== existingRounds.length;
       const qualifyingChanged = Object.keys(editRoundQualifying).some((rn) => {
@@ -771,20 +778,29 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
           orig && String(orig.qualifying_teams ?? '') !== String(editRoundQualifying[rn] ?? '')
         );
       });
+      const matchesChanged = Object.keys(editRoundMatches).some((rn) => {
+        const orig = existingRounds.find((r) => String(r.round) === rn);
+        return orig && String(orig.max_matches ?? '') !== String(editRoundMatches[rn] ?? '');
+      });
+      const roundNamesChanged = Object.keys(roundNames).some(
+        (rn) => roundNames[rn] !== (tournament.round_names || {})[rn]
+      );
 
-      if (roundCountChanged || qualifyingChanged) {
+      if (roundCountChanged || qualifyingChanged || matchesChanged || roundNamesChanged) {
         const count = editData.rounds || existingRounds.length;
         const roundsData = Array.from({ length: count }, (_, i) => {
           const rn = i + 1;
           const existing = existingRounds.find((r) => r.round === rn) || {};
           const qt = editRoundQualifying[String(rn)];
+          const rm = editRoundMatches[String(rn)];
           return {
             round: rn,
             ...(rn === 1
               ? { max_teams: parseInt(tournament.max_participants) || existing.max_teams || 0 }
               : {}),
             ...(existing.max_teams && rn !== 1 ? { max_teams: existing.max_teams } : {}),
-            ...(existing.max_matches ? { max_matches: existing.max_matches } : {}),
+            max_matches:
+              rm !== undefined ? Number(rm) : (existing.max_matches ?? tournament.max_matches ?? 1),
             qualifying_teams:
               qt !== undefined && qt !== '' ? Number(qt) : (existing.qualifying_teams ?? 1),
           };
@@ -1764,206 +1780,201 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-4">
+                  {/* Combined Round Structure */}
                   <div>
-                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1.5">
-                      Number of Rounds
-                    </label>
-                    <input
-                      type="number"
-                      name="rounds"
-                      value={editData.rounds || tournament.rounds?.length || 1}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value) || 1;
-                        setEditData({ ...editData, rounds: Math.max(1, Math.min(6, value)) });
-                      }}
-                      disabled={tournament.status !== 'upcoming'}
-                      min="1"
-                      max="6"
-                      className="w-full px-3 py-2.5 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      required
-                    />
-                    {editData.rounds > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowRoundNamesModal(true)}
-                        className="mt-2 text-sm text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-1 transition-colors"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                        Edit Round Names
-                      </button>
-                    )}
-                    <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
-                      {tournament.status === 'upcoming'
-                        ? 'Set between 1-6 rounds'
-                        : 'Locked after tournament starts'}
-                    </p>
-
-                    {/* Read-only Round Structure — match count per round */}
-                    {tournament.rounds && tournament.rounds.length > 0 && (
-                      <div className="mt-4 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.2)] rounded-lg p-4">
-                        <p className="text-xs text-[hsl(var(--muted-foreground))] font-medium mb-2">
-                          Round Structure
-                        </p>
-                        <div className="space-y-2">
-                          {tournament.rounds.map((round) => {
-                            const roundNum = round.round;
-                            const roundName =
-                              roundNames[String(roundNum)] ||
-                              tournament.round_names?.[String(roundNum)] ||
-                              `Round ${roundNum}`;
-                            const matchCount = round.max_matches || tournament.max_matches || '—';
-                            const maxTeams = round.max_teams || round.qualifying_teams || '—';
-                            return (
-                              <div
-                                key={roundNum}
-                                className="flex items-center justify-between py-2 px-3 bg-[hsl(var(--secondary)/0.3)] rounded-lg"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="w-6 h-6 flex items-center justify-center bg-[hsl(var(--accent)/0.15)] text-[hsl(var(--accent))] rounded-md text-xs font-semibold">
-                                    {roundNum}
-                                  </span>
-                                  <span className="text-white text-sm font-bold">{roundName}</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <span className="text-gray-400 text-xs font-medium">
-                                    {typeof maxTeams === 'number' ? `${maxTeams} teams` : ''}
-                                  </span>
-                                  <span className="text-[hsl(var(--accent))] text-xs font-medium">
-                                    {typeof matchCount === 'number'
-                                      ? `${matchCount} match${matchCount > 1 ? 'es' : ''}`
-                                      : 'Matches set on start'}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <p className="text-gray-600 text-[8px] mt-2 ml-1 font-medium">
-                          Match counts are set when each round is configured via "Start Round"
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Round Dates & Mode Editor */}
-                    {tournament.status === 'upcoming' &&
-                      (editData.rounds || tournament.rounds?.length || 0) > 0 && (
-                        <div className="mt-4 space-y-3">
-                          <p className="text-xs text-[hsl(var(--muted-foreground))] font-medium">
-                            Round Schedule & Mode
-                          </p>
-                          {Array.from(
-                            { length: editData.rounds || tournament.rounds?.length || 0 },
-                            (_, i) => {
-                              const rn = i + 1;
-                              const rd = roundDates[String(rn)] || {};
-                              const roundLabel =
-                                roundNames[String(rn)] ||
-                                tournament.round_names?.[String(rn)] ||
-                                `Round ${rn}`;
-                              return (
-                                <div
-                                  key={rn}
-                                  className="bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.2)] rounded-lg p-4"
-                                >
-                                  <p className="text-white text-sm font-bold mb-3">{roundLabel}</p>
-                                  <div className="grid grid-cols-2 gap-3 mb-3">
-                                    <div>
-                                      <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
-                                        Start Date
-                                      </label>
-                                      <input
-                                        type="date"
-                                        value={rd.start_date || ''}
-                                        onChange={(e) =>
-                                          handleRoundDateChange(rn, 'start_date', e.target.value)
-                                        }
-                                        className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors [color-scheme:dark]"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
-                                        End Date
-                                      </label>
-                                      <input
-                                        type="date"
-                                        value={rd.end_date || ''}
-                                        onChange={(e) =>
-                                          handleRoundDateChange(rn, 'end_date', e.target.value)
-                                        }
-                                        className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors [color-scheme:dark]"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
-                                      Mode
-                                    </label>
-                                    <select
-                                      value={rd.mode || 'online'}
-                                      onChange={(e) =>
-                                        handleRoundDateChange(rn, 'mode', e.target.value)
-                                      }
-                                      className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
-                                    >
-                                      <option
-                                        value="online"
-                                        className="bg-[hsl(var(--background))]"
-                                      >
-                                        Online
-                                      </option>
-                                      <option
-                                        value="offline"
-                                        className="bg-[hsl(var(--background))]"
-                                      >
-                                        Offline
-                                      </option>
-                                    </select>
-                                  </div>
-                                  {/* Teams that qualify from this round (shown on Roadmap) */}
-                                  <div className="mt-3">
-                                    <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
-                                      Teams that qualify (shown on Roadmap)
-                                    </label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={editRoundQualifying[String(rn)] ?? ''}
-                                      onChange={(e) =>
-                                        setEditRoundQualifying((prev) => ({
-                                          ...prev,
-                                          [String(rn)]: e.target.value,
-                                        }))
-                                      }
-                                      placeholder={
-                                        rn === (editData.rounds || tournament.rounds?.length)
-                                          ? '0 (final round)'
-                                          : 'e.g. 16'
-                                      }
-                                      className="w-full px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
-                                    />
-                                    <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-1">
-                                      How many teams advance from this round. Set 0 for the final
-                                      round.
-                                    </p>
-                                  </div>
-                                </div>
-                              );
-                            }
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs text-[hsl(var(--muted-foreground))] font-medium">
+                        Round Structure
+                      </label>
+                      {tournament.status === 'upcoming' && (
+                        <div className="flex items-center gap-2">
+                          {(editData.rounds || tournament.rounds?.length || 1) < 6 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditData((prev) => ({
+                                  ...prev,
+                                  rounds: Math.min(
+                                    6,
+                                    (prev.rounds || tournament.rounds?.length || 1) + 1
+                                  ),
+                                }))
+                              }
+                              className="text-xs text-[hsl(var(--accent))] hover:text-[hsl(var(--accent)/0.8)] font-semibold flex items-center gap-1"
+                            >
+                              + Add Round
+                            </button>
+                          )}
+                          {(editData.rounds || tournament.rounds?.length || 1) > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditData((prev) => ({
+                                  ...prev,
+                                  rounds: Math.max(
+                                    1,
+                                    (prev.rounds || tournament.rounds?.length || 1) - 1
+                                  ),
+                                }))
+                              }
+                              className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1"
+                            >
+                              − Remove
+                            </button>
                           )}
                         </div>
                       )}
+                    </div>
+                    <div className="space-y-3">
+                      {Array.from(
+                        { length: editData.rounds || tournament.rounds?.length || 1 },
+                        (_, i) => {
+                          const rn = i + 1;
+                          const rd = roundDates[String(rn)] || {};
+                          const existingRound =
+                            (tournament.rounds || []).find((r) => r.round === rn) || {};
+                          const isFinalRound =
+                            rn === (editData.rounds || tournament.rounds?.length || 1);
+                          const isUpcoming = tournament.status === 'upcoming';
+                          return (
+                            <div
+                              key={rn}
+                              className="bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.2)] rounded-lg p-4 space-y-3"
+                            >
+                              {/* Round header with name */}
+                              <div className="flex items-center gap-3">
+                                <span className="w-7 h-7 flex items-center justify-center bg-[hsl(var(--accent)/0.15)] text-[hsl(var(--accent))] rounded-md text-xs font-bold shrink-0">
+                                  R{rn}
+                                </span>
+                                <input
+                                  type="text"
+                                  value={roundNames[String(rn)] || ''}
+                                  onChange={(e) =>
+                                    setRoundNames((prev) => ({
+                                      ...prev,
+                                      [String(rn)]: e.target.value,
+                                    }))
+                                  }
+                                  disabled={!isUpcoming}
+                                  placeholder={`Round ${rn} name`}
+                                  className="flex-1 px-3 py-1.5 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                              </div>
+
+                              {/* Dates + Mode */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium mb-1 uppercase tracking-wider">
+                                    Start Date
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={rd.start_date || ''}
+                                    onChange={(e) =>
+                                      handleRoundDateChange(rn, 'start_date', e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors [color-scheme:dark]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium mb-1 uppercase tracking-wider">
+                                    End Date
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={rd.end_date || ''}
+                                    onChange={(e) =>
+                                      handleRoundDateChange(rn, 'end_date', e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors [color-scheme:dark]"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                {/* Mode */}
+                                <div>
+                                  <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium mb-1 uppercase tracking-wider">
+                                    Mode
+                                  </label>
+                                  <select
+                                    value={rd.mode || 'online'}
+                                    onChange={(e) =>
+                                      handleRoundDateChange(rn, 'mode', e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
+                                  >
+                                    <option value="online" className="bg-[hsl(var(--background))]">
+                                      Online
+                                    </option>
+                                    <option value="offline" className="bg-[hsl(var(--background))]">
+                                      Offline
+                                    </option>
+                                  </select>
+                                </div>
+
+                                {/* Matches per round */}
+                                <div>
+                                  <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium mb-1 uppercase tracking-wider">
+                                    Matches per Round
+                                  </label>
+                                  <select
+                                    value={
+                                      editRoundMatches[String(rn)] ??
+                                      existingRound.max_matches ??
+                                      tournament.max_matches ??
+                                      1
+                                    }
+                                    onChange={(e) =>
+                                      setEditRoundMatches((prev) => ({
+                                        ...prev,
+                                        [String(rn)]: Number(e.target.value),
+                                      }))
+                                    }
+                                    className="w-full px-3 py-2 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
+                                  >
+                                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                                      <option
+                                        key={n}
+                                        value={n}
+                                        className="bg-[hsl(var(--background))]"
+                                      >
+                                        {n}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Qualifying teams */}
+                              <div>
+                                <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium mb-1 uppercase tracking-wider">
+                                  Teams that qualify
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={editRoundQualifying[String(rn)] ?? ''}
+                                  onChange={(e) =>
+                                    setEditRoundQualifying((prev) => ({
+                                      ...prev,
+                                      [String(rn)]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder={isFinalRound ? '0 (final round)' : 'e.g. 16'}
+                                  className="w-full px-3 py-2 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                                />
+                                <p className="text-[10px] text-[hsl(var(--muted-foreground))] mt-1">
+                                  {isFinalRound
+                                    ? 'Final round — set 0'
+                                    : 'Teams advancing to next round'}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -1974,9 +1985,8 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                       name="description"
                       value={editData.description}
                       onChange={handleEditChange}
-                      disabled={tournament.status !== 'upcoming'}
                       rows={6}
-                      className="w-full px-3 py-2.5 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-2.5 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors resize-none"
                       placeholder="Detailed description..."
                       required
                     />
@@ -2151,9 +2161,8 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                       name="rules"
                       value={editData.rules}
                       onChange={handleEditChange}
-                      disabled={tournament.status !== 'upcoming'}
                       rows={8}
-                      className="w-full px-3 py-2.5 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] font-mono text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-2.5 bg-[hsl(var(--card))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] font-mono text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors resize-none"
                       placeholder="Rules & guidelines..."
                       required
                     />
@@ -2935,33 +2944,24 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                 )}
               </div>
 
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/20 mt-6">
+                <button
+                  onClick={handleSaveChanges}
+                  className="flex-1 bg-accent hover:bg-accent/90 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={handleEditToggle}
+                  className="flex-1 bg-secondary/50 text-muted-foreground px-5 py-2.5 rounded-lg font-medium text-sm border border-border/30 hover:bg-secondary transition-colors"
+                >
+                  Discard
+                </button>
+              </div>
               {tournament.status === 'upcoming' && (
-                <>
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/20 mt-6">
-                    <button
-                      onClick={handleSaveChanges}
-                      className="flex-1 bg-accent hover:bg-accent/90 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors"
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={handleEditToggle}
-                      className="flex-1 bg-secondary/50 text-muted-foreground px-5 py-2.5 rounded-lg font-medium text-sm border border-border/30 hover:bg-secondary transition-colors"
-                    >
-                      Discard
-                    </button>
-                  </div>
-                  <p className="mt-4 text-muted-foreground text-xs bg-accent/5 border border-accent/10 rounded-lg px-4 py-3">
-                    <strong className="text-foreground">Note:</strong> Some parameters are locked
-                    once the tournament starts.
-                  </p>
-                </>
-              )}
-
-              {tournament.status !== 'upcoming' && (
-                <p className="mt-4 text-muted-foreground text-xs bg-secondary/30 border border-border/20 rounded-lg px-4 py-3">
-                  <strong className="text-foreground">Locked:</strong> Editing is disabled after the
-                  tournament starts.
+                <p className="mt-4 text-muted-foreground text-xs bg-accent/5 border border-accent/10 rounded-lg px-4 py-3">
+                  <strong className="text-foreground">Note:</strong> Some parameters are locked once
+                  the tournament starts.
                 </p>
               )}
             </div>

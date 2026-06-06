@@ -1736,17 +1736,27 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
           </button>
           <button
             className="tm-action-btn"
-            onClick={() => setInviteOpen(true)}
+            onClick={() => {
+              if (!team) {
+                showToast('Create or join a team first before sending invites', 'error');
+                return;
+              }
+              setInviteOpen(true);
+            }}
             disabled={registrationClosed && team?.is_temporary}
             title={
-              registrationClosed && team?.is_temporary
-                ? 'Registration closed — invites locked'
-                : undefined
+              !team
+                ? 'Create a team first'
+                : registrationClosed && team?.is_temporary
+                  ? 'Registration closed — invites locked'
+                  : undefined
             }
             style={
-              registrationClosed && team?.is_temporary
+              !team
                 ? { opacity: 0.4, cursor: 'not-allowed' }
-                : undefined
+                : registrationClosed && team?.is_temporary
+                  ? { opacity: 0.4, cursor: 'not-allowed' }
+                  : undefined
             }
           >
             <UserPlus size={13} /> Invite
@@ -2354,8 +2364,8 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
               { label: 'Ranking', value: rank, color: 'tm-stat-purple' },
               {
                 label: ['Valorant', 'COD'].includes(team?.game) ? 'Pts/Match' : 'KD Ratio',
-                value: kd,
-                color: 'tm-stat-orange',
+                value: 'Coming Soon',
+                color: 'tm-stat-dim',
               },
             ].map((stat) => (
               <div key={stat.label} className="tm-stat-item">

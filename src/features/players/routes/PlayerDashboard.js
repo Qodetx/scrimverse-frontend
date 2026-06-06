@@ -1712,7 +1712,7 @@ const PlayerDashboard = () => {
                                 className="text-[10px] mt-0.5"
                                 style={{ color: 'hsl(var(--accent) / 0.8)' }}
                               >
-                                Kills/Match {result.overall_stats.kd_ratio ?? '—'}
+                                <span className="text-gray-500 italic">K/D — Coming Soon</span>
                                 {' · '}
                                 {result.overall_stats.recent_matches ?? 0} recent
                                 {result.overall_stats.rank > 0 && (

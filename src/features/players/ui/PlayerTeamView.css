@@ -236,6 +236,11 @@
 .tm-stat-orange {
   color: hsl(30 90% 55%);
 }
+.tm-stat-dim {
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  font-weight: 600;
+}
 
 .tm-leave-note {
   font-size: 12px;

@@ -166,7 +166,8 @@ const CreateTournament = () => {
   const gameOptions = ['BGMI', 'Valorant', 'COD', 'Freefire', 'Scarfall'];
   const gameFormatOptions = ['Squad', 'Duo', 'Solo', '5v5'];
 
-  const [matchCount, setMatchCount] = useState(4);
+  const [matchCount, setMatchCount] = useState(4); // kept as global fallback for maps section
+  const [roundMatchCounts, setRoundMatchCounts] = useState({}); // { "1": 4, "2": 3, ... } per round
   const [matchMaps, setMatchMaps] = useState({});
   // Tracks per-match index whether the host has chosen "Other" so we can render
   // a free-text input instead of the dropdown. Keyed by match index (1-based).
@@ -319,6 +320,7 @@ const CreateTournament = () => {
         ...(i === 0
           ? { max_teams: parseInt(formData.max_participants) || 0 }
           : { qualifying_teams: 1 }),
+        max_matches: roundMatchCounts[String(i + 1)] ?? matchCount,
       }));
 
       formDataToSend.append('rounds', JSON.stringify(formattedRounds));
@@ -1519,7 +1521,7 @@ const CreateTournament = () => {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div>
                         <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium uppercase tracking-wider mb-1">
                           Start Date
@@ -1559,6 +1561,27 @@ const CreateTournament = () => {
                           </option>
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium uppercase tracking-wider mb-1">
+                          Matches
+                        </label>
+                        <select
+                          value={roundMatchCounts[String(rn)] ?? matchCount}
+                          onChange={(e) =>
+                            setRoundMatchCounts((prev) => ({
+                              ...prev,
+                              [String(rn)]: Number(e.target.value),
+                            }))
+                          }
+                          className="w-full px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
+                        >
+                          {[1, 2, 3, 4, 5, 6].map((n) => (
+                            <option key={n} value={n} className="bg-gray-900">
+                              {n}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1584,98 +1607,89 @@ const CreateTournament = () => {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1.5">
-                  Number of Matches per Round
-                </label>
-                <select
-                  value={matchCount}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value, 10);
-                    setMatchCount(v);
-                    const updated = {};
-                    for (let i = 1; i <= v; i++) {
-                      if (matchMaps[i]) updated[i] = matchMaps[i];
-                    }
-                    setMatchMaps(updated);
-                  }}
-                  className="w-24 bg-black border border-[hsl(var(--border))] rounded-lg text-sm px-3 py-2 text-[hsl(var(--foreground))] focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors text-center appearance-none cursor-pointer"
-                >
-                  {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {formData.game_name && (
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-[hsl(var(--foreground))]">
-                    Map per Match
-                  </label>
+                  <div>
+                    <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">
+                      Map per Match
+                    </label>
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] mb-3">
+                      Assign maps to each match slot. Rounds with fewer matches will use only the
+                      first N maps.
+                    </p>
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {Array.from({ length: matchCount }, (_, i) => {
-                      const mn = i + 1;
-                      const mapList = getMapsForGame(formData.game_name);
-                      const isCustom = !!customMapMode[mn];
-                      return (
-                        <div key={mn}>
-                          <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium uppercase tracking-wider mb-1">
-                            Match {mn}
-                          </label>
-                          {isCustom ? (
-                            <div className="flex gap-1">
-                              <input
-                                type="text"
+                    {Array.from(
+                      {
+                        length: Math.max(
+                          ...Array.from(
+                            { length: parseInt(formData.num_rounds) || 1 },
+                            (_, i) => roundMatchCounts[String(i + 1)] ?? matchCount
+                          )
+                        ),
+                      },
+                      (_, i) => {
+                        const mn = i + 1;
+                        const mapList = getMapsForGame(formData.game_name);
+                        const isCustom = !!customMapMode[mn];
+                        return (
+                          <div key={mn}>
+                            <label className="block text-[10px] text-[hsl(var(--muted-foreground))] font-medium uppercase tracking-wider mb-1">
+                              Match {mn}
+                            </label>
+                            {isCustom ? (
+                              <div className="flex gap-1">
+                                <input
+                                  type="text"
+                                  value={matchMaps[mn] || ''}
+                                  onChange={(e) =>
+                                    setMatchMaps({ ...matchMaps, [mn]: e.target.value })
+                                  }
+                                  placeholder="Custom map name"
+                                  className="flex-1 px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCustomMapMode((p) => ({ ...p, [mn]: false }));
+                                    setMatchMaps({ ...matchMaps, [mn]: '' });
+                                  }}
+                                  className="px-2 py-1.5 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-md text-[10px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                                  title="Pick from list instead"
+                                >
+                                  ⌫
+                                </button>
+                              </div>
+                            ) : (
+                              <select
                                 value={matchMaps[mn] || ''}
-                                onChange={(e) =>
-                                  setMatchMaps({ ...matchMaps, [mn]: e.target.value })
-                                }
-                                placeholder="Custom map name"
-                                className="flex-1 px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomMapMode((p) => ({ ...p, [mn]: false }));
-                                  setMatchMaps({ ...matchMaps, [mn]: '' });
+                                onChange={(e) => {
+                                  if (e.target.value === OTHER_OPTION) {
+                                    setCustomMapMode((p) => ({ ...p, [mn]: true }));
+                                    setMatchMaps({ ...matchMaps, [mn]: '' });
+                                  } else {
+                                    setMatchMaps({ ...matchMaps, [mn]: e.target.value });
+                                  }
                                 }}
-                                className="px-2 py-1.5 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-md text-[10px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
-                                title="Pick from list instead"
+                                className="w-full px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
                               >
-                                ⌫
-                              </button>
-                            </div>
-                          ) : (
-                            <select
-                              value={matchMaps[mn] || ''}
-                              onChange={(e) => {
-                                if (e.target.value === OTHER_OPTION) {
-                                  setCustomMapMode((p) => ({ ...p, [mn]: true }));
-                                  setMatchMaps({ ...matchMaps, [mn]: '' });
-                                } else {
-                                  setMatchMaps({ ...matchMaps, [mn]: e.target.value });
-                                }
-                              }}
-                              className="w-full px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
-                            >
-                              <option value="" className="bg-gray-900">
-                                Select map
-                              </option>
-                              {mapList.map((map) => (
-                                <option key={map} value={map} className="bg-gray-900">
-                                  {map}
+                                <option value="" className="bg-gray-900">
+                                  Select map
                                 </option>
-                              ))}
-                              <option value={OTHER_OPTION} className="bg-gray-900">
-                                Other…
-                              </option>
-                            </select>
-                          )}
-                        </div>
-                      );
-                    })}
+                                {mapList.map((map) => (
+                                  <option key={map} value={map} className="bg-gray-900">
+                                    {map}
+                                  </option>
+                                ))}
+                                <option value={OTHER_OPTION} className="bg-gray-900">
+                                  Other…
+                                </option>
+                              </select>
+                            )}
+                          </div>
+                        );
+                      }
+                    )}
                   </div>
                 </div>
               )}
