@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { tournamentAPI } from '../../../utils/api';
 import './TeamPlayersModal.css';
 
-const TeamPlayersModal = ({ isOpen, onClose, team, tournamentId }) => {
+const TeamPlayersModal = ({ isOpen, onClose, team, tournamentId, ignSubmissions = {} }) => {
   const navigate = useNavigate();
   const [teamDetails, setTeamDetails] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -181,6 +181,13 @@ const TeamPlayersModal = ({ isOpen, onClose, team, tournamentId }) => {
                       <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
                         {member.is_captain ? 'Captain' : 'Member'}
                       </p>
+                      {ignSubmissions[member.username] ? (
+                        <p className="text-[10px] font-bold mt-0.5" style={{ color: '#10b981' }}>
+                          IGN: {ignSubmissions[member.username]}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground/50 mt-0.5 italic">IGN: —</p>
+                      )}
                     </div>
 
                     {/* Hover hint */}

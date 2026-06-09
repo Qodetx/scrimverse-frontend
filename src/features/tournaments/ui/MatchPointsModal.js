@@ -195,6 +195,7 @@ const MatchPointsModal = ({
                           type="number"
                           min="0"
                           value={score.position_points === '' ? 0 : score.position_points}
+                          onWheel={(e) => e.target.blur()}
                           onChange={(e) =>
                             handleScoreChange(score.team_id, 'position_points', e.target.value)
                           }
@@ -280,6 +281,7 @@ const MatchPointsModal = ({
                                     e.target.value
                                   )
                                 }
+                                onWheel={(e) => e.target.blur()}
                                 onKeyDown={(e) => {
                                   if (e.key === 'ArrowUp' || e.key === 'ArrowDown')
                                     e.preventDefault();
@@ -299,6 +301,7 @@ const MatchPointsModal = ({
                                 onChange={(e) =>
                                   handleScoreChange(score.team_id, 'kill_points', e.target.value)
                                 }
+                                onWheel={(e) => e.target.blur()}
                                 onKeyDown={(e) => {
                                   if (e.key === 'ArrowUp' || e.key === 'ArrowDown')
                                     e.preventDefault();

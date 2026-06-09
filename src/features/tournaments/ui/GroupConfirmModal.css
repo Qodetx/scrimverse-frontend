@@ -305,6 +305,41 @@
   height: 0.875rem;
 }
 
+.gcm-btn-shuffle {
+  display: flex;
+  align-items: center;
+  height: 2.5rem;
+  padding: 0 1rem;
+  background: transparent;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(192, 132, 252);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.gcm-btn-shuffle:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.6);
+}
+.gcm-btn-shuffle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gcm-shuffle-hint {
+  margin: 0 1.25rem 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  color: rgb(192, 132, 252);
+  text-align: center;
+}
+
 @media (max-width: 480px) {
   .gcm-stats {
     gap: 0.25rem;

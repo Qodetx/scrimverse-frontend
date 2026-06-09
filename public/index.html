@@ -2,6 +2,22 @@
 <html lang="en">
 
 <head>
+  <!-- Suppress cross-origin "Script error." from MSG91 zone.js hitting React dev overlay -->
+  <script>
+    (function() {
+      var orig = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function(type, fn, opts) {
+        if (type === 'error' && this === window) {
+          var wrapped = function(e) {
+            if (e.message === 'Script error.' && !e.filename) return;
+            return fn.call(this, e);
+          };
+          return orig.call(this, type, wrapped, opts);
+        }
+        return orig.call(this, type, fn, opts);
+      };
+    })();
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-C5EXQ205JB"></script>
   <script>

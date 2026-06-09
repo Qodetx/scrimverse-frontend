@@ -36,6 +36,20 @@
   flex-wrap: wrap;
 }
 
+.tm-requests-wrapper {
+  position: relative;
+}
+
+@media (max-width: 520px) {
+  .tm-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .tm-header-actions {
+    width: 100%;
+  }
+}
+
 /* ── Dropdown trigger & menu ─────────────────────────────────────────────── */
 .tm-dropdown-trigger {
   display: flex;

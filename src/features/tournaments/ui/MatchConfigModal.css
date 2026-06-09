@@ -184,3 +184,87 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Schedule Release toggle row */
+.mcm-schedule-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mcm-label-inline {
+  margin: 0;
+}
+
+/* Toggle switch */
+.mcm-toggle {
+  position: relative;
+  width: 2.5rem;
+  height: 1.375rem;
+  background: #333;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.mcm-toggle-on {
+  background: hsl(var(--accent));
+}
+.mcm-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1rem;
+  height: 1rem;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  display: block;
+}
+.mcm-toggle-on .mcm-toggle-thumb {
+  transform: translateX(1.125rem);
+}
+
+/* Schedule pickers */
+.mcm-schedule-pickers {
+  margin-top: 0.625rem;
+}
+
+.mcm-schedule-hint {
+  font-size: 0.75rem;
+  color: hsl(0 0% 55%);
+  margin-bottom: 0.625rem;
+  line-height: 1.4;
+}
+
+.mcm-schedule-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.mcm-schedule-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.mcm-label-sm {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(0 0% 75%);
+}
+
+.mcm-input-sm {
+  padding: 0.5rem 0.625rem;
+  font-size: 0.875rem;
+}
+
+/* native date/time picker icon colour fix for dark backgrounds */
+.mcm-input[type='date']::-webkit-calendar-picker-indicator,
+.mcm-input[type='time']::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}

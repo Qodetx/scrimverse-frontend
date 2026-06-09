@@ -341,6 +341,7 @@ html.dashboard-active body {
 /* Content area */
 .hd-content-area {
   flex: 1;
+  min-width: 0;
   padding: 1.5rem;
   background: hsl(220 10% 7%);
   background-image:

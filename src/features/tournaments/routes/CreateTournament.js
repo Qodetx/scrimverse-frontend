@@ -168,6 +168,7 @@ const CreateTournament = () => {
 
   const [matchCount, setMatchCount] = useState(4); // kept as global fallback for maps section
   const [roundMatchCounts, setRoundMatchCounts] = useState({}); // { "1": 4, "2": 3, ... } per round
+  const [roundMatchCustom, setRoundMatchCustom] = useState({}); // { "1": true } if custom mode
   const [matchMaps, setMatchMaps] = useState({});
   // Tracks per-match index whether the host has chosen "Other" so we can render
   // a free-text input instead of the dropdown. Keyed by match index (1-based).
@@ -1566,13 +1567,26 @@ const CreateTournament = () => {
                           Matches
                         </label>
                         <select
-                          value={roundMatchCounts[String(rn)] ?? matchCount}
-                          onChange={(e) =>
-                            setRoundMatchCounts((prev) => ({
-                              ...prev,
-                              [String(rn)]: Number(e.target.value),
-                            }))
+                          value={
+                            roundMatchCustom[String(rn)]
+                              ? 'custom'
+                              : (roundMatchCounts[String(rn)] ?? matchCount)
                           }
+                          onChange={(e) => {
+                            if (e.target.value === 'custom') {
+                              setRoundMatchCustom((prev) => ({ ...prev, [String(rn)]: true }));
+                              setRoundMatchCounts((prev) => ({
+                                ...prev,
+                                [String(rn)]: prev[String(rn)] > 6 ? prev[String(rn)] : 7,
+                              }));
+                            } else {
+                              setRoundMatchCustom((prev) => ({ ...prev, [String(rn)]: false }));
+                              setRoundMatchCounts((prev) => ({
+                                ...prev,
+                                [String(rn)]: Number(e.target.value),
+                              }));
+                            }
+                          }}
                           className="w-full px-2 py-1.5 bg-black border border-[hsl(var(--border))] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
                         >
                           {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -1580,7 +1594,29 @@ const CreateTournament = () => {
                               {n}
                             </option>
                           ))}
+                          <option value="custom" className="bg-gray-900">
+                            Custom
+                          </option>
                         </select>
+                        {roundMatchCustom[String(rn)] && (
+                          <input
+                            type="number"
+                            min="1"
+                            placeholder="Enter number"
+                            value={
+                              (roundMatchCounts[String(rn)] ?? matchCount) > 6
+                                ? (roundMatchCounts[String(rn)] ?? matchCount)
+                                : ''
+                            }
+                            onChange={(e) =>
+                              setRoundMatchCounts((prev) => ({
+                                ...prev,
+                                [String(rn)]: Number(e.target.value) || 1,
+                              }))
+                            }
+                            className="w-full mt-1 px-2 py-1.5 bg-black border border-[hsl(var(--accent)/0.5)] rounded-md text-[hsl(var(--foreground))] text-xs focus:outline-none transition-colors"
+                          />
+                        )}
                       </div>
                     </div>
                   </div>

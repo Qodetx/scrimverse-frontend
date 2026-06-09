@@ -271,8 +271,9 @@ const _renderStandingsPage = ({
       // WWCD
       ctx.textAlign = 'center';
       ctx.font = '700 16px "Inter", sans-serif';
-      ctx.fillStyle = (team.wwcd ?? 0) > 0 ? '#4ade80' : 'rgba(255,255,255,0.55)';
-      ctx.fillText(String(team.wwcd ?? 0), BG_COL_WWCD_X, rowMidY);
+      const wwcdVal = team.wwcd ?? team.wins ?? 0;
+      ctx.fillStyle = wwcdVal > 0 ? '#4ade80' : 'rgba(255,255,255,0.55)';
+      ctx.fillText(String(wwcdVal), BG_COL_WWCD_X, rowMidY);
 
       // PP
       ctx.fillStyle = 'rgba(255,255,255,0.72)';

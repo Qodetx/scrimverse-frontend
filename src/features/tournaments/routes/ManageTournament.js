@@ -127,6 +127,8 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
   const [roundDates, setRoundDates] = useState({});
   const [editRoundQualifying, setEditRoundQualifying] = useState({}); // { "1": 16, "2": 8, ... }
   const [editRoundMatches, setEditRoundMatches] = useState({}); // { "1": 4, "2": 3, ... }
+  const [editRoundMatchCustom, setEditRoundMatchCustom] = useState({}); // { "1": true } if custom
+  const [editPlacementPoints, setEditPlacementPoints] = useState([]);
   const [editPrizeDistribution, setEditPrizeDistribution] = useState([]);
   const [editSpecialAwards, setEditSpecialAwards] = useState([]);
   const [editCouponTiers, setEditCouponTiers] = useState([]);
@@ -488,6 +490,19 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
         });
         setEditRoundQualifying(initialQualifying);
         setEditRoundMatches(initialMatches);
+        const initialMatchCustom = {};
+        (response.data.tournament.rounds || []).forEach((r) => {
+          if (r.max_matches !== undefined && r.max_matches > 6)
+            initialMatchCustom[String(r.round)] = true;
+        });
+        setEditRoundMatchCustom(initialMatchCustom);
+
+        const pp = response.data.tournament.placement_points || {};
+        setEditPlacementPoints(
+          Object.entries(pp)
+            .map(([pos, pts]) => ({ position: Number(pos), points: Number(pts) }))
+            .sort((a, b) => a.position - b.position)
+        );
 
         // Parse prize_distribution
         const pd = response.data.tournament.prize_distribution;
@@ -689,6 +704,18 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       });
       setEditRoundQualifying(resetQualifying);
       setEditRoundMatches(resetMatches);
+      const resetMatchCustom = {};
+      (tournament.rounds || []).forEach((r) => {
+        if (r.max_matches !== undefined && r.max_matches > 6)
+          resetMatchCustom[String(r.round)] = true;
+      });
+      setEditRoundMatchCustom(resetMatchCustom);
+      const ppReset = tournament.placement_points || {};
+      setEditPlacementPoints(
+        Object.entries(ppReset)
+          .map(([pos, pts]) => ({ position: Number(pos), points: Number(pts) }))
+          .sort((a, b) => a.position - b.position)
+      );
       // Reset prize distribution
       const pd = tournament.prize_distribution;
       if (pd && typeof pd === 'object' && Object.keys(pd).length > 0) {
@@ -816,6 +843,15 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       // Add round dates & mode if they exist
       if (Object.keys(roundDates).length > 0) {
         formData.append('round_dates', JSON.stringify(roundDates));
+      }
+
+      // Add placement_points
+      if (editPlacementPoints.length > 0) {
+        const ppObj = {};
+        editPlacementPoints.forEach(({ position, points }) => {
+          ppObj[String(position)] = points;
+        });
+        formData.append('placement_points', JSON.stringify(ppObj));
       }
 
       // Add prize distribution
@@ -980,9 +1016,11 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
 
   const handleTeamClick = (team) => {
     // team.id from groups API is already the registration ID
+    const reg = registrations.find((r) => r.id === team.id);
     setSelectedTeam({
-      id: team.id, // registration ID from groups API
+      id: team.id,
       team_name: team.team_name,
+      ign_submissions: reg?.ign_submissions || {},
     });
     setShowTeamDetails(true);
   };
@@ -993,7 +1031,11 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
       (r) => r.team === winner.team_id || r.team_name === winner.team_name
     );
     if (teamReg) {
-      setSelectedTeam({ id: teamReg.id, team_name: winner.team_name });
+      setSelectedTeam({
+        id: teamReg.id,
+        team_name: winner.team_name,
+        ign_submissions: teamReg.ign_submissions || {},
+      });
       setShowTeamDetails(true);
     }
   };
@@ -1055,12 +1097,20 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
   };
 
   // Step 2: called when user clicks "Confirm & Start" in GroupConfirmModal
-  const handleConfirmedRoundConfig = async (configData) => {
+  // shuffleRequested=true means user clicked Shuffle in the modal before confirming
+  const handleConfirmedRoundConfig = async (configData, shuffleRequested = false) => {
     setShowGroupConfirmModal(false);
     try {
       setLoading(true);
       if (!configData?._alreadyConfigured) {
         await tournamentAPI.configureRound(id, currentRound, configData);
+      }
+      if (shuffleRequested) {
+        try {
+          await tournamentAPI.shuffleGroups(id, currentRound);
+        } catch (e) {
+          console.warn('Shuffle after configure failed:', e?.message);
+        }
       }
       showToast('Round configured successfully!');
 
@@ -1191,6 +1241,33 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
         } catch (error) {
           console.error('Error resetting round:', error);
           showToast(error.response?.data?.error || 'Failed to reset round', 'error');
+        } finally {
+          setLoading(false);
+          setConfirmModal((c) => ({ ...c, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const handleShuffleGroups = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Shuffle Groups',
+      message:
+        'Teams will be randomly redistributed across groups. Use this to balance competitive matchups before starting the round.',
+      confirmText: 'Shuffle',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await tournamentAPI.shuffleGroups(id, currentRound);
+          showToast('Groups reshuffled successfully!');
+          const updated = await tournamentAPI.getRoundGroups(id, currentRound);
+          setRoundGroups(updated.data.groups || []);
+          setSelectedGroup(null);
+        } catch (error) {
+          console.error('Error shuffling groups:', error);
+          showToast(error.response?.data?.error || 'Failed to shuffle groups', 'error');
         } finally {
           setLoading(false);
           setConfirmModal((c) => ({ ...c, isOpen: false }));
@@ -1447,55 +1524,6 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
     fetchRoundGroups,
   ]);
 
-  const handleExportCSV = async () => {
-    try {
-      showToast('Exporting tournament registrations...');
-      const response = await tournamentAPI.exportTournamentRegistrationsCSV(id);
-
-      // Create a blob from the response
-      const blob = new Blob([response.data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${tournament.title}_registrations.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      showToast('Tournament registrations exported successfully!');
-    } catch (error) {
-      console.error('Error exporting CSV:', error);
-      showToast(error.response?.data?.error || 'Failed to export registrations', 'error');
-    }
-  };
-
-  // Slot list CSV — same backend endpoint the player slot list page uses,
-  // but exposed here so hosts can download from their management view too.
-  const handleDownloadSlotListCSV = async (roundNumber) => {
-    if (!roundNumber) return;
-    try {
-      showToast('Downloading slot list...');
-      const response = await tournamentAPI.downloadSlotListCSV(id, roundNumber);
-      const blob = new Blob([response.data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const safeTitle = (tournament?.title || 'tournament')
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9_.-]/gi, '_');
-      link.setAttribute('download', `${safeTitle}-round-${roundNumber}-slots.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      showToast('Slot list downloaded');
-    } catch (error) {
-      console.error('Error downloading slot list:', error);
-      showToast(error.response?.data?.error || 'Failed to download slot list', 'error');
-    }
-  };
-
   const handleSaveLiveUrl = async () => {
     try {
       await tournamentAPI.updateTournamentFields(id, { live_link: tempLiveUrl || '' });
@@ -1677,19 +1705,6 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
               <Calendar className="h-3.5 w-3.5" />
               Bulk Schedule
             </button>
-            {/* Quick CSV download for the current round's slot list — uses the
-                same backend endpoint as the player slot list page. Disabled
-                when no groups exist for the current round yet. */}
-            {roundGroups.length > 0 && (
-              <button
-                onClick={() => handleDownloadSlotListCSV(tournament?.current_round || 1)}
-                className="mt-action-btn"
-                title="Download current round's slot list as CSV"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Slot List CSV
-              </button>
-            )}
             <button
               onClick={() => {
                 setTempLiveUrl(tournament.live_link || '');
@@ -1710,10 +1725,6 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
             >
               <Settings className="h-3.5 w-3.5" />
               {isEditing ? 'Cancel Edit' : 'Edit'}
-            </button>
-            <button onClick={handleExportCSV} className="mt-action-btn">
-              <Download className="h-3.5 w-3.5" />
-              Export CSV
             </button>
           </div>
         </div>
@@ -1920,17 +1931,34 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                                   </label>
                                   <select
                                     value={
-                                      editRoundMatches[String(rn)] ??
-                                      existingRound.max_matches ??
-                                      tournament.max_matches ??
-                                      1
+                                      editRoundMatchCustom[String(rn)]
+                                        ? 'custom'
+                                        : (editRoundMatches[String(rn)] ??
+                                          existingRound.max_matches ??
+                                          tournament.max_matches ??
+                                          1)
                                     }
-                                    onChange={(e) =>
-                                      setEditRoundMatches((prev) => ({
-                                        ...prev,
-                                        [String(rn)]: Number(e.target.value),
-                                      }))
-                                    }
+                                    onChange={(e) => {
+                                      if (e.target.value === 'custom') {
+                                        setEditRoundMatchCustom((prev) => ({
+                                          ...prev,
+                                          [String(rn)]: true,
+                                        }));
+                                        setEditRoundMatches((prev) => ({
+                                          ...prev,
+                                          [String(rn)]: prev[String(rn)] > 6 ? prev[String(rn)] : 7,
+                                        }));
+                                      } else {
+                                        setEditRoundMatchCustom((prev) => ({
+                                          ...prev,
+                                          [String(rn)]: false,
+                                        }));
+                                        setEditRoundMatches((prev) => ({
+                                          ...prev,
+                                          [String(rn)]: Number(e.target.value),
+                                        }));
+                                      }
+                                    }}
                                     className="w-full px-3 py-2 bg-[hsl(var(--background))] border border-[hsl(var(--border)/0.3)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none focus:border-[hsl(var(--accent)/0.5)] transition-colors appearance-none cursor-pointer"
                                   >
                                     {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -1942,7 +1970,29 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                                         {n}
                                       </option>
                                     ))}
+                                    <option value="custom" className="bg-[hsl(var(--background))]">
+                                      Custom
+                                    </option>
                                   </select>
+                                  {editRoundMatchCustom[String(rn)] && (
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      placeholder="Enter number"
+                                      value={
+                                        editRoundMatches[String(rn)] > 6
+                                          ? editRoundMatches[String(rn)]
+                                          : ''
+                                      }
+                                      onChange={(e) =>
+                                        setEditRoundMatches((prev) => ({
+                                          ...prev,
+                                          [String(rn)]: Number(e.target.value) || 1,
+                                        }))
+                                      }
+                                      className="w-full mt-1.5 px-3 py-2 bg-[hsl(var(--background))] border border-[hsl(var(--accent)/0.5)] rounded-lg text-[hsl(var(--foreground))] text-sm focus:outline-none transition-colors"
+                                    />
+                                  )}
                                 </div>
                               </div>
 
@@ -2620,6 +2670,52 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                       </div>
                     </>
                   )}
+
+                  {/* Placement Points — always editable, non-Valorant/COD only */}
+                  {!['Valorant', 'COD'].includes(tournament.game) &&
+                    editPlacementPoints.length > 0 && (
+                      <div className="space-y-3 pt-4 border-t border-[hsl(var(--border)/0.2)]">
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                            🎯 Placement Points
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {editPlacementPoints.map((item, index) => (
+                            <div
+                              key={index}
+                              className="text-center p-2 rounded-lg border"
+                              style={{
+                                background: 'hsl(var(--secondary)/0.3)',
+                                borderColor: 'hsl(var(--border)/0.3)',
+                              }}
+                            >
+                              <span className="text-[10px] text-[hsl(var(--muted-foreground))]">
+                                #{item.position}
+                              </span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={item.points}
+                                onChange={(e) => {
+                                  const updated = [...editPlacementPoints];
+                                  updated[index] = {
+                                    ...updated[index],
+                                    points: Number(e.target.value) || 0,
+                                  };
+                                  setEditPlacementPoints(updated);
+                                }}
+                                className="w-full bg-transparent text-sm font-bold text-center text-[hsl(var(--foreground))] focus:outline-none mt-0.5"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-[hsl(var(--muted-foreground))]">
+                          Points per placement (9th onwards = 0). Every kill = 1 point.
+                        </p>
+                      </div>
+                    )}
                 </div>
               </div>
 
@@ -3859,6 +3955,15 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
+                                {roundGroups.length > 0 &&
+                                  getRoundStatus(currentRound) === 'pre_configured' && (
+                                    <button
+                                      onClick={handleShuffleGroups}
+                                      className="px-3 py-1.5 text-xs font-medium text-purple-400 border border-purple-500/20 rounded-lg hover:bg-purple-500/10 transition-colors"
+                                    >
+                                      Shuffle
+                                    </button>
+                                  )}
                                 {roundGroups.length > 0 && (
                                   <button
                                     onClick={handleResetRound}
@@ -4578,7 +4683,9 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
           // Go back to config modal so user can adjust
           setShowRoundConfigModal(true);
         }}
-        onConfirm={() => handleConfirmedRoundConfig(pendingRoundConfig?.configData)}
+        onConfirm={(shuffleRequested) =>
+          handleConfirmedRoundConfig(pendingRoundConfig?.configData, shuffleRequested)
+        }
         roundName={tournament?.round_names?.[String(currentRound)] || `Round ${currentRound}`}
         groups={pendingRoundConfig?.pendingGroups || []}
         teamsPerGroup={pendingRoundConfig?.configData?.teams_per_group}
@@ -4784,6 +4891,17 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
                                   <p className="text-xs text-[hsl(var(--muted-foreground))]">
                                     Lead: {reg.player?.user?.username || 'Unknown'}
                                   </p>
+                                  {reg.ign_submissions &&
+                                    Object.keys(reg.ign_submissions).length > 0 && (
+                                      <p
+                                        className="text-[10px] mt-0.5"
+                                        style={{ color: '#10b981' }}
+                                      >
+                                        {Object.entries(reg.ign_submissions)
+                                          .map(([uname, ign]) => `${uname} → ${ign}`)
+                                          .join(' · ')}
+                                      </p>
+                                    )}
                                 </div>
                               </div>
 
@@ -4921,6 +5039,7 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
         }}
         team={selectedTeam}
         tournamentId={id}
+        ignSubmissions={selectedTeam?.ign_submissions || {}}
       />
 
       <ConfirmModal

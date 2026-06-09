@@ -190,6 +190,9 @@ export const tournamentAPI = {
   // Fetch players for a team registration within a tournament
   getTeamPlayers: (tournamentId, registrationId) =>
     api.get(`/tournaments/${tournamentId}/teams/${registrationId}/players/`),
+  // Submit player's own IGN for a tournament (gates credential reveal)
+  submitIGN: (tournamentId, registrationId, data) =>
+    api.post(`/tournaments/${tournamentId}/registrations/${registrationId}/submit-ign/`, data),
   // Bulk schedule update (Host only)
   bulkSchedule: (tournamentId, schedules) =>
     api.put(`/tournaments/${tournamentId}/bulk-schedule/`, { schedules }),
@@ -200,6 +203,9 @@ export const tournamentAPI = {
   // Reset a round configuration (delete groups/matches so organizer can reconfigure)
   resetRound: (tournamentId, roundNumber) =>
     api.delete(`/tournaments/${tournamentId}/rounds/${roundNumber}/configure/`),
+  // Shuffle team assignments across existing groups (pre_configured rounds only)
+  shuffleGroups: (tournamentId, roundNumber) =>
+    api.post(`/tournaments/${tournamentId}/rounds/${roundNumber}/shuffle/`),
   // Start a specific match (by groupId)
   startMatch: (tournamentId, groupId, data) =>
     api.post(`/tournaments/${tournamentId}/groups/${groupId}/matches/start/`, data),

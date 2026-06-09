@@ -1082,101 +1082,6 @@ const HostAnalyticsView = () => {
       : s;
   };
 
-  const exportAllCSV = () => {
-    if (!analyticsData) return;
-    const rows = [];
-
-    if (filteredKpis) {
-      rows.push([`Summary (${timeRange === 'all' ? 'All Time' : `Last ${timeRange}`})`]);
-      rows.push(['Metric', 'Value']);
-      rows.push(['Total Revenue (₹)', filteredKpis.total_revenue]);
-      rows.push(['Total Registrations', filteredKpis.total_registrations]);
-      rows.push(['Avg Fill Rate %', filteredKpis.avg_fill_rate]);
-      rows.push(['Returning Players %', filteredKpis.returning_players_pct]);
-      rows.push(['Avg Drop-off %', filteredKpis.avg_dropoff]);
-      rows.push(['Tournaments Hosted', filteredKpis.tournaments_hosted]);
-      rows.push([]);
-    }
-
-    if (analyticsData.tournaments?.length > 0) {
-      rows.push(['Tournaments']);
-      rows.push([
-        'Tournament',
-        'Game',
-        'Registrations',
-        'Capacity',
-        'Fill Rate %',
-        'Revenue (₹)',
-        'Status',
-      ]);
-      analyticsData.tournaments.forEach((t) =>
-        rows.push([t.name, t.game, t.registrations, t.capacity, t.fill_rate, t.revenue, t.status])
-      );
-      rows.push([]);
-    }
-
-    if (filteredRegTrend?.length > 0) {
-      rows.push(['Registration Trend']);
-      rows.push(['Date', 'Daily Registrations', 'Cumulative']);
-      filteredRegTrend.forEach((d) => rows.push([d.date, d.registrations, d.cumulative]));
-      rows.push([]);
-    }
-
-    if (filteredRevTrend?.length > 0) {
-      rows.push(['Revenue Trend']);
-      rows.push(['Month', 'Revenue (₹)']);
-      filteredRevTrend.forEach((r) => rows.push([r.month, r.revenue]));
-    }
-
-    triggerDownload(
-      rows.map((r) => r.map(escapeCSV).join(',')).join('\n'),
-      'scrimverse-analytics.csv'
-    );
-  };
-
-  const exportTournamentCSV = (t) => {
-    const rows = [];
-
-    rows.push(['Tournament Summary']);
-    rows.push([
-      'Tournament',
-      'Game',
-      'Status',
-      'Registrations',
-      'Capacity',
-      'Fill Rate %',
-      'Revenue (₹)',
-    ]);
-    rows.push([t.name, t.game, t.status, t.registrations, t.capacity, t.fill_rate, t.revenue]);
-    rows.push([]);
-
-    if (t.registration_trend?.length > 0) {
-      rows.push(['Registration Trend']);
-      rows.push(['Date', 'Daily Registrations', 'Cumulative']);
-      t.registration_trend.forEach((d) => rows.push([d.date, d.registrations, d.cumulative]));
-      rows.push([]);
-    }
-
-    if (t.revenue_trend?.length > 0) {
-      rows.push(['Revenue Trend']);
-      rows.push(['Month', 'Revenue (₹)']);
-      t.revenue_trend.forEach((r) => rows.push([r.month, r.revenue]));
-      rows.push([]);
-    }
-
-    if (t.engagement) {
-      rows.push(['Player Engagement']);
-      rows.push(['Returning Players', 'New Players']);
-      rows.push([t.engagement.returning, t.engagement.new]);
-    }
-
-    const slug = (t.name || 'tournament').replace(/\s+/g, '-').replace(/[^a-z0-9_-]/gi, '');
-    triggerDownload(
-      rows.map((r) => r.map(escapeCSV).join(',')).join('\n'),
-      `scrimverse-${slug}.csv`
-    );
-  };
-
   if (loading) {
     return (
       <div className="space-y-4 md:space-y-6">
@@ -1332,16 +1237,6 @@ const HostAnalyticsView = () => {
             )}
           </div>
         </div>
-
-        {analyticsData && (
-          <button
-            onClick={() => (isAll ? exportAllCSV() : selectedT && exportTournamentCSV(selectedT))}
-            className="flex items-center gap-1.5 text-xs h-8 px-3 rounded-lg border border-border/40 bg-secondary/20 text-foreground hover:bg-secondary/40 transition-colors"
-          >
-            <Download size={13} />
-            Export CSV
-          </button>
-        )}
       </div>
 
       {/* Content */}

@@ -1769,7 +1769,7 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
           )}
           {/* Join Requests dropdown — captain only */}
           {team && isCaptain && (
-            <div style={{ position: 'relative' }} ref={requestsDropdownRef}>
+            <div className="tm-requests-wrapper" ref={requestsDropdownRef}>
               <button
                 className="tm-action-btn"
                 onClick={handleToggleRequests}
@@ -1800,191 +1800,209 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                   </span>
                 )}
               </button>
-              {requestsOpen && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 6px)',
-                    left: 0,
-                    width: '280px',
-                    maxHeight: '320px',
-                    background: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border) / 0.3)',
-                    borderRadius: '10px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                    zIndex: 200,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: '10px 14px',
-                      borderBottom: '1px solid hsl(var(--border) / 0.2)',
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      color: 'hsl(var(--foreground))',
-                    }}
-                  >
-                    Join Requests{' '}
-                    {joinRequests.length > 0 && (
-                      <span style={{ color: 'hsl(var(--muted-foreground))' }}>
-                        ({joinRequests.length})
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ overflowY: 'auto', flex: 1 }}>
-                    {requestsLoading ? (
+              {requestsOpen &&
+                (() => {
+                  const rect = requestsDropdownRef.current?.getBoundingClientRect();
+                  // Open leftward (right:0) by default; only open rightward if button is in left half of screen
+                  const buttonInLeftHalf = rect ? rect.left < window.innerWidth / 2 : false;
+                  return (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 6px)',
+                        ...(buttonInLeftHalf
+                          ? { left: 0, right: 'auto' }
+                          : { right: 0, left: 'auto' }),
+                        width: '260px',
+                        maxWidth: 'calc(100vw - 32px)',
+                        maxHeight: '320px',
+                        background: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border) / 0.3)',
+                        borderRadius: '10px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                        zIndex: 200,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                      }}
+                    >
                       <div
                         style={{
-                          padding: '20px',
-                          textAlign: 'center',
-                          color: 'hsl(var(--muted-foreground))',
+                          padding: '10px 14px',
+                          borderBottom: '1px solid hsl(var(--border) / 0.2)',
+                          fontWeight: 700,
                           fontSize: '12px',
+                          color: 'hsl(var(--foreground))',
                         }}
                       >
-                        <Loader2
-                          size={16}
-                          style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}
-                        />
+                        Join Requests{' '}
+                        {joinRequests.length > 0 && (
+                          <span style={{ color: 'hsl(var(--muted-foreground))' }}>
+                            ({joinRequests.length})
+                          </span>
+                        )}
                       </div>
-                    ) : joinRequests.length === 0 ? (
-                      <div
-                        style={{
-                          padding: '20px',
-                          textAlign: 'center',
-                          color: 'hsl(var(--muted-foreground))',
-                          fontSize: '12px',
-                        }}
-                      >
-                        No pending requests
-                      </div>
-                    ) : (
-                      joinRequests.map((req) => {
-                        const playerDetails = req.player_details || {};
-                        const username = playerDetails.username || req.player_username || 'Unknown';
-                        const picPath =
-                          playerDetails.profile?.profile_picture || playerDetails.profile_picture;
-                        const picUrl = picPath
-                          ? picPath.startsWith('http')
-                            ? picPath
-                            : `${MEDIA_URL}${picPath}`
-                          : null;
-                        const playerId = playerDetails.id || req.player;
-                        const actioning = requestsActioning[req.id];
-                        return (
+                      <div style={{ overflowY: 'auto', flex: 1 }}>
+                        {requestsLoading ? (
                           <div
-                            key={req.id}
                             style={{
-                              padding: '10px 14px',
-                              borderBottom: '1px solid hsl(var(--border) / 0.15)',
+                              padding: '20px',
+                              textAlign: 'center',
+                              color: 'hsl(var(--muted-foreground))',
+                              fontSize: '12px',
                             }}
                           >
-                            {/* Row 1: avatar + name (clickable) */}
-                            <div
+                            <Loader2
+                              size={16}
                               style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                cursor: 'pointer',
-                                marginBottom: '8px',
+                                display: 'inline-block',
+                                animation: 'spin 1s linear infinite',
                               }}
-                              onClick={() => {
-                                setRequestsOpen(false);
-                                navigate(`/player/profile/${playerId}`);
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '50%',
-                                  background:
-                                    'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary) / 0.5))',
-                                  border: '1px solid hsl(var(--border) / 0.3)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '13px',
-                                  fontWeight: 700,
-                                  color: 'hsl(var(--foreground))',
-                                  overflow: 'hidden',
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {picUrl ? (
-                                  <img
-                                    src={picUrl}
-                                    alt={username}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                  />
-                                ) : (
-                                  username.charAt(0).toUpperCase()
-                                )}
-                              </div>
-                              <span
-                                style={{
-                                  fontSize: '12px',
-                                  fontWeight: 600,
-                                  color: 'hsl(var(--foreground))',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {username}
-                              </span>
-                            </div>
-                            {/* Row 2: Allow / Decline */}
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <button
-                                disabled={!!actioning}
-                                onClick={() => handleAcceptRequest(req.id)}
-                                style={{
-                                  flex: 1,
-                                  padding: '5px 0',
-                                  borderRadius: '6px',
-                                  border: 'none',
-                                  background:
-                                    actioning === 'accepting'
-                                      ? 'hsl(var(--accent) / 0.5)'
-                                      : 'hsl(var(--accent))',
-                                  color: '#000',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  cursor: actioning ? 'not-allowed' : 'pointer',
-                                  opacity: actioning ? 0.7 : 1,
-                                }}
-                              >
-                                {actioning === 'accepting' ? '...' : 'Allow'}
-                              </button>
-                              <button
-                                disabled={!!actioning}
-                                onClick={() => handleRejectRequest(req.id)}
-                                style={{
-                                  flex: 1,
-                                  padding: '5px 0',
-                                  borderRadius: '6px',
-                                  border: '1px solid hsl(var(--destructive) / 0.4)',
-                                  background: 'transparent',
-                                  color: 'hsl(var(--destructive))',
-                                  fontSize: '11px',
-                                  fontWeight: 600,
-                                  cursor: actioning ? 'not-allowed' : 'pointer',
-                                  opacity: actioning ? 0.7 : 1,
-                                }}
-                              >
-                                {actioning === 'rejecting' ? '...' : 'Decline'}
-                              </button>
-                            </div>
+                            />
                           </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              )}
+                        ) : joinRequests.length === 0 ? (
+                          <div
+                            style={{
+                              padding: '20px',
+                              textAlign: 'center',
+                              color: 'hsl(var(--muted-foreground))',
+                              fontSize: '12px',
+                            }}
+                          >
+                            No pending requests
+                          </div>
+                        ) : (
+                          joinRequests.map((req) => {
+                            const playerDetails = req.player_details || {};
+                            const username =
+                              playerDetails.username || req.player_username || 'Unknown';
+                            const picPath =
+                              playerDetails.profile?.profile_picture ||
+                              playerDetails.profile_picture;
+                            const picUrl = picPath
+                              ? picPath.startsWith('http')
+                                ? picPath
+                                : `${MEDIA_URL}${picPath}`
+                              : null;
+                            const playerId = playerDetails.id || req.player;
+                            const actioning = requestsActioning[req.id];
+                            return (
+                              <div
+                                key={req.id}
+                                style={{
+                                  padding: '10px 14px',
+                                  borderBottom: '1px solid hsl(var(--border) / 0.15)',
+                                }}
+                              >
+                                {/* Row 1: avatar + name (clickable) */}
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    cursor: 'pointer',
+                                    marginBottom: '8px',
+                                  }}
+                                  onClick={() => {
+                                    setRequestsOpen(false);
+                                    navigate(`/player/profile/${playerId}`);
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: '32px',
+                                      height: '32px',
+                                      borderRadius: '50%',
+                                      background:
+                                        'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary) / 0.5))',
+                                      border: '1px solid hsl(var(--border) / 0.3)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '13px',
+                                      fontWeight: 700,
+                                      color: 'hsl(var(--foreground))',
+                                      overflow: 'hidden',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {picUrl ? (
+                                      <img
+                                        src={picUrl}
+                                        alt={username}
+                                        style={{
+                                          width: '100%',
+                                          height: '100%',
+                                          objectFit: 'cover',
+                                        }}
+                                      />
+                                    ) : (
+                                      username.charAt(0).toUpperCase()
+                                    )}
+                                  </div>
+                                  <span
+                                    style={{
+                                      fontSize: '12px',
+                                      fontWeight: 600,
+                                      color: 'hsl(var(--foreground))',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {username}
+                                  </span>
+                                </div>
+                                {/* Row 2: Allow / Decline */}
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button
+                                    disabled={!!actioning}
+                                    onClick={() => handleAcceptRequest(req.id)}
+                                    style={{
+                                      flex: 1,
+                                      padding: '5px 0',
+                                      borderRadius: '6px',
+                                      border: 'none',
+                                      background:
+                                        actioning === 'accepting'
+                                          ? 'hsl(var(--accent) / 0.5)'
+                                          : 'hsl(var(--accent))',
+                                      color: '#000',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      cursor: actioning ? 'not-allowed' : 'pointer',
+                                      opacity: actioning ? 0.7 : 1,
+                                    }}
+                                  >
+                                    {actioning === 'accepting' ? '...' : 'Allow'}
+                                  </button>
+                                  <button
+                                    disabled={!!actioning}
+                                    onClick={() => handleRejectRequest(req.id)}
+                                    style={{
+                                      flex: 1,
+                                      padding: '5px 0',
+                                      borderRadius: '6px',
+                                      border: '1px solid hsl(var(--destructive) / 0.4)',
+                                      background: 'transparent',
+                                      color: 'hsl(var(--destructive))',
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      cursor: actioning ? 'not-allowed' : 'pointer',
+                                      opacity: actioning ? 0.7 : 1,
+                                    }}
+                                  >
+                                    {actioning === 'rejecting' ? '...' : 'Decline'}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
             </div>
           )}
         </div>

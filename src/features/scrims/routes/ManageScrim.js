@@ -615,25 +615,6 @@ const ManageScrim = ({ inlineId, onBack, onStarted } = {}) => {
     tournament.current_round === tournament.rounds[tournament.rounds.length - 1].round &&
     (!currentRoundConfig.qualifying_teams || Number(currentRoundConfig.qualifying_teams) === 0);
 
-  const handleExportCSV = async () => {
-    try {
-      showToast('Exporting scrim registrations...');
-      const response = await tournamentAPI.exportTournamentRegistrationsCSV(id);
-      const blob = new Blob([response.data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${tournament.title}-registrations.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      showToast('Export successful!', 'success');
-    } catch (error) {
-      showToast('Failed to export CSV', 'error');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-transparent manage-tournament-container">
       <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
@@ -692,9 +673,6 @@ const ManageScrim = ({ inlineId, onBack, onStarted } = {}) => {
             >
               <Settings size={14} />
               {isEditing ? 'Cancel Edit' : tournament.status === 'upcoming' ? 'Edit' : 'View'}
-            </button>
-            <button onClick={handleExportCSV} className="mt-action-btn">
-              <Download size={14} /> Export CSV
             </button>
           </div>
         </div>

@@ -16,6 +16,12 @@ import {
   Gamepad2,
   Video,
   ExternalLink,
+  Eye,
+  ShieldAlert,
+  ShieldCheck,
+  CircleCheck,
+  Timer,
+  Pencil,
 } from 'lucide-react';
 import { tournamentAPI } from '../../../utils/api';
 import './PlayerCredentialsView.css';
@@ -276,14 +282,298 @@ const MatchScheduleModal = ({ tournament, roundsData, roundNumbers, onClose }) =
   );
 };
 
+// ─── IGN Modal ───────────────────────────────────────────────────────────────
+
+const IGNModal = ({ registration, gameName, myUsername, myProfileIGN, onSubmitted, onClose }) => {
+  const [step, setStep] = useState(1);
+  const [ign, setIgn] = useState(myProfileIGN || '');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const rawMembers = (registration.team_members || []).filter(Boolean);
+  // Always ensure at least the current player appears as P1
+  const allMembers =
+    rawMembers.length > 0 ? rawMembers : [{ username: myUsername, is_registered: true }];
+  const ignSubmissions = registration.ign_submissions || {};
+  const game = gameName || registration.tournament.game_name || '';
+
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  const handleConfirmStep1 = () => {
+    if (!ign.trim()) {
+      setError('IGN cannot be empty.');
+      return;
+    }
+    if (ign.trim().length > 50) {
+      setError('IGN must be 50 characters or less.');
+      return;
+    }
+    setError('');
+    setStep(2);
+  };
+
+  const handleFinalSubmit = async () => {
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await tournamentAPI.submitIGN(registration.tournament.id, registration.id, {
+        ign: ign.trim(),
+      });
+      onSubmitted(res.data);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.detail ||
+        'Failed to submit IGN. Please try again.';
+      setError(msg);
+      setStep(1);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="credentials-modal-overlay" onClick={handleOverlayClick}>
+      <div className="credentials-modal-box credentials-ign-modal-box">
+        {/* Header */}
+        <div className="credentials-modal-header">
+          <div className="flex items-center gap-2">
+            {step === 1 ? (
+              <ShieldAlert size={16} style={{ color: 'hsl(var(--destructive))' }} />
+            ) : (
+              <ShieldCheck size={16} style={{ color: '#10b981' }} />
+            )}
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+                {step === 1 ? 'Mandatory IGN Verification' : 'Double Verification STEP 2/2'}
+              </p>
+              <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                {game}
+              </p>
+            </div>
+          </div>
+          <button className="credentials-modal-close" onClick={onClose} aria-label="Close">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-4 space-y-3">
+          {/* Warning banner */}
+          <div className="credentials-ign-warning">
+            <ShieldAlert size={13} style={{ color: '#f87171', flexShrink: 0 }} />
+            <span>
+              {step === 1
+                ? 'Enter your in-game name exactly as it appears in ' +
+                  game +
+                  '. Mismatched IGNs may result in disqualification.'
+                : 'Once confirmed, your IGN is locked for this championship. Joining with a different name will disqualify your team.'}
+            </span>
+          </div>
+
+          {step === 1 ? (
+            <>
+              {/* All team members — 2 per row */}
+              <div className="grid grid-cols-2 gap-2">
+                {allMembers.map((m, idx) => {
+                  const uname = typeof m === 'string' ? m : m.username || null;
+                  const isMe = uname === myUsername;
+                  const submittedIgn = uname ? ignSubmissions[uname] : null;
+                  const displayName = uname || (m.phone ? `+91${m.phone}` : '(pending)');
+
+                  return (
+                    <div
+                      key={uname || idx}
+                      className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
+                    >
+                      {/* Player label row */}
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="credentials-ign-player-num">P{idx + 1}</span>
+                          <span className="credentials-ign-player-name">{displayName}</span>
+                          {isMe && <span className="credentials-ign-you-badge">YOU</span>}
+                        </div>
+                        {submittedIgn && !isMe && (
+                          <CircleCheck size={13} style={{ color: '#10b981' }} />
+                        )}
+                      </div>
+
+                      {/* IGN field */}
+                      {isMe ? (
+                        <input
+                          className="credentials-ign-input"
+                          type="text"
+                          value={ign}
+                          onChange={(e) => {
+                            setIgn(e.target.value);
+                            setError('');
+                          }}
+                          placeholder="Enter your in-game name"
+                          maxLength={50}
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="credentials-ign-readonly">
+                          {submittedIgn ? (
+                            <span style={{ color: '#10b981', fontWeight: 600 }}>
+                              {submittedIgn}
+                            </span>
+                          ) : (
+                            <span
+                              style={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}
+                            >
+                              {uname ? 'Not submitted yet' : 'Invite pending'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {error && (
+                <p className="text-xs" style={{ color: 'hsl(var(--destructive))' }}>
+                  {error}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button className="credentials-action-btn flex-1" onClick={onClose}>
+                  Cancel
+                </button>
+                <button
+                  className="credentials-ign-confirm-btn flex-1"
+                  onClick={handleConfirmStep1}
+                  disabled={!ign.trim()}
+                >
+                  Next — Confirm IGN
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Step 2: show all IGNs, mine highlighted */}
+              <div className="grid grid-cols-2 gap-2">
+                {allMembers.map((m, idx) => {
+                  const uname = typeof m === 'string' ? m : m.username || null;
+                  const isMe = uname === myUsername;
+                  const displayName = uname || (m.phone ? `+91${m.phone}` : '(pending)');
+                  const displayIgn = isMe ? ign.trim() : uname ? ignSubmissions[uname] : null;
+                  return (
+                    <div
+                      key={uname || idx}
+                      className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="credentials-ign-player-num">P{idx + 1}</span>
+                        <span className="credentials-ign-player-name">{displayName}</span>
+                        {isMe && <span className="credentials-ign-you-badge">YOU</span>}
+                      </div>
+                      <div className="credentials-ign-readonly">
+                        {displayIgn ? (
+                          <span
+                            style={{
+                              color: isMe ? '#10b981' : 'hsl(var(--foreground))',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {displayIgn}
+                          </span>
+                        ) : (
+                          <span
+                            style={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}
+                          >
+                            Not submitted yet
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {error && (
+                <p className="text-xs" style={{ color: 'hsl(var(--destructive))' }}>
+                  {error}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  className="credentials-action-btn flex-1"
+                  onClick={() => {
+                    setStep(1);
+                    setError('');
+                  }}
+                >
+                  Go Back
+                </button>
+                <button
+                  className="credentials-ign-confirm-btn credentials-ign-confirm-btn-green flex-1"
+                  onClick={handleFinalSubmit}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Submitting...' : 'Confirm & Lock IGN'}
+                  {!submitting && <ShieldCheck size={14} />}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Credential Card ─────────────────────────────────────────────────────────
 
-const CredentialCard = ({ registration }) => {
+const CredentialCard = ({ registration: initialRegistration }) => {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+
+  // registration is local state so we can update ign_submissions after submit
+  const [registration, setRegistration] = useState(initialRegistration);
+  const [showIgnModal, setShowIgnModal] = useState(false);
+
   const { tournament, status: regStatus, id: regId } = registration;
 
-  // Countdown for credential release
+  // My own username
+  const myUsername = user?.user?.username || user?.username || '';
+
+  // IGN gate: skip for completed tournaments that have no ign_submissions at all
+  // (these are old tournaments that existed before this feature was deployed)
+  const hasAnyIgnSubmissions = Object.keys(registration.ign_submissions || {}).length > 0;
+  const isCompletedLegacy = tournament.status === 'completed' && !hasAnyIgnSubmissions;
+
+  // Has this player submitted their IGN for this tournament?
+  // Also treat legacy completed tournaments as already verified so they show creds directly
+  const myIgnSubmitted = isCompletedLegacy || (registration.ign_submissions || {})[myUsername];
+
+  // Pre-fill IGN from player profile if available
+  const gameName = tournament.game_name;
+  const myProfileIGN =
+    (user?.profile?.game_profiles || user?.player_profile?.game_profiles || {})?.[gameName]?.ign ||
+    '';
+
+  const handleIgnSubmitted = (data) => {
+    setRegistration((prev) => ({
+      ...prev,
+      ign_submissions: data.ign_submissions,
+      ign_locked: data.ign_locked,
+    }));
+    setShowIgnModal(false);
+  };
+
+  // Countdown for credential release (tournament-level)
   const credCountdown = useCountdown(tournament.credential_release_time);
+
+  // Per-match scheduled release countdown (earliest upcoming release time across current round's matches)
+  const [matchCredReleaseTime, setMatchCredReleaseTime] = useState(null);
+  const matchCredCountdown = useCountdown(matchCredReleaseTime);
 
   // Each card tracks its own selected round and per-field copied state
   const [selectedRound, setSelectedRound] = useState(1);
@@ -295,7 +585,12 @@ const CredentialCard = ({ registration }) => {
 
   // Determine how many rounds this tournament has (best-effort from rounds_count or default 1)
   const roundCount = tournament.rounds_count || tournament.current_round || 1;
-  const roundNumbers = Array.from({ length: roundCount }, (_, i) => i + 1);
+  // For ongoing tournaments only show the current active round pill — completed rounds are hidden.
+  // For completed tournaments show all rounds so players can review past credentials.
+  const roundNumbers =
+    tournament.status !== 'completed' && tournament.current_round
+      ? [tournament.current_round]
+      : Array.from({ length: roundCount }, (_, i) => i + 1);
 
   // Fetch credentials for a round (silently — no toast on failure)
   // Returns true if the round has any credentials
@@ -325,11 +620,19 @@ const CredentialCard = ({ registration }) => {
     [tournament.id, roundsData]
   );
 
-  // On mount: scan from latest round downward to auto-select the round that has credentials.
-  // For ongoing tournaments this lands on the current active round.
-  // For completed tournaments it lands on the final round automatically.
+  // On mount: for ongoing tournaments always land on current_round (even if creds not released yet).
+  // For completed tournaments scan downward to find the last round that had credentials.
   useEffect(() => {
     const autoSelectRound = async () => {
+      if (tournament.status !== 'completed' && tournament.current_round) {
+        const r = tournament.current_round;
+        // Force fresh fetch on mount — clear any stale cache so scheduled creds are picked up
+        setRoundsData({});
+        await fetchRound(r);
+        setSelectedRound(r);
+        return;
+      }
+      // Completed: find last round with credentials
       const startRound = tournament.current_round || roundCount;
       for (let r = startRound; r >= 1; r--) {
         // eslint-disable-next-line no-await-in-loop
@@ -339,7 +642,6 @@ const CredentialCard = ({ registration }) => {
           return;
         }
       }
-      // No creds found in any round — default to round 1
       if (!roundsData[1]) fetchRound(1);
       setSelectedRound(1);
     };
@@ -347,32 +649,32 @@ const CredentialCard = ({ registration }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling: every 10s, if tournament is not completed, re-fetch the current round.
-  // This ensures credentials entered or updated by the host appear without a page refresh.
+  // Polling: every 10s, if tournament is not completed, re-fetch the current round silently.
+  // Fetches in background and swaps data in only when ready — no loading blink.
   useEffect(() => {
     if (tournament.status === 'completed') return;
 
-    const id = setInterval(() => {
-      // Force re-fetch by clearing the cached value for this round
-      setRoundsData((prev) => {
-        const next = { ...prev };
-        delete next[selectedRound];
-        return next;
-      });
-    }, 10000); // 10 seconds
+    const id = setInterval(async () => {
+      try {
+        const res = await tournamentAPI.getRoundGroups(tournament.id, selectedRound);
+        const groups =
+          res.data?.groups || res.data?.results || (Array.isArray(res.data) ? res.data : []);
+        setRoundsData((prev) => ({ ...prev, [selectedRound]: groups }));
+      } catch {
+        // silent — don't clear existing data on poll failure
+      }
+    }, 10000);
 
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRound, tournament.status]);
+  }, [selectedRound, tournament.status, tournament.id]);
 
-  // Auto-reveal: when countdown expires, clear cache and re-fetch
+  // Auto-reveal: when tournament-level countdown expires, clear cache and re-fetch
   const prevExpired = useRef(false);
   useEffect(() => {
     if (credCountdown?.expired && !prevExpired.current) {
       prevExpired.current = true;
-      // Reset cache so fetchRound treats it as unfetched, then trigger fetch
       setRoundsData((prev) => {
-        // Remove only the current round so fetchRound will re-fetch it
         const next = { ...prev };
         delete next[selectedRound];
         return next;
@@ -381,11 +683,48 @@ const CredentialCard = ({ registration }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credCountdown?.expired]);
 
+  // Auto-reveal: when per-match countdown expires, clear cache and re-fetch
+  const prevMatchExpired = useRef(false);
+  useEffect(() => {
+    if (matchCredCountdown?.expired && !prevMatchExpired.current) {
+      prevMatchExpired.current = true;
+      setMatchCredReleaseTime(null);
+      setRoundsData((prev) => {
+        const next = { ...prev };
+        delete next[selectedRound];
+        return next;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchCredCountdown?.expired]);
+
   // When roundsData for current round is cleared (auto-reveal), re-fetch
   useEffect(() => {
     if (!roundsData.hasOwnProperty(selectedRound)) {
       fetchRound(selectedRound);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundsData, selectedRound]);
+
+  // Track earliest upcoming match credential_release_time for per-match countdown
+  useEffect(() => {
+    const groups = roundsData[selectedRound];
+    if (!Array.isArray(groups)) {
+      setMatchCredReleaseTime(null);
+      return;
+    }
+    const now = Date.now();
+    const futureTimes = groups
+      .flatMap((g) => g.matches || [])
+      .filter((m) => !m.match_id && m.credential_release_time)
+      .map((m) => new Date(m.credential_release_time).getTime())
+      .filter((t) => t > now);
+    if (futureTimes.length === 0) {
+      setMatchCredReleaseTime(null);
+      return;
+    }
+    const earliest = new Date(Math.min(...futureTimes)).toISOString();
+    setMatchCredReleaseTime((prev) => (prev === earliest ? prev : earliest));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundsData, selectedRound]);
 
@@ -410,15 +749,28 @@ const CredentialCard = ({ registration }) => {
   const currentGroups = roundsData[selectedRound];
   const hasData = Array.isArray(currentGroups) && currentGroups.length > 0;
 
-  // Collect all matches across groups for this round that have credentials
+  // All matches that are visible to the player (have creds OR are scheduled) — used for tabs
+  const matchesVisible = hasData
+    ? currentGroups.flatMap((g) =>
+        (g.matches || []).filter((m) => m.match_id || m.credential_release_time)
+      )
+    : [];
+  // Only matches with actual revealed credentials — used for rendering ID/password
   const matchesWithCreds = hasData
     ? currentGroups.flatMap((g) => (g.matches || []).filter((m) => m.match_id))
     : [];
 
-  // Auto-select the latest match (highest match_number) that has credentials
+  // Auto-select the latest match (highest match_number) that is visible (creds or scheduled)
   const latestMatchNumber =
-    matchesWithCreds.length > 0 ? Math.max(...matchesWithCreds.map((m) => m.match_number)) : null;
-  const activeMatchNumber = selectedMatch !== null ? selectedMatch : latestMatchNumber;
+    matchesVisible.length > 0 ? Math.max(...matchesVisible.map((m) => m.match_number)) : null;
+
+  // If polling brought in a newer match than what the user manually selected, reset to auto
+  const activeMatchNumber =
+    selectedMatch !== null && latestMatchNumber !== null && latestMatchNumber > selectedMatch
+      ? latestMatchNumber
+      : selectedMatch !== null
+        ? selectedMatch
+        : latestMatchNumber;
 
   const tournamentBadge = getTournamentBadge(tournament.status);
   const regBadge = getRegistrationBadge(regStatus);
@@ -494,14 +846,18 @@ const CredentialCard = ({ registration }) => {
 
         {/* ── Body ── */}
         <div className="credentials-body">
-          {/* Round pills — only show if more than 1 round */}
-          {roundNumbers.length > 1 && (
+          {/* Round pills — always show so player knows which round they're in */}
+          {roundNumbers.length > 0 && (
             <div className="credentials-round-pills">
               {roundNumbers.map((rn) => (
                 <button
                   key={rn}
                   className={`credentials-round-pill${selectedRound === rn ? ' active' : ''}`}
-                  onClick={() => handleRoundSelect(rn)}
+                  onClick={
+                    tournament.status === 'completed' ? undefined : () => handleRoundSelect(rn)
+                  }
+                  disabled={roundNumbers.length === 1 || tournament.status === 'completed'}
+                  style={{ cursor: 'default' }}
                 >
                   Round {rn}
                 </button>
@@ -510,154 +866,357 @@ const CredentialCard = ({ registration }) => {
           )}
 
           {/* ── Credentials box ── */}
-          <div className="credentials-creds-box">
+          <div
+            className={`credentials-creds-box${!myIgnSubmitted ? ' credentials-ign-unverified' : ''}`}
+          >
             {/* Header row */}
-            <div className="flex items-center gap-1.5 mb-2">
-              <Key size={12} style={{ color: 'hsl(var(--muted-foreground))' }} />
-              <span
-                className="font-semibold uppercase"
-                style={{
-                  fontSize: '10px',
-                  color: 'hsl(var(--muted-foreground))',
-                  letterSpacing: '0.06em',
-                }}
-              >
-                CREDENTIALS
-              </span>
+            <div className="flex items-center justify-between gap-1.5 mb-2">
+              <div className="flex items-center gap-1.5">
+                <Key
+                  size={12}
+                  style={{ color: myIgnSubmitted ? '#10b981' : 'hsl(var(--muted-foreground))' }}
+                />
+                <span
+                  className="font-semibold uppercase"
+                  style={{
+                    fontSize: '10px',
+                    color: myIgnSubmitted ? '#10b981' : 'hsl(var(--muted-foreground))',
+                    letterSpacing: '0.06em',
+                  }}
+                >
+                  CREDENTIALS
+                </span>
+              </div>
+              {myIgnSubmitted && (
+                <div className="credentials-ign-badge">
+                  <CircleCheck size={10} />
+                  <span>VERIFIED</span>
+                </div>
+              )}
             </div>
 
-            {/* Credential content */}
-            {loadingRound ? (
-              <div
-                className="credentials-no-creds"
-                style={{ animation: 'credentials-pulse 1.5s ease-in-out infinite' }}
-              >
-                <p>Loading credentials...</p>
+            {/* ── IGN NOT submitted: show locked state with unverified UI ── */}
+            {!myIgnSubmitted ? (
+              <div className="credentials-creds-grid">
+                {/* ID button — red eye, opens modal */}
+                <button
+                  className="credentials-ign-locked-btn"
+                  onClick={() => setShowIgnModal(true)}
+                >
+                  <div className="text-left">
+                    <div className="credentials-ign-locked-label">ID</div>
+                    <div className="credentials-ign-locked-dots">••••••</div>
+                  </div>
+                  <Eye size={14} className="credentials-ign-eye-icon" />
+                </button>
+                {/* Pass button — red eye */}
+                <button
+                  className="credentials-ign-locked-btn"
+                  onClick={() => setShowIgnModal(true)}
+                >
+                  <div className="text-left">
+                    <div className="credentials-ign-locked-label">PASS</div>
+                    <div className="credentials-ign-locked-dots">••••••</div>
+                  </div>
+                  <Eye size={14} className="credentials-ign-eye-icon" />
+                </button>
+                {/* Hint message spanning both columns */}
+                <div className="col-span-2 flex items-center gap-1.5 px-1 pt-0.5">
+                  <ShieldAlert size={12} style={{ color: '#f87171', flexShrink: 0 }} />
+                  <span className="credentials-ign-hint">
+                    Tap to verify IGNs &amp; start 24h unlock
+                  </span>
+                </div>
               </div>
-            ) : matchesWithCreds.length > 0 ? (
-              (() => {
-                // If multiple matches, show tab pills and only the selected match
-                const activeMatch =
-                  matchesWithCreds.length > 1
-                    ? matchesWithCreds.find((m) => m.match_number === activeMatchNumber) ||
-                      matchesWithCreds[matchesWithCreds.length - 1]
-                    : matchesWithCreds[0];
-                const match = activeMatch;
-                const idKey = `${regId}-id-${match.id}`;
-                const passKey = `${regId}-pass-${match.id}`;
-                return (
-                  <div>
-                    {/* Match tab pills — only when multiple matches */}
-                    {matchesWithCreds.length > 1 && (
-                      <div className="credentials-round-pills" style={{ marginBottom: '10px' }}>
-                        {matchesWithCreds.map((m) => (
-                          <button
-                            key={m.id}
-                            className={`credentials-round-pill${activeMatchNumber === m.match_number ? ' active' : ''}`}
-                            onClick={() => setSelectedMatch(m.match_number)}
-                          >
-                            Match {m.match_number}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+            ) : (
+              /* ── IGN submitted: show normal creds or verified countdown ── */
+              <>
+                {loadingRound ? (
+                  <div
+                    className="credentials-no-creds"
+                    style={{ animation: 'credentials-pulse 1.5s ease-in-out infinite' }}
+                  >
+                    <p>Loading credentials...</p>
+                  </div>
+                ) : matchesVisible.length > 0 ? (
+                  (() => {
+                    const activeMatch =
+                      matchesVisible.length > 1
+                        ? matchesVisible.find((m) => m.match_number === activeMatchNumber) ||
+                          matchesVisible[matchesVisible.length - 1]
+                        : matchesVisible[0];
+                    const match = activeMatch;
+                    const idKey = `${regId}-id-${match.id}`;
+                    const passKey = `${regId}-pass-${match.id}`;
+                    return (
+                      <div>
+                        {matchesVisible.length > 1 && tournament.status !== 'completed' && (
+                          <div className="credentials-round-pills" style={{ marginBottom: '10px' }}>
+                            {matchesVisible.map((m) => (
+                              <button
+                                key={m.id}
+                                className={`credentials-round-pill${activeMatchNumber === m.match_number ? ' active' : ''}`}
+                                onClick={() => setSelectedMatch(m.match_number)}
+                              >
+                                Match {m.match_number}
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
-                    {isValorant ? (
-                      /* Valorant: single full-width row */
-                      <div className="credentials-field-row">
-                        <span className="credentials-field-label">Room ID</span>
-                        <span className="credentials-field-value">{match.match_id}</span>
-                        <button
-                          className={`credentials-copy-btn${copiedKey === idKey ? ' copied' : ''}`}
-                          onClick={() => handleCopy(match.match_id, idKey)}
-                          title="Copy Room ID"
-                          aria-label="Copy Room ID"
-                        >
-                          {copiedKey === idKey ? <Check size={14} /> : <Copy size={14} />}
-                        </button>
-                      </div>
-                    ) : (
-                      /* Non-Valorant: 2-column grid */
-                      <div className="credentials-creds-grid">
-                        {/* ID cell */}
-                        <div className="credentials-cred-cell">
-                          <span
-                            className="uppercase"
-                            style={{
-                              fontSize: '9px',
-                              color: 'hsl(var(--muted-foreground))',
-                              letterSpacing: '0.06em',
-                              fontWeight: 600,
-                            }}
-                          >
-                            ID
-                          </span>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <span
-                              className="flex-1 font-bold text-sm font-mono truncate"
-                              style={{ color: 'hsl(var(--foreground))' }}
-                            >
-                              {match.match_id}
-                            </span>
+                        {!match.match_id && match.credential_release_time ? (
+                          /* Match scheduled but not yet revealed — show countdown */
+                          matchCredCountdown && !matchCredCountdown.expired ? (
+                            <div className="credentials-ign-verified-countdown">
+                              <div className="credentials-ign-verified-countdown-row">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="credentials-ign-timer-icon">
+                                    <Timer size={16} style={{ color: '#6ee7b7' }} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="credentials-ign-unlock-label">
+                                      Credentials unlock in
+                                    </div>
+                                    <div className="credentials-ign-unlock-sub">
+                                      Room ID scheduled · auto-reveals on time
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="credentials-ign-timer-value">
+                                    {String(matchCredCountdown.h).padStart(2, '0')}:
+                                    {String(matchCredCountdown.m).padStart(2, '0')}:
+                                    {String(matchCredCountdown.s).padStart(2, '0')}
+                                  </div>
+                                  <div className="credentials-ign-timer-remaining">remaining</div>
+                                </div>
+                              </div>
+                              <div className="credentials-creds-grid" style={{ marginTop: '8px' }}>
+                                <button className="credentials-ign-masked-btn" disabled>
+                                  <div className="text-left">
+                                    <div className="credentials-ign-masked-label">ID</div>
+                                    <div className="credentials-ign-masked-dots">••••••</div>
+                                  </div>
+                                  <Clock size={14} className="credentials-ign-clock-icon" />
+                                </button>
+                                <button className="credentials-ign-masked-btn" disabled>
+                                  <div className="text-left">
+                                    <div className="credentials-ign-masked-label">Pass</div>
+                                    <div className="credentials-ign-masked-dots">••••••</div>
+                                  </div>
+                                  <Clock size={14} className="credentials-ign-clock-icon" />
+                                </button>
+                              </div>
+                            </div>
+                          ) : null
+                        ) : isValorant ? (
+                          <div className="credentials-field-row">
+                            <span className="credentials-field-label">Room ID</span>
+                            <span className="credentials-field-value">{match.match_id}</span>
                             <button
                               className={`credentials-copy-btn${copiedKey === idKey ? ' copied' : ''}`}
                               onClick={() => handleCopy(match.match_id, idKey)}
                               title="Copy Room ID"
                               aria-label="Copy Room ID"
                             >
-                              {copiedKey === idKey ? <Check size={13} /> : <Copy size={13} />}
+                              {copiedKey === idKey ? <Check size={14} /> : <Copy size={14} />}
                             </button>
                           </div>
-                        </div>
-
-                        {/* Pass cell — only if password exists */}
-                        {match.match_password && (
-                          <div className="credentials-cred-cell">
-                            <span
-                              className="uppercase"
-                              style={{
-                                fontSize: '9px',
-                                color: 'hsl(var(--muted-foreground))',
-                                letterSpacing: '0.06em',
-                                fontWeight: 600,
-                              }}
-                            >
-                              PASS
-                            </span>
-                            <div className="flex items-center gap-1 mt-0.5">
+                        ) : (
+                          <div className="credentials-creds-grid">
+                            <div className="credentials-cred-cell">
                               <span
-                                className="flex-1 font-bold text-sm font-mono truncate"
-                                style={{ color: 'hsl(var(--foreground))' }}
+                                className="uppercase"
+                                style={{
+                                  fontSize: '9px',
+                                  color: 'hsl(var(--muted-foreground))',
+                                  letterSpacing: '0.06em',
+                                  fontWeight: 600,
+                                }}
                               >
-                                {match.match_password}
+                                ID
                               </span>
-                              <button
-                                className={`credentials-copy-btn${copiedKey === passKey ? ' copied' : ''}`}
-                                onClick={() => handleCopy(match.match_password, passKey)}
-                                title="Copy Password"
-                                aria-label="Copy Password"
-                              >
-                                {copiedKey === passKey ? <Check size={13} /> : <Copy size={13} />}
-                              </button>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span
+                                  className="flex-1 font-bold text-sm font-mono truncate"
+                                  style={{ color: 'hsl(var(--foreground))' }}
+                                >
+                                  {match.match_id}
+                                </span>
+                                <button
+                                  className={`credentials-copy-btn${copiedKey === idKey ? ' copied' : ''}`}
+                                  onClick={() => handleCopy(match.match_id, idKey)}
+                                  title="Copy Room ID"
+                                  aria-label="Copy Room ID"
+                                >
+                                  {copiedKey === idKey ? <Check size={13} /> : <Copy size={13} />}
+                                </button>
+                              </div>
                             </div>
+                            {match.match_password && (
+                              <div className="credentials-cred-cell">
+                                <span
+                                  className="uppercase"
+                                  style={{
+                                    fontSize: '9px',
+                                    color: 'hsl(var(--muted-foreground))',
+                                    letterSpacing: '0.06em',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  PASS
+                                </span>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span
+                                    className="flex-1 font-bold text-sm font-mono truncate"
+                                    style={{ color: 'hsl(var(--foreground))' }}
+                                  >
+                                    {match.match_password}
+                                  </span>
+                                  <button
+                                    className={`credentials-copy-btn${copiedKey === passKey ? ' copied' : ''}`}
+                                    onClick={() => handleCopy(match.match_password, passKey)}
+                                    title="Copy Password"
+                                    aria-label="Copy Password"
+                                  >
+                                    {copiedKey === passKey ? (
+                                      <Check size={13} />
+                                    ) : (
+                                      <Copy size={13} />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
+                    );
+                  })()
+                ) : matchCredCountdown && !matchCredCountdown.expired ? (
+                  /* Per-match scheduled release countdown */
+                  <div className="credentials-ign-verified-countdown">
+                    <div className="credentials-ign-verified-countdown-row">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="credentials-ign-timer-icon">
+                          <Timer size={16} style={{ color: '#6ee7b7' }} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="credentials-ign-unlock-label">Credentials unlock in</div>
+                          <div className="credentials-ign-unlock-sub">
+                            Room ID scheduled · auto-reveals on time
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="credentials-ign-timer-value">
+                          {String(matchCredCountdown.h).padStart(2, '0')}:
+                          {String(matchCredCountdown.m).padStart(2, '0')}:
+                          {String(matchCredCountdown.s).padStart(2, '0')}
+                        </div>
+                        <div className="credentials-ign-timer-remaining">remaining</div>
+                      </div>
+                    </div>
+                    <div className="credentials-creds-grid" style={{ marginTop: '8px' }}>
+                      <button className="credentials-ign-masked-btn" disabled>
+                        <div className="text-left">
+                          <div className="credentials-ign-masked-label">ID</div>
+                          <div className="credentials-ign-masked-dots">••••••</div>
+                        </div>
+                        <Clock size={14} className="credentials-ign-clock-icon" />
+                      </button>
+                      <button className="credentials-ign-masked-btn" disabled>
+                        <div className="text-left">
+                          <div className="credentials-ign-masked-label">Pass</div>
+                          <div className="credentials-ign-masked-dots">••••••</div>
+                        </div>
+                        <Clock size={14} className="credentials-ign-clock-icon" />
+                      </button>
+                    </div>
                   </div>
-                );
-              })()
-            ) : credCountdown && !credCountdown.expired ? (
-              <div className="credentials-no-creds">
-                <CountdownDisplay
-                  remaining={credCountdown}
-                  label="Room ID & Password releasing in..."
-                />
-              </div>
-            ) : (
-              <div className="credentials-no-creds">
-                <p>Credentials not released yet</p>
-              </div>
+                ) : credCountdown && !credCountdown.expired ? (
+                  /* Tournament-level countdown: green state from coderef */
+                  <div className="credentials-ign-verified-countdown">
+                    <div className="credentials-ign-verified-countdown-row">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="credentials-ign-timer-icon">
+                          <Timer size={16} style={{ color: '#6ee7b7' }} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="credentials-ign-unlock-label">Credentials unlock in</div>
+                          <div className="credentials-ign-unlock-sub">
+                            You&apos;re all set · auto-reveals on time
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="credentials-ign-timer-value">
+                          {String(credCountdown.h).padStart(2, '0')}:
+                          {String(credCountdown.m).padStart(2, '0')}:
+                          {String(credCountdown.s).padStart(2, '0')}
+                        </div>
+                        <div className="credentials-ign-timer-remaining">remaining</div>
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    {tournament.credential_release_time &&
+                      (() => {
+                        const releaseMs = new Date(tournament.credential_release_time).getTime();
+                        const nowMs = Date.now();
+                        const totalMs = 24 * 3600 * 1000;
+                        const pct = Math.max(
+                          0,
+                          Math.min(100, ((totalMs - (releaseMs - nowMs)) / totalMs) * 100)
+                        );
+                        return (
+                          <div className="credentials-ign-progress-wrap">
+                            <div className="credentials-ign-progress-bar">
+                              <div
+                                className="credentials-ign-progress-fill"
+                                style={{ width: `${pct.toFixed(2)}%` }}
+                              />
+                            </div>
+                            <div className="credentials-ign-progress-row">
+                              <span className="credentials-ign-progress-pct">
+                                {pct.toFixed(1)}% to unlock
+                              </span>
+                              {tournament.status !== 'completed' && (
+                                <button
+                                  className="credentials-ign-edit-btn"
+                                  onClick={() => setShowIgnModal(true)}
+                                >
+                                  <Pencil size={10} />
+                                  Edit IGN
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    {/* Masked creds */}
+                    <div className="credentials-creds-grid" style={{ marginTop: '8px' }}>
+                      <button className="credentials-ign-masked-btn" disabled>
+                        <div className="text-left">
+                          <div className="credentials-ign-masked-label">ID</div>
+                          <div className="credentials-ign-masked-dots">••••••</div>
+                        </div>
+                        <Clock size={14} className="credentials-ign-clock-icon" />
+                      </button>
+                      <button className="credentials-ign-masked-btn" disabled>
+                        <div className="text-left">
+                          <div className="credentials-ign-masked-label">Pass</div>
+                          <div className="credentials-ign-masked-dots">••••••</div>
+                        </div>
+                        <Clock size={14} className="credentials-ign-clock-icon" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="credentials-no-creds">
+                    <p>Credentials not released yet</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -697,6 +1256,18 @@ const CredentialCard = ({ registration }) => {
           roundsData={roundsData}
           roundNumbers={roundNumbers}
           onClose={() => setShowSchedule(false)}
+        />
+      )}
+
+      {/* ── IGN Modal ── */}
+      {showIgnModal && (
+        <IGNModal
+          registration={registration}
+          gameName={gameName}
+          myUsername={myUsername}
+          myProfileIGN={myProfileIGN}
+          onSubmitted={handleIgnSubmitted}
+          onClose={() => setShowIgnModal(false)}
         />
       )}
     </>

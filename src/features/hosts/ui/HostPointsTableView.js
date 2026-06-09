@@ -373,7 +373,7 @@ const HostPointsTableView = () => {
         <div className="flex gap-1.5 sm:gap-2 flex-wrap">
           {/* Group dropdown */}
           <CustomDropdown
-            align="right"
+            align="left"
             trigger={(open) => (
               <button
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
@@ -410,22 +410,24 @@ const HostPointsTableView = () => {
                   No groups available
                 </div>
               ) : (
-                groupsData.map((group, i) => (
-                  <button
-                    key={group.id || i}
-                    className={`hpt-dropdown-option${String(group.id) === String(selectedGroupId) ? ' selected' : ''}`}
-                    onClick={() => {
-                      setSelectedGroupId(group.id);
-                      setSelectedMatchNum(1);
-                      close();
-                    }}
-                  >
-                    {String(group.id) === String(selectedGroupId) && (
-                      <Check size={12} style={{ flexShrink: 0 }} />
-                    )}
-                    <span className="hpt-dropdown-option-label">{group.group_name}</span>
-                  </button>
-                ))
+                <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                  {groupsData.map((group, i) => (
+                    <button
+                      key={group.id || i}
+                      className={`hpt-dropdown-option${String(group.id) === String(selectedGroupId) ? ' selected' : ''}`}
+                      onClick={() => {
+                        setSelectedGroupId(group.id);
+                        setSelectedMatchNum(1);
+                        close();
+                      }}
+                    >
+                      {String(group.id) === String(selectedGroupId) && (
+                        <Check size={12} style={{ flexShrink: 0 }} />
+                      )}
+                      <span className="hpt-dropdown-option-label">{group.group_name}</span>
+                    </button>
+                  ))}
+                </div>
               )
             }
           </CustomDropdown>

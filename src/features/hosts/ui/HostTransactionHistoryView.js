@@ -143,44 +143,6 @@ const HostTransactionHistoryView = () => {
       ? 'All Tournaments'
       : selectedTournament?.title || 'Select Tournament';
 
-  const exportCSV = () => {
-    if (filteredPayments.length === 0) return;
-    const escapeCSV = (val) => {
-      const s = String(val ?? '');
-      return s.includes(',') || s.includes('"') || s.includes('\n')
-        ? `"${s.replace(/"/g, '""')}"`
-        : s;
-    };
-    const rows = [];
-    rows.push([
-      `Transaction History — ${tournamentLabel} (${DATE_PRESETS.find((d) => d.value === datePreset)?.label || 'All'})`,
-    ]);
-    rows.push(['Date', 'Team', 'Tournament', 'Amount (₹)', 'Status']);
-    filteredPayments.forEach((p) =>
-      rows.push([
-        p.paid_at ? new Date(p.paid_at).toLocaleDateString('en-IN') : '',
-        p.team_name || '',
-        p.tournament_title || '',
-        Number(p.amount) || 0,
-        'Paid',
-      ])
-    );
-    rows.push([]);
-    rows.push(['Total Revenue', formatAmount(summaryRevenue)]);
-
-    const csv = rows.map((r) => r.map(escapeCSV).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `scrimverse-transactions-${tournamentLabel
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9_-]/gi, '')
-      .toLowerCase()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   if (loading) {
     return (
       <div className="htx-loading">
@@ -259,14 +221,6 @@ const HostTransactionHistoryView = () => {
               </div>
             )}
           </div>
-
-          {/* Export CSV */}
-          {filteredPayments.length > 0 && (
-            <button className="htx-export-btn" onClick={exportCSV}>
-              <Download size={13} />
-              Export CSV
-            </button>
-          )}
         </div>
       </div>
 

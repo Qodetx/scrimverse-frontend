@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './GroupConfirmModal.css';
 
 /**
@@ -8,7 +8,7 @@ import './GroupConfirmModal.css';
  * Props:
  *   isOpen         — bool
  *   onClose        — fn (also "Back" button)
- *   onConfirm      — fn — triggers actual API call
+ *   onConfirm      — fn(shuffleRequested: bool) — triggers actual API call
  *   roundName      — string e.g. "Round 1" / "Qualifiers"
  *   groups         — string[][] — array of groups, each group is array of team names
  *   teamsPerGroup  — number
@@ -27,6 +27,37 @@ const GroupConfirmModal = ({
   matches,
   loading = false,
 }) => {
+  const [displayGroups, setDisplayGroups] = useState([]);
+  const [shuffled, setShuffled] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setDisplayGroups(groups);
+      setShuffled(false);
+    }
+  }, [isOpen, groups]);
+
+  const handleShuffle = () => {
+    // Fisher-Yates across all teams, then redistribute into same-sized groups
+    const allTeams = displayGroups.flat();
+    for (let i = allTeams.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allTeams[i], allTeams[j]] = [allTeams[j], allTeams[i]];
+    }
+    const shuffledGroups = [];
+    const size = displayGroups[0]?.length || teamsPerGroup;
+    for (let i = 0; i < displayGroups.length; i++) {
+      shuffledGroups.push(allTeams.slice(i * size, (i + 1) * size));
+    }
+    // Last group gets any remainder
+    if (allTeams.length % size !== 0) {
+      const fullCount = Math.floor(allTeams.length / size);
+      shuffledGroups[fullCount] = allTeams.slice(fullCount * size);
+    }
+    setDisplayGroups(shuffledGroups);
+    setShuffled(true);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -57,7 +88,7 @@ const GroupConfirmModal = ({
         {/* Summary stats */}
         <div className="gcm-stats">
           <div className="gcm-stat">
-            <span className="gcm-stat-value gcm-accent">{groups.length}</span>
+            <span className="gcm-stat-value gcm-accent">{displayGroups.length}</span>
             <span className="gcm-stat-label">Groups</span>
           </div>
           <div className="gcm-stat">
@@ -74,9 +105,16 @@ const GroupConfirmModal = ({
           </div>
         </div>
 
+        {/* Shuffle hint */}
+        {shuffled && (
+          <div className="gcm-shuffle-hint">
+            Teams randomised — this arrangement will be applied on confirm.
+          </div>
+        )}
+
         {/* Groups list */}
         <div className="gcm-scroll-area">
-          {groups.map((group, gi) => (
+          {displayGroups.map((group, gi) => (
             <div key={gi} className="gcm-group">
               <div className="gcm-group-header">
                 <span className="gcm-group-badge">Group {String.fromCharCode(65 + gi)}</span>
@@ -99,7 +137,9 @@ const GroupConfirmModal = ({
 
         {/* Review message */}
         <div className="gcm-review-msg">
-          Review groups above. Press confirm to start managing matches.
+          {shuffled
+            ? 'Groups shuffled. Press confirm to apply this arrangement.'
+            : 'Review groups above. Press confirm to start managing matches.'}
         </div>
 
         {/* Footer buttons */}
@@ -117,7 +157,19 @@ const GroupConfirmModal = ({
             </svg>
             Back
           </button>
-          <button className="gcm-btn-confirm" onClick={onConfirm} disabled={loading}>
+          <button
+            className="gcm-btn-shuffle"
+            type="button"
+            onClick={handleShuffle}
+            disabled={loading}
+          >
+            Shuffle
+          </button>
+          <button
+            className="gcm-btn-confirm"
+            onClick={() => onConfirm(shuffled)}
+            disabled={loading}
+          >
             <svg
               viewBox="0 0 24 24"
               fill="none"

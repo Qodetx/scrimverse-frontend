@@ -6,6 +6,10 @@ import './MatchConfigModal.css';
  *
  * mode="start"  — "Cancel" + "Start Match" buttons
  * mode="edit"   — "Cancel" + "Save Credentials" buttons (match already ongoing)
+ *
+ * Schedule Release (mode="start" only):
+ *   When the toggle is ON, the host picks a date+time and credentials are hidden
+ *   from players until that moment. credential_release_time is included in onSubmit payload.
  */
 const MatchConfigModal = ({
   isOpen,
@@ -24,21 +28,39 @@ const MatchConfigModal = ({
 }) => {
   const [matchId, setMatchId] = useState('');
   const [matchPassword, setMatchPassword] = useState('');
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [releaseDate, setReleaseDate] = useState('');
+  const [releaseTime, setReleaseTime] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setMatchId(initialMatchId || '');
       setMatchPassword(initialMatchPassword || '');
+      setScheduleEnabled(false);
+      setReleaseDate('');
+      setReleaseTime('');
     }
   }, [isOpen, initialMatchId, initialMatchPassword]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!matchId.trim()) return;
+
+    let credentialReleaseTime = null;
+    if (mode === 'start' && scheduleEnabled && releaseDate && releaseTime) {
+      // Combine date + time into ISO string (local time, backend will interpret as IST)
+      credentialReleaseTime = new Date(`${releaseDate}T${releaseTime}:00`).toISOString();
+    }
+
     if (mode === 'edit') {
       if (onSaveOnly) onSaveOnly({ match_id: matchId, match_password: matchPassword });
     } else {
-      onSubmit({ match_number: matchNumber, match_id: matchId, match_password: matchPassword });
+      onSubmit({
+        match_number: matchNumber,
+        match_id: matchId,
+        match_password: matchPassword,
+        ...(credentialReleaseTime ? { credential_release_time: credentialReleaseTime } : {}),
+      });
     }
   };
 
@@ -47,6 +69,15 @@ const MatchConfigModal = ({
   const descText = requiresPassword
     ? 'Enter Room ID and Password. All players will see these credentials.'
     : 'Enter Room ID. All players will see these credentials.';
+
+  // Min datetime for the schedule picker: now + 1 minute
+  const minDatetime = (() => {
+    const d = new Date(Date.now() + 60000);
+    return {
+      date: d.toISOString().split('T')[0],
+      time: d.toTimeString().slice(0, 5),
+    };
+  })();
 
   return (
     <div className="mcm-overlay" onClick={onClose}>
@@ -104,15 +135,70 @@ const MatchConfigModal = ({
               </div>
             )}
 
+            {/* Schedule Release — only in start mode */}
+            {mode === 'start' && (
+              <div className="mcm-field mcm-field-mt">
+                <div className="mcm-schedule-toggle-row">
+                  <label className="mcm-label mcm-label-inline">Schedule Release</label>
+                  <button
+                    type="button"
+                    className={`mcm-toggle${scheduleEnabled ? ' mcm-toggle-on' : ''}`}
+                    onClick={() => setScheduleEnabled((v) => !v)}
+                    aria-pressed={scheduleEnabled}
+                  >
+                    <span className="mcm-toggle-thumb" />
+                  </button>
+                </div>
+                {scheduleEnabled && (
+                  <div className="mcm-schedule-pickers">
+                    <div className="mcm-schedule-hint">
+                      Credentials will be hidden from players until the scheduled time.
+                    </div>
+                    <div className="mcm-schedule-row">
+                      <div className="mcm-schedule-field">
+                        <label className="mcm-label-sm">Date</label>
+                        <input
+                          type="date"
+                          className="mcm-input mcm-input-sm"
+                          value={releaseDate}
+                          min={minDatetime.date}
+                          onChange={(e) => setReleaseDate(e.target.value)}
+                          required={scheduleEnabled}
+                        />
+                      </div>
+                      <div className="mcm-schedule-field">
+                        <label className="mcm-label-sm">Time</label>
+                        <input
+                          type="time"
+                          className="mcm-input mcm-input-sm"
+                          value={releaseTime}
+                          onChange={(e) => setReleaseTime(e.target.value)}
+                          required={scheduleEnabled}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mcm-footer">
               <button type="button" className="mcm-btn-cancel" onClick={onClose}>
                 Cancel
               </button>
-              <button type="submit" className="mcm-btn-start" disabled={!matchId.trim()}>
+              <button
+                type="submit"
+                className="mcm-btn-start"
+                disabled={!matchId.trim() || (scheduleEnabled && (!releaseDate || !releaseTime))}
+              >
                 <svg className="mcm-btn-icon" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
-                {mode === 'edit' ? 'Save Credentials' : 'Start Match'}
+                {mode === 'edit'
+                  ? 'Save Credentials'
+                  : scheduleEnabled
+                    ? 'Schedule & Start'
+                    : 'Start Match'}
               </button>
             </div>
           </form>
