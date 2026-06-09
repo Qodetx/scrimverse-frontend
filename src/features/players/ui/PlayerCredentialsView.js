@@ -284,17 +284,47 @@ const MatchScheduleModal = ({ tournament, roundsData, roundNumbers, onClose }) =
 
 // ─── IGN Modal ───────────────────────────────────────────────────────────────
 
-const IGNModal = ({ registration, gameName, myUsername, myProfileIGN, onSubmitted, onClose }) => {
+const IGNModal = ({
+  registration,
+  gameName,
+  myUsername,
+  myProfileIGN,
+  isCaptain,
+  tournamentStarted,
+  onSubmitted,
+  onClose,
+}) => {
+  const isViewOnly = !isCaptain || tournamentStarted;
+
+  // Build full member list: captain first, then team_members snapshot
+  const captainUsername = registration.player?.user?.username || '';
+  const rawMembers = (registration.team_members || []).filter(Boolean);
+  const captainAlreadyInList = rawMembers.some(
+    (m) => (typeof m === 'string' ? m : m.username) === captainUsername
+  );
+  const allMembers =
+    captainUsername && !captainAlreadyInList
+      ? [{ username: captainUsername, is_registered: true }, ...rawMembers]
+      : rawMembers.length > 0
+        ? rawMembers
+        : [{ username: myUsername, is_registered: true }];
+
+  const ignSubmissions = registration.ign_submissions || {};
+
+  // Captain fills all — one IGN per member
+  const [ignMap, setIgnMap] = useState(() => {
+    const init = {};
+    allMembers.forEach((m) => {
+      const uname = typeof m === 'string' ? m : m.username;
+      if (!uname) return;
+      init[uname] = ignSubmissions[uname] || (uname === myUsername ? myProfileIGN || '' : '');
+    });
+    return init;
+  });
+
   const [step, setStep] = useState(1);
-  const [ign, setIgn] = useState(myProfileIGN || '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-
-  const rawMembers = (registration.team_members || []).filter(Boolean);
-  // Always ensure at least the current player appears as P1
-  const allMembers =
-    rawMembers.length > 0 ? rawMembers : [{ username: myUsername, is_registered: true }];
-  const ignSubmissions = registration.ign_submissions || {};
   const game = gameName || registration.tournament.game_name || '';
 
   const handleOverlayClick = (e) => {
@@ -302,12 +332,12 @@ const IGNModal = ({ registration, gameName, myUsername, myProfileIGN, onSubmitte
   };
 
   const handleConfirmStep1 = () => {
-    if (!ign.trim()) {
-      setError('IGN cannot be empty.');
-      return;
-    }
-    if (ign.trim().length > 50) {
-      setError('IGN must be 50 characters or less.');
+    const emptySlots = allMembers.filter((m) => {
+      const uname = typeof m === 'string' ? m : m.username;
+      return uname && !ignMap[uname]?.trim();
+    });
+    if (emptySlots.length > 0) {
+      setError('Please enter IGN for all team members before confirming.');
       return;
     }
     setError('');
@@ -318,8 +348,13 @@ const IGNModal = ({ registration, gameName, myUsername, myProfileIGN, onSubmitte
     setSubmitting(true);
     setError('');
     try {
+      const finalMap = {};
+      allMembers.forEach((m) => {
+        const uname = typeof m === 'string' ? m : m.username;
+        if (uname && ignMap[uname]?.trim()) finalMap[uname] = ignMap[uname].trim();
+      });
       const res = await tournamentAPI.submitIGN(registration.tournament.id, registration.id, {
-        ign: ign.trim(),
+        ign_submissions: finalMap,
       });
       onSubmitted(res.data);
     } catch (err) {
@@ -382,6 +417,7 @@ const IGNModal = ({ registration, gameName, myUsername, myProfileIGN, onSubmitte
                   const isMe = uname === myUsername;
                   const submittedIgn = uname ? ignSubmissions[uname] : null;
                   const displayName = uname || (m.phone ? `+91${m.phone}` : '(pending)');
+                  const currentVal = uname ? ignMap[uname] || '' : '';
 
                   return (
                     <div
@@ -395,24 +431,24 @@ const IGNModal = ({ registration, gameName, myUsername, myProfileIGN, onSubmitte
                           <span className="credentials-ign-player-name">{displayName}</span>
                           {isMe && <span className="credentials-ign-you-badge">YOU</span>}
                         </div>
-                        {submittedIgn && !isMe && (
+                        {submittedIgn && !isCaptain && (
                           <CircleCheck size={13} style={{ color: '#10b981' }} />
                         )}
                       </div>
 
-                      {/* IGN field */}
-                      {isMe ? (
+                      {/* Captain edits all slots; others see read-only */}
+                      {!isViewOnly && uname ? (
                         <input
                           className="credentials-ign-input"
                           type="text"
-                          value={ign}
+                          value={currentVal}
                           onChange={(e) => {
-                            setIgn(e.target.value);
+                            setIgnMap((prev) => ({ ...prev, [uname]: e.target.value }));
                             setError('');
                           }}
-                          placeholder="Enter your in-game name"
+                          placeholder="Enter IGN"
                           maxLength={50}
-                          autoFocus
+                          autoFocus={isMe}
                         />
                       ) : (
                         <div className="credentials-ign-readonly">
@@ -442,27 +478,36 @@ const IGNModal = ({ registration, gameName, myUsername, myProfileIGN, onSubmitte
 
               <div className="flex gap-2 pt-1">
                 <button className="credentials-action-btn flex-1" onClick={onClose}>
-                  Cancel
+                  {isViewOnly ? 'Close' : 'Cancel'}
                 </button>
-                <button
-                  className="credentials-ign-confirm-btn flex-1"
-                  onClick={handleConfirmStep1}
-                  disabled={!ign.trim()}
-                >
-                  Next — Confirm IGN
-                  <ChevronRight size={14} />
-                </button>
+                {!isViewOnly && (
+                  <button
+                    className="credentials-ign-confirm-btn flex-1"
+                    onClick={handleConfirmStep1}
+                  >
+                    Next — Confirm IGN
+                    <ChevronRight size={14} />
+                  </button>
+                )}
+                {tournamentStarted && isCaptain && (
+                  <p
+                    className="text-xs flex-1 text-center"
+                    style={{ color: 'hsl(var(--muted-foreground))', alignSelf: 'center' }}
+                  >
+                    IGNs locked after tournament starts
+                  </p>
+                )}
               </div>
             </>
           ) : (
             <>
-              {/* Step 2: show all IGNs, mine highlighted */}
+              {/* Step 2: confirm all IGNs before locking */}
               <div className="grid grid-cols-2 gap-2">
                 {allMembers.map((m, idx) => {
                   const uname = typeof m === 'string' ? m : m.username || null;
                   const isMe = uname === myUsername;
                   const displayName = uname || (m.phone ? `+91${m.phone}` : '(pending)');
-                  const displayIgn = isMe ? ign.trim() : uname ? ignSubmissions[uname] : null;
+                  const displayIgn = uname ? ignMap[uname]?.trim() || null : null;
                   return (
                     <div
                       key={uname || idx}
@@ -475,19 +520,12 @@ const IGNModal = ({ registration, gameName, myUsername, myProfileIGN, onSubmitte
                       </div>
                       <div className="credentials-ign-readonly">
                         {displayIgn ? (
-                          <span
-                            style={{
-                              color: isMe ? '#10b981' : 'hsl(var(--foreground))',
-                              fontWeight: 600,
-                            }}
-                          >
-                            {displayIgn}
-                          </span>
+                          <span style={{ color: '#10b981', fontWeight: 600 }}>{displayIgn}</span>
                         ) : (
                           <span
                             style={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}
                           >
-                            Not submitted yet
+                            Not entered
                           </span>
                         )}
                       </div>
@@ -1216,6 +1254,15 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                     <p>Credentials not released yet</p>
                   </div>
                 )}
+                {/* Player IGNs — always visible after IGN submitted; click to view/edit */}
+                <button
+                  className="credentials-ign-players-btn"
+                  onClick={() => setShowIgnModal(true)}
+                >
+                  <ShieldCheck size={12} />
+                  <span>Player IGNs</span>
+                  <ChevronRight size={12} style={{ marginLeft: 'auto' }} />
+                </button>
               </>
             )}
           </div>
@@ -1266,6 +1313,8 @@ const CredentialCard = ({ registration: initialRegistration }) => {
           gameName={gameName}
           myUsername={myUsername}
           myProfileIGN={myProfileIGN}
+          isCaptain={registration.player?.user?.username === myUsername}
+          tournamentStarted={tournament.status === 'ongoing' || tournament.status === 'completed'}
           onSubmitted={handleIgnSubmitted}
           onClose={() => setShowIgnModal(false)}
         />
@@ -1300,6 +1349,8 @@ const PlayerCredentialsView = () => {
 };
 
 const PlayerCredentialsViewAuthenticated = () => {
+  const { user } = useContext(AuthContext);
+  const myUsername = user?.user?.username || user?.username || '';
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [gameFilter, setGameFilter] = useState('All');
@@ -1339,7 +1390,7 @@ const PlayerCredentialsViewAuthenticated = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Filter by game and status
+  // Filter by game, status, and snapshot membership
   const filteredRegistrations = registrations.filter((r) => {
     const gameMatch = gameFilter === 'All' || (r.tournament?.game_name || '') === gameFilter;
     const statusMatch = statusFilter === 'All' || (r.tournament?.status || '') === statusFilter;

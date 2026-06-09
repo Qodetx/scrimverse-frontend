@@ -907,7 +907,10 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
       setMemberMenuOpen(null);
       refreshTeam();
     } catch (err) {
-      showToast(err.response?.data?.detail || 'Failed to remove member', 'error');
+      showToast(
+        err.response?.data?.error || err.response?.data?.detail || 'Failed to remove member',
+        'error'
+      );
     }
   };
 
@@ -1062,6 +1065,17 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
           return next;
         });
       }
+    }
+  };
+
+  const handleCancelInvite = async (inviteId) => {
+    if (!team) return;
+    try {
+      await teamAPI.cancelInvite(team.id, inviteId);
+      showToast('Invite cancelled', 'success');
+      refreshTeam();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to cancel invite', 'error');
     }
   };
 
@@ -2723,139 +2737,162 @@ const PlayerTeamViewAuthenticated = ({ conversionNotif, onConversionDone, openRe
                         )}
                       </div>
 
-                      {isCaptain && inv.status !== 'accepted' && inv.invite_type !== 'link' && (
+                      {isCaptain && inv.status !== 'accepted' && (
                         <div style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}>
-                          {editingInvite?.id === inv.id ? (
-                            <>
-                              <button
-                                onClick={handleEditInviteSave}
-                                disabled={isSending || !editingInvite.value.trim()}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4,
-                                  padding: '5px 10px',
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  borderRadius: 6,
-                                  border: 'none',
-                                  background: 'hsl(var(--accent))',
-                                  color: '#fff',
-                                  cursor:
-                                    isSending || !editingInvite.value.trim()
-                                      ? 'default'
-                                      : 'pointer',
-                                  whiteSpace: 'nowrap',
-                                  opacity: !editingInvite.value.trim() ? 0.5 : 1,
-                                }}
-                              >
-                                {isSending ? (
-                                  <Loader2
-                                    size={11}
-                                    style={{ animation: 'spin 1s linear infinite' }}
-                                  />
-                                ) : (
-                                  <Send size={11} />
-                                )}
-                                Save & Resend
-                              </button>
-                              <button
-                                onClick={() => setEditingInvite(null)}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  padding: '5px 7px',
-                                  fontSize: 11,
-                                  borderRadius: 6,
-                                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                                  background: 'transparent',
-                                  color: '#94a3b8',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => handleResendInvite(inv.id)}
-                                disabled={isSending || isSent || isRateLimited}
-                                title="Resend invite"
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4,
-                                  padding: '5px 10px',
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  borderRadius: 6,
-                                  border: '1px solid rgba(167, 139, 250, 0.3)',
-                                  background: isSent
-                                    ? 'rgba(34, 197, 94, 0.15)'
-                                    : isRateLimited
-                                      ? 'rgba(239, 68, 68, 0.15)'
-                                      : 'rgba(167, 139, 250, 0.1)',
-                                  color: isSent
-                                    ? '#4ade80'
-                                    : isRateLimited
-                                      ? '#f87171'
-                                      : 'hsl(var(--accent))',
-                                  cursor:
-                                    isSending || isSent || isRateLimited ? 'default' : 'pointer',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {isSending ? (
-                                  <>
+                          {inv.invite_type !== 'link' &&
+                            (editingInvite?.id === inv.id ? (
+                              <>
+                                <button
+                                  onClick={handleEditInviteSave}
+                                  disabled={isSending || !editingInvite.value.trim()}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '5px 10px',
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    borderRadius: 6,
+                                    border: 'none',
+                                    background: 'hsl(var(--accent))',
+                                    color: '#fff',
+                                    cursor:
+                                      isSending || !editingInvite.value.trim()
+                                        ? 'default'
+                                        : 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    opacity: !editingInvite.value.trim() ? 0.5 : 1,
+                                  }}
+                                >
+                                  {isSending ? (
                                     <Loader2
                                       size={11}
                                       style={{ animation: 'spin 1s linear infinite' }}
                                     />
-                                    Sending
-                                  </>
-                                ) : isSent ? (
-                                  <>
-                                    <Check size={11} /> Sent
-                                  </>
-                                ) : isRateLimited ? (
-                                  <>
-                                    <Clock size={11} />
-                                    {cooldownSecs > 0
-                                      ? `${Math.floor(cooldownSecs / 60)}m ${cooldownSecs % 60}s`
-                                      : 'Wait'}
-                                  </>
-                                ) : (
-                                  <>
-                                    <RefreshCw size={11} /> Resend
-                                  </>
-                                )}
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setEditingInvite(
-                                    editingInvite?.id === inv.id
-                                      ? null
-                                      : { id: inv.id, type: inv.invite_type, value: inv.identifier }
-                                  )
-                                }
-                                title="Edit contact & resend"
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  padding: '5px 7px',
-                                  fontSize: 11,
-                                  borderRadius: 6,
-                                  border: '1px solid rgba(148, 163, 184, 0.25)',
-                                  background: 'rgba(148, 163, 184, 0.08)',
-                                  color: '#94a3b8',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <Pencil size={11} />
-                              </button>
-                            </>
-                          )}
+                                  ) : (
+                                    <Send size={11} />
+                                  )}
+                                  Save & Resend
+                                </button>
+                                <button
+                                  onClick={() => setEditingInvite(null)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '5px 7px',
+                                    fontSize: 11,
+                                    borderRadius: 6,
+                                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                                    background: 'transparent',
+                                    color: '#94a3b8',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleResendInvite(inv.id)}
+                                  disabled={isSending || isSent || isRateLimited}
+                                  title="Resend invite"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '5px 10px',
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    borderRadius: 6,
+                                    border: '1px solid rgba(167, 139, 250, 0.3)',
+                                    background: isSent
+                                      ? 'rgba(34, 197, 94, 0.15)'
+                                      : isRateLimited
+                                        ? 'rgba(239, 68, 68, 0.15)'
+                                        : 'rgba(167, 139, 250, 0.1)',
+                                    color: isSent
+                                      ? '#4ade80'
+                                      : isRateLimited
+                                        ? '#f87171'
+                                        : 'hsl(var(--accent))',
+                                    cursor:
+                                      isSending || isSent || isRateLimited ? 'default' : 'pointer',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {isSending ? (
+                                    <>
+                                      <Loader2
+                                        size={11}
+                                        style={{ animation: 'spin 1s linear infinite' }}
+                                      />
+                                      Sending
+                                    </>
+                                  ) : isSent ? (
+                                    <>
+                                      <Check size={11} /> Sent
+                                    </>
+                                  ) : isRateLimited ? (
+                                    <>
+                                      <Clock size={11} />
+                                      {cooldownSecs > 0
+                                        ? `${Math.floor(cooldownSecs / 60)}m ${cooldownSecs % 60}s`
+                                        : 'Wait'}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RefreshCw size={11} /> Resend
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setEditingInvite(
+                                      editingInvite?.id === inv.id
+                                        ? null
+                                        : {
+                                            id: inv.id,
+                                            type: inv.invite_type,
+                                            value: inv.identifier,
+                                          }
+                                    )
+                                  }
+                                  title="Edit contact & resend"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '5px 7px',
+                                    fontSize: 11,
+                                    borderRadius: 6,
+                                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                                    background: 'rgba(148, 163, 184, 0.08)',
+                                    color: '#94a3b8',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <Pencil size={11} />
+                                </button>
+                              </>
+                            ))}
+                          {/* Cancel button — shown for all invite types including link */}
+                          <button
+                            onClick={() => handleCancelInvite(inv.id)}
+                            title="Cancel invite"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '5px 7px',
+                              fontSize: 11,
+                              borderRadius: 6,
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              background: 'rgba(239, 68, 68, 0.08)',
+                              color: '#f87171',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <X size={11} />
+                          </button>
                         </div>
                       )}
                     </div>
