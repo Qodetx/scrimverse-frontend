@@ -22,8 +22,15 @@ import {
   CircleCheck,
   Timer,
   Pencil,
+  UserPlus,
+  MessageCircle,
+  Mail,
+  Send,
+  Loader2,
+  Users,
 } from 'lucide-react';
-import { tournamentAPI } from '../../../utils/api';
+import { tournamentAPI, teamAPI, authAPI } from '../../../utils/api';
+import { useToast } from '../../../hooks/useToast';
 import './PlayerCredentialsView.css';
 
 // Game hero images — same imports as PlayerOverviewView
@@ -282,6 +289,327 @@ const MatchScheduleModal = ({ tournament, roundsData, roundNumbers, onClose }) =
   );
 };
 
+// ─── IGN Invite Modal ────────────────────────────────────────────────────────
+
+const IGNInviteModal = ({ teamId, registrationId, onClose, onInviteSent }) => {
+  const { showToast } = useToast();
+  const [inviteUsername, setInviteUsername] = useState('');
+  const [inviteSuggestions, setInviteSuggestions] = useState([]);
+  const [inviteSelected, setInviteSelected] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteEmailMode, setInviteEmailMode] = useState(false);
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteEmailLoading, setInviteEmailLoading] = useState(false);
+  const [inviteEmailError, setInviteEmailError] = useState('');
+  const searchCounter = useRef(0);
+
+  const handleUsernameChange = async (val) => {
+    setInviteUsername(val);
+    setInviteSuggestions([]);
+    if (val.trim().length < 2) return;
+    const counter = ++searchCounter.current;
+    try {
+      const res = await authAPI.searchPlayerUsernames(val.trim(), true);
+      if (counter !== searchCounter.current) return;
+      const results = res.data?.results || res.data || [];
+      const selectedNames = inviteSelected.map((p) => p.username.toLowerCase());
+      setInviteSuggestions(
+        results.filter((p) => !selectedNames.includes((p.username || '').toLowerCase())).slice(0, 5)
+      );
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSelectPlayer = (player) => {
+    const uname = player.username || player;
+    if (!uname) return;
+    if (inviteSelected.find((p) => p.username === uname)) return;
+    setInviteSelected((prev) => [...prev, { username: uname, id: player.id || uname }]);
+    setInviteUsername('');
+    setInviteSuggestions([]);
+  };
+
+  const handleRemoveChip = (username) => {
+    setInviteSelected((prev) => prev.filter((p) => p.username !== username));
+  };
+
+  const handleSendUsernameInvite = async () => {
+    const targets =
+      inviteSelected.length > 0
+        ? inviteSelected
+        : inviteUsername.trim()
+          ? [{ username: inviteUsername.trim() }]
+          : [];
+    if (targets.length === 0) return;
+    setInviteSending(true);
+    try {
+      await teamAPI.sendInvites(
+        teamId,
+        targets.map((p) => ({ type: 'username', value: p.username })),
+        registrationId
+      );
+      const names = targets.map((p) => p.username).join(', ');
+      showToast(`Invite sent to ${names}`, 'success');
+      targets.forEach((p) => onInviteSent(p.username));
+    } catch (err) {
+      showToast(
+        err?.response?.data?.error || err?.response?.data?.detail || 'Failed to send invite',
+        'error'
+      );
+    } finally {
+      setInviteSending(false);
+    }
+  };
+
+  const handleWhatsAppInvite = async () => {
+    try {
+      const res = await teamAPI.generateInviteLink(teamId);
+      const token = res.data.invite_token;
+      const link = `${window.location.origin}/join-team/${token}`;
+      const msg = encodeURIComponent(`Hey! Join my team on ScrimVerse!\n\nClick to join: ${link}`);
+      window.open(`https://wa.me/?text=${msg}`, '_blank');
+      onClose();
+    } catch {
+      showToast('Failed to generate invite link', 'error');
+    }
+  };
+
+  const handleSendEmailInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviteEmailLoading(true);
+    setInviteEmailError('');
+    try {
+      const res = await teamAPI.sendInvites(
+        teamId,
+        [{ type: 'email', value: inviteEmail.trim() }],
+        registrationId
+      );
+      const result = (res.data?.results || [])[0];
+      if (result?.status === 'error') {
+        setInviteEmailError(result.message);
+      } else {
+        showToast(`Invite sent to ${inviteEmail}`, 'success');
+        onInviteSent(inviteEmail.trim());
+      }
+    } catch (err) {
+      setInviteEmailError(
+        err?.response?.data?.detail || err?.response?.data?.error || 'Failed to send email invite'
+      );
+    } finally {
+      setInviteEmailLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setInviteEmailMode(false);
+    setInviteEmail('');
+    setInviteEmailError('');
+    setInviteUsername('');
+    setInviteSuggestions([]);
+    setInviteSelected([]);
+    onClose();
+  };
+
+  return (
+    <div className="tm-invite-overlay" onClick={handleClose}>
+      <div className="tm-invite-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="tm-invite-header">
+          <h3 className="tm-invite-title">
+            <UserPlus size={18} className="tm-icon-purple" />
+            Invite Player to Team
+          </h3>
+          <button className="tm-invite-close" onClick={handleClose}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div
+          style={{
+            margin: '0.75rem 1.25rem 0.75rem',
+            padding: '0.5rem 0.75rem',
+            background: 'rgba(59, 130, 246, 0.08)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            borderRadius: '0.375rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.5rem',
+          }}
+        >
+          <span style={{ fontSize: '0.8rem', flexShrink: 0, marginTop: '1px' }}>ℹ️</span>
+          <p
+            style={{
+              fontSize: '0.7rem',
+              color: 'hsl(var(--muted-foreground))',
+              margin: 0,
+              lineHeight: '1.4',
+            }}
+          >
+            Players already in a permanent team won't appear here. They must leave their current
+            team first.
+          </p>
+        </div>
+
+        <div className="tm-invite-body">
+          {/* By Username */}
+          <div className="tm-invite-section">
+            <div className="tm-invite-section-header">
+              <div className="tm-invite-section-icon">
+                <Users size={16} className="tm-icon-purple" />
+              </div>
+              <div>
+                <p className="tm-invite-section-title">Search by Username</p>
+                <p className="tm-invite-section-desc">Find and invite players directly</p>
+              </div>
+            </div>
+            <div style={{ position: 'relative' }}>
+              {inviteSelected.length > 0 && (
+                <div className="tm-invite-chips">
+                  {inviteSelected.map((p) => (
+                    <span key={p.username} className="tm-invite-chip">
+                      {p.username}
+                      <button
+                        className="tm-invite-chip-remove"
+                        onClick={() => handleRemoveChip(p.username)}
+                      >
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="tm-invite-input-row">
+                <input
+                  type="text"
+                  placeholder={
+                    inviteSelected.length > 0 ? 'Add more players...' : 'Search username...'
+                  }
+                  value={inviteUsername}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
+                  className="tm-invite-input"
+                  onKeyDown={(e) =>
+                    e.key === 'Enter' &&
+                    inviteSuggestions.length > 0 &&
+                    handleSelectPlayer(inviteSuggestions[0])
+                  }
+                  autoComplete="off"
+                />
+                <button
+                  className="tm-invite-send-btn"
+                  onClick={handleSendUsernameInvite}
+                  disabled={
+                    inviteSending || (inviteSelected.length === 0 && !inviteUsername.trim())
+                  }
+                >
+                  {inviteSending ? (
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                </button>
+              </div>
+              {inviteSuggestions.length > 0 && (
+                <div className="tm-invite-suggestions">
+                  {inviteSuggestions
+                    .filter((p) => !inviteSelected.find((s) => s.username === p.username))
+                    .map((p) => (
+                      <button
+                        key={p.id || p.username}
+                        className="tm-invite-suggestion-item"
+                        onClick={() => handleSelectPlayer(p)}
+                      >
+                        <div className="tm-invite-suggestion-avatar">
+                          {(p.username || '?').slice(0, 2).toUpperCase()}
+                        </div>
+                        <span>{p.username}</span>
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="tm-invite-divider">
+            <span className="tm-invite-divider-line" />
+            <span className="tm-invite-divider-text">or invite via email</span>
+            <span className="tm-invite-divider-line" />
+          </div>
+
+          {/* Email only */}
+          <button
+            className="tm-invite-share email"
+            style={{ width: '100%' }}
+            onClick={() => setInviteEmailMode((v) => !v)}
+          >
+            <div className="tm-invite-share-icon email">
+              <Mail size={20} />
+            </div>
+            <span className="tm-invite-share-label email">Email</span>
+            <span className="tm-invite-share-desc">Send email invite</span>
+          </button>
+
+          {inviteEmailMode && (
+            <div>
+              <div className="tm-invite-email-row">
+                <input
+                  type="email"
+                  placeholder="Enter email address..."
+                  value={inviteEmail}
+                  onChange={(e) => {
+                    setInviteEmail(e.target.value);
+                    setInviteEmailError('');
+                  }}
+                  className="tm-invite-input"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendEmailInvite()}
+                  autoFocus
+                />
+                <button
+                  className="tm-invite-send-btn"
+                  onClick={handleSendEmailInvite}
+                  disabled={inviteEmailLoading || !inviteEmail.trim()}
+                >
+                  {inviteEmailLoading ? (
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                </button>
+              </div>
+              {inviteEmailError && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '6px',
+                    marginTop: '8px',
+                    padding: '8px 10px',
+                    background: 'rgba(239,68,68,0.08)',
+                    border: '1px solid rgba(239,68,68,0.2)',
+                    borderRadius: '6px',
+                  }}
+                >
+                  <span style={{ fontSize: '0.75rem', flexShrink: 0 }}>⚠️</span>
+                  <p
+                    style={{
+                      fontSize: '0.7rem',
+                      color: 'rgb(248,113,113)',
+                      margin: 0,
+                      lineHeight: '1.4',
+                    }}
+                  >
+                    {inviteEmailError}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── IGN Modal ───────────────────────────────────────────────────────────────
 
 const IGNModal = ({
@@ -293,31 +621,34 @@ const IGNModal = ({
   tournamentStarted,
   onSubmitted,
   onClose,
+  onInviteSent,
 }) => {
+  const { showToast } = useToast();
   const isViewOnly = !isCaptain || tournamentStarted;
 
-  // Build full member list: captain first, then team_members snapshot
-  const captainUsername = registration.player?.user?.username || '';
-  const rawMembers = (registration.team_members || []).filter(Boolean);
-  const captainAlreadyInList = rawMembers.some(
-    (m) => (typeof m === 'string' ? m : m.username) === captainUsername
+  // Mode cap from tournament game_mode
+  const MODE_CAPS = { Squad: 4, '5v5': 5, Duo: 2, Solo: 1 };
+  const modeCap = MODE_CAPS[registration.tournament?.game_mode] || 4;
+  const teamId = registration.team;
+
+  // Build slots: filled (real members) + pending (invited_members_status) + empty
+  const captainUsername = registration.player?.user?.username || myUsername || '';
+  const realMembers = (registration.team_members || []).filter(
+    (m) => m && (m.username || '').trim() && m.username !== captainUsername
   );
-  const allMembers =
-    captainUsername && !captainAlreadyInList
-      ? [{ username: captainUsername, is_registered: true }, ...rawMembers]
-      : rawMembers.length > 0
-        ? rawMembers
-        : [{ username: myUsername, is_registered: true }];
+  const filledSlots = [
+    ...(captainUsername ? [{ username: captainUsername, isCaptain: true }] : []),
+    ...realMembers.map((m) => ({ username: m.username, isCaptain: false })),
+  ];
 
   const ignSubmissions = registration.ign_submissions || {};
 
   // Captain fills all — one IGN per member
   const [ignMap, setIgnMap] = useState(() => {
     const init = {};
-    allMembers.forEach((m) => {
-      const uname = typeof m === 'string' ? m : m.username;
-      if (!uname) return;
-      init[uname] = ignSubmissions[uname] || (uname === myUsername ? myProfileIGN || '' : '');
+    filledSlots.forEach((s) => {
+      init[s.username] =
+        ignSubmissions[s.username] || (s.username === myUsername ? myProfileIGN || '' : '');
     });
     return init;
   });
@@ -325,6 +656,67 @@ const IGNModal = ({
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [localPendingSlots, setLocalPendingSlots] = useState([]);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [cancellingInvite, setCancellingInvite] = useState(null);
+
+  // Load team's pending invites on mount so cancel has the invite ID ready (same as Teams tab)
+  useEffect(() => {
+    if (!teamId || isViewOnly) return;
+    teamAPI
+      .getTeam(teamId)
+      .then((res) => {
+        setPendingInvites(
+          (res.data?.invited_members || []).filter((inv) => inv.status === 'pending')
+        );
+      })
+      .catch(() => {});
+  }, [teamId, isViewOnly]);
+
+  const refreshPendingInvites = () => {
+    if (!teamId) return;
+    teamAPI
+      .getTeam(teamId)
+      .then((res) => {
+        setPendingInvites(
+          (res.data?.invited_members || []).filter((inv) => inv.status === 'pending')
+        );
+      })
+      .catch(() => {});
+  };
+
+  const handleCancelInvite = async (identifier) => {
+    const invite = pendingInvites.find((inv) => inv.identifier === identifier);
+    if (!invite) return;
+    setCancellingInvite(identifier);
+    try {
+      await teamAPI.cancelInvite(teamId, invite.id);
+      setLocalPendingSlots((prev) => prev.filter((k) => k !== identifier));
+      showToast('Invite cancelled', 'success');
+      refreshPendingInvites();
+      if (onInviteSent) onInviteSent();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to cancel invite', 'error');
+    } finally {
+      setCancellingInvite(null);
+    }
+  };
+
+  // Pending slots: server state + optimistic local additions
+  const ims = registration.invited_members_status || {};
+  const serverPendingKeys = Object.keys(ims).filter((k) => ims[k]?.status === 'pending');
+  const allPendingKeys = [...new Set([...serverPendingKeys, ...localPendingSlots])];
+  const emptyCount = Math.max(0, modeCap - filledSlots.length - allPendingKeys.length);
+
+  // Unified slot list for rendering
+  const allSlots = [
+    ...filledSlots.map((s) => ({ type: 'filled', ...s })),
+    ...allPendingKeys.map((id) => ({ type: 'pending', identifier: id })),
+    ...Array(emptyCount)
+      .fill(null)
+      .map((_, i) => ({ type: 'empty', emptyIdx: i })),
+  ];
   const game = gameName || registration.tournament.game_name || '';
 
   const handleOverlayClick = (e) => {
@@ -332,11 +724,13 @@ const IGNModal = ({
   };
 
   const handleConfirmStep1 = () => {
-    const emptySlots = allMembers.filter((m) => {
-      const uname = typeof m === 'string' ? m : m.username;
-      return uname && !ignMap[uname]?.trim();
-    });
-    if (emptySlots.length > 0) {
+    const missingCount = allPendingKeys.length + emptyCount;
+    if (missingCount > 0) {
+      setError(`${missingCount} member(s) still missing — invite them to continue.`);
+      return;
+    }
+    const emptyIgns = filledSlots.filter((s) => !ignMap[s.username]?.trim());
+    if (emptyIgns.length > 0) {
       setError('Please enter IGN for all team members before confirming.');
       return;
     }
@@ -349,9 +743,9 @@ const IGNModal = ({
     setError('');
     try {
       const finalMap = {};
-      allMembers.forEach((m) => {
-        const uname = typeof m === 'string' ? m : m.username;
-        if (uname && ignMap[uname]?.trim()) finalMap[uname] = ignMap[uname].trim();
+      filledSlots.forEach((s) => {
+        if (s.username && ignMap[s.username]?.trim())
+          finalMap[s.username] = ignMap[s.username].trim();
       });
       const res = await tournamentAPI.submitIGN(registration.tournament.id, registration.id, {
         ign_submissions: finalMap,
@@ -410,60 +804,130 @@ const IGNModal = ({
 
           {step === 1 ? (
             <>
-              {/* All team members — 2 per row */}
+              {/* All slots — filled, pending, empty */}
               <div className="grid grid-cols-2 gap-2">
-                {allMembers.map((m, idx) => {
-                  const uname = typeof m === 'string' ? m : m.username || null;
-                  const isMe = uname === myUsername;
-                  const submittedIgn = uname ? ignSubmissions[uname] : null;
-                  const displayName = uname || (m.phone ? `+91${m.phone}` : '(pending)');
-                  const currentVal = uname ? ignMap[uname] || '' : '';
-
-                  return (
-                    <div
-                      key={uname || idx}
-                      className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
-                    >
-                      {/* Player label row */}
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="credentials-ign-player-num">P{idx + 1}</span>
-                          <span className="credentials-ign-player-name">{displayName}</span>
-                          {isMe && <span className="credentials-ign-you-badge">YOU</span>}
-                        </div>
-                        {submittedIgn && !isCaptain && (
-                          <CircleCheck size={13} style={{ color: '#10b981' }} />
-                        )}
-                      </div>
-
-                      {/* Captain edits all slots; others see read-only */}
-                      {!isViewOnly && uname ? (
-                        <input
-                          className="credentials-ign-input"
-                          type="text"
-                          value={currentVal}
-                          onChange={(e) => {
-                            setIgnMap((prev) => ({ ...prev, [uname]: e.target.value }));
-                            setError('');
-                          }}
-                          placeholder="Enter IGN"
-                          maxLength={50}
-                          autoFocus={isMe}
-                        />
-                      ) : (
-                        <div className="credentials-ign-readonly">
-                          {submittedIgn ? (
-                            <span style={{ color: '#10b981', fontWeight: 600 }}>
-                              {submittedIgn}
-                            </span>
-                          ) : (
-                            <span
-                              style={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}
-                            >
-                              {uname ? 'Not submitted yet' : 'Invite pending'}
-                            </span>
+                {allSlots.map((slot, idx) => {
+                  if (slot.type === 'filled') {
+                    const uname = slot.username;
+                    const isMe = uname === myUsername;
+                    const submittedIgn = ignSubmissions[uname];
+                    const currentVal = ignMap[uname] || '';
+                    return (
+                      <div
+                        key={uname}
+                        className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="credentials-ign-player-num">P{idx + 1}</span>
+                            <span className="credentials-ign-player-name">{uname}</span>
+                            {isMe && <span className="credentials-ign-you-badge">YOU</span>}
+                          </div>
+                          {submittedIgn && !isCaptain && (
+                            <CircleCheck size={13} style={{ color: '#10b981' }} />
                           )}
                         </div>
+                        {!isViewOnly ? (
+                          <input
+                            className="credentials-ign-input"
+                            type="text"
+                            value={currentVal}
+                            onChange={(e) => {
+                              setIgnMap((prev) => ({ ...prev, [uname]: e.target.value }));
+                              setError('');
+                            }}
+                            placeholder="Enter IGN"
+                            maxLength={50}
+                            autoFocus={isMe && idx === 0}
+                          />
+                        ) : (
+                          <div className="credentials-ign-readonly">
+                            {submittedIgn ? (
+                              <span style={{ color: '#10b981', fontWeight: 600 }}>
+                                {submittedIgn}
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  color: 'hsl(var(--muted-foreground))',
+                                  fontStyle: 'italic',
+                                }}
+                              >
+                                Not submitted yet
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (slot.type === 'pending') {
+                    const isCancelling = cancellingInvite === slot.identifier;
+                    return (
+                      <div
+                        key={slot.identifier}
+                        className="credentials-ign-player-card credentials-ign-pending-slot"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="credentials-ign-player-num">P{idx + 1}</span>
+                            <span className="credentials-ign-player-name credentials-ign-pending-name">
+                              {slot.identifier}
+                            </span>
+                          </div>
+                          {!isViewOnly && (
+                            <button
+                              onClick={() => handleCancelInvite(slot.identifier)}
+                              disabled={isCancelling}
+                              title="Cancel invite"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '3px 6px',
+                                fontSize: 11,
+                                borderRadius: 6,
+                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                background: 'rgba(239, 68, 68, 0.08)',
+                                color: '#f87171',
+                                cursor: isCancelling ? 'not-allowed' : 'pointer',
+                                opacity: isCancelling ? 0.5 : 1,
+                              }}
+                            >
+                              <X size={11} />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="credentials-ign-pending-badge">Invite pending</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // empty slot
+                  return (
+                    <div
+                      key={`empty-${slot.emptyIdx}`}
+                      className="credentials-ign-player-card credentials-ign-empty-slot"
+                    >
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="credentials-ign-player-num">P{idx + 1}</span>
+                        <span
+                          className="credentials-ign-player-name"
+                          style={{ color: 'hsl(var(--muted-foreground))' }}
+                        >
+                          Empty slot
+                        </span>
+                      </div>
+                      {!isViewOnly && (
+                        <button
+                          className="credentials-ign-invite-btn"
+                          onClick={() => setShowInviteModal(true)}
+                        >
+                          <UserPlus size={12} />
+                          Invite
+                        </button>
                       )}
                     </div>
                   );
@@ -503,19 +967,17 @@ const IGNModal = ({
             <>
               {/* Step 2: confirm all IGNs before locking */}
               <div className="grid grid-cols-2 gap-2">
-                {allMembers.map((m, idx) => {
-                  const uname = typeof m === 'string' ? m : m.username || null;
-                  const isMe = uname === myUsername;
-                  const displayName = uname || (m.phone ? `+91${m.phone}` : '(pending)');
-                  const displayIgn = uname ? ignMap[uname]?.trim() || null : null;
+                {filledSlots.map((s, idx) => {
+                  const isMe = s.username === myUsername;
+                  const displayIgn = ignMap[s.username]?.trim() || null;
                   return (
                     <div
-                      key={uname || idx}
+                      key={s.username}
                       className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
                     >
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className="credentials-ign-player-num">P{idx + 1}</span>
-                        <span className="credentials-ign-player-name">{displayName}</span>
+                        <span className="credentials-ign-player-name">{s.username}</span>
                         {isMe && <span className="credentials-ign-you-badge">YOU</span>}
                       </div>
                       <div className="credentials-ign-readonly">
@@ -563,6 +1025,20 @@ const IGNModal = ({
           )}
         </div>
       </div>
+
+      {showInviteModal && (
+        <IGNInviteModal
+          teamId={teamId}
+          registrationId={registration.id}
+          onClose={() => setShowInviteModal(false)}
+          onInviteSent={(identifier) => {
+            setLocalPendingSlots((prev) => [...prev, identifier]);
+            setShowInviteModal(false);
+            refreshPendingInvites();
+            if (onInviteSent) onInviteSent();
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -604,6 +1080,14 @@ const CredentialCard = ({ registration: initialRegistration }) => {
       ign_locked: data.ign_locked,
     }));
     setShowIgnModal(false);
+  };
+
+  const refreshRegistration = async () => {
+    try {
+      const res = await tournamentAPI.getMyRegistrations();
+      const fresh = (res.data || []).find((r) => r.id === registration.id);
+      if (fresh) setRegistration(fresh);
+    } catch (_) {}
   };
 
   // Countdown for credential release (tournament-level)
@@ -1317,6 +1801,7 @@ const CredentialCard = ({ registration: initialRegistration }) => {
           tournamentStarted={tournament.status === 'ongoing' || tournament.status === 'completed'}
           onSubmitted={handleIgnSubmitted}
           onClose={() => setShowIgnModal(false)}
+          onInviteSent={refreshRegistration}
         />
       )}
     </>

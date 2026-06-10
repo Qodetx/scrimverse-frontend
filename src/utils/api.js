@@ -329,8 +329,11 @@ export const teamAPI = {
   handleInvite: (inviteId, action) =>
     api.post('/accounts/teams/handle_invite/', { invite_id: inviteId, action }),
   getMyTournamentInvites: () => api.get('/accounts/teams/my_tournament_invites/'),
-  sendInvites: (teamId, invites) =>
-    api.post(`/accounts/teams/${teamId}/send_invites/`, { invites }),
+  sendInvites: (teamId, invites, registrationId = null) =>
+    api.post(`/accounts/teams/${teamId}/send_invites/`, {
+      invites,
+      ...(registrationId ? { registration_id: registrationId } : {}),
+    }),
   resendInvite: (teamId, inviteId) =>
     api.post(`/accounts/teams/${teamId}/resend_invite/`, { invite_id: inviteId }),
   cancelInvite: (teamId, inviteId) =>
