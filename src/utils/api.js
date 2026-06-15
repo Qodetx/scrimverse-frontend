@@ -5,6 +5,28 @@ import axios from 'axios';
 // under the `/api` prefix. Falling back to `/api` avoids broken undefined baseURLs.
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
+// ── In-memory GET cache (browser tab only — clears on hard refresh) ───────────
+// Only used for host dashboard data that doesn't change during live tournament ops.
+// Live data (round groups, match status, credentials, manage-tournament) is never cached.
+const _cache = new Map(); // key → { promise, expiresAt }
+
+function withCache(key, ttlMs, fn) {
+  const entry = _cache.get(key);
+  if (entry && Date.now() < entry.expiresAt) return entry.promise;
+  const promise = fn().catch((err) => {
+    _cache.delete(key);
+    return Promise.reject(err);
+  });
+  _cache.set(key, { promise, expiresAt: Date.now() + ttlMs });
+  return promise;
+}
+
+export function invalidateCache(...keys) {
+  if (keys.length === 0) _cache.clear();
+  else keys.forEach((k) => _cache.delete(k));
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
@@ -140,7 +162,9 @@ export const tournamentAPI = {
   },
   updateTournament: (id, data) => api.put(`/tournaments/${id}/update/`, data),
   deleteTournament: (id) => api.delete(`/tournaments/${id}/delete/`),
-  getHostTournaments: (hostId) => api.get(`/tournaments/host/${hostId}/`),
+  // Cached 30s — list updates after create/delete but not during live match ops
+  getHostTournaments: (hostId) =>
+    withCache(`host-tournaments-${hostId}`, 30000, () => api.get(`/tournaments/host/${hostId}/`)),
   registerForTournament: (tournamentId, data) =>
     api.post(`/tournaments/${tournamentId}/register/`, data),
   registerInitiate: (tournamentId, data) =>
@@ -151,9 +175,10 @@ export const tournamentAPI = {
   getTournamentStats: (id) => api.get(`/tournaments/${id}/stats/`),
   // Platform Stats
   getPlatformStats: () => api.get('/tournaments/stats/platform/'),
-  // Host dashboard stats
-  getHostStats: () => api.get('/tournaments/stats/host/'),
-  getHostAnalytics: () => api.get('/tournaments/stats/host/analytics/'),
+  // Host dashboard stats — cached 60s (don't change during live tournament)
+  getHostStats: () => withCache('host-stats', 60000, () => api.get('/tournaments/stats/host/')),
+  getHostAnalytics: () =>
+    withCache('host-analytics', 60000, () => api.get('/tournaments/stats/host/analytics/')),
   // Tournament Management (Host only)
   getManageTournament: (id) => api.get(`/tournaments/${id}/manage/`),
   updateTournamentFields: (id, data) => {
@@ -259,7 +284,9 @@ export const paymentsAPI = {
     }),
   listPayments: () => api.get('/payments/list/'),
   getEarnings: () => api.get('/payments/earnings/'),
-  getHostTransactions: () => api.get('/payments/host-transactions/'),
+  // Cached 60s — completed payments don't change
+  getHostTransactions: () =>
+    withCache('host-transactions', 60000, () => api.get('/payments/host-transactions/')),
 };
 
 // Public axios instance — no auth header (for AllowAny endpoints)
@@ -289,7 +316,11 @@ export const contactAPI = {
 };
 
 export const reportAPI = {
-  submit: (data) => api.post('/accounts/report-issue/', data),
+  submit: (data) => {
+    const config =
+      data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.post('/accounts/report-issue/', data, config);
+  },
 };
 
 // Invite APIs

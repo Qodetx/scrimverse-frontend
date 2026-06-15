@@ -29,9 +29,9 @@ const pad2 = (n) => String(n).padStart(2, '0');
  */
 const flattenGroups = (groups) => {
   const slots = [];
-  let counter = 1;
   if (!Array.isArray(groups)) return slots;
   groups.forEach((group) => {
+    let counter = 3;
     const teams = group.teams || [];
     const groupName = group.group_name || '';
     teams.forEach((team) => {
@@ -367,10 +367,10 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
         groupedSlots.push({ type: 'row', ...slot });
       });
       // Recalculate per-group slot numbers
-      let groupSlotCounter = 1;
+      let groupSlotCounter = 3;
       groupedSlots.forEach((item) => {
         if (item.type === 'header') {
-          groupSlotCounter = 1;
+          groupSlotCounter = 3;
           return;
         }
         item.slotNumber = groupSlotCounter++;

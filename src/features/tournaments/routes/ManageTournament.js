@@ -543,7 +543,7 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
             response.data.tournament.status === 'ongoing' &&
             roundStatusStr !== 'pre_configured'
           ) {
-            await fetchRoundGroups(currentRoundNum);
+            fetchRoundGroups(currentRoundNum); // fire without await — page renders immediately, groups load in background
           }
           if (response.data.tournament.status === 'completed') {
             fetchFinalStandings(response.data.tournament.rounds.length);

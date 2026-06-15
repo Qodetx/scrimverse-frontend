@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -34,6 +34,8 @@ const ReportIssuePage = () => {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [reportId, setReportId] = useState(null);
+  const [screenshotFile, setScreenshotFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -43,11 +45,29 @@ const ReportIssuePage = () => {
     });
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('File too large. Max size is 10MB.', 'error');
+      return;
+    }
+    setScreenshotFile(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await reportAPI.submit(formData);
+      let payload;
+      if (screenshotFile) {
+        payload = new FormData();
+        Object.entries(formData).forEach(([k, v]) => payload.append(k, v));
+        payload.append('evidence', screenshotFile);
+      } else {
+        payload = formData;
+      }
+      const res = await reportAPI.submit(payload);
       setReportId(res.data.report_id);
       setSubmitted(true);
     } catch (err) {
@@ -178,6 +198,7 @@ const ReportIssuePage = () => {
                       onClick={() => {
                         setSubmitted(false);
                         setReportId(null);
+                        setScreenshotFile(null);
                         setFormData({
                           issueType: '',
                           priority: '',
@@ -273,16 +294,26 @@ const ReportIssuePage = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-sm font-medium text-foreground">
-                        Screenshots/Evidence
-                      </label>
-                      <div className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 text-center bg-secondary/20">
+                      <label className="text-sm font-medium text-foreground">Attach Evidence</label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                      />
+                      <div
+                        onClick={() => fileInputRef.current.click()}
+                        className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 text-center bg-secondary/20 cursor-pointer hover:bg-secondary/40 transition-colors"
+                      >
                         <Upload className="h-7 w-7 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Drag and drop files here or click to browse
-                        </p>
+                        {screenshotFile ? (
+                          <p className="text-sm font-medium text-primary">{screenshotFile.name}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Click to attach a file</p>
+                        )}
                         <span className="text-xs text-muted-foreground">
-                          PNG, JPG, GIF up to 10MB
+                          Images or PDF &mdash; up to 10MB
                         </span>
                       </div>
                     </div>

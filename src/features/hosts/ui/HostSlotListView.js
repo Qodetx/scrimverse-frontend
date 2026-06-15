@@ -23,9 +23,9 @@ const pad2 = (n) => String(n).padStart(2, '0');
  */
 const flattenGroups = (groups) => {
   const slots = [];
-  let counter = 1;
   if (!Array.isArray(groups)) return slots;
   groups.forEach((group) => {
+    let counter = 3;
     const teams = group.teams || [];
     teams.forEach((team) => {
       const name = team.team_name || team.player_name || team.name || '';
