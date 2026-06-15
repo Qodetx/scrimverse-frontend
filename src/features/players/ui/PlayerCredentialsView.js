@@ -28,6 +28,8 @@ import {
   Send,
   Loader2,
   Users,
+  Lock,
+  AlertTriangle,
 } from 'lucide-react';
 import { tournamentAPI, teamAPI, authAPI } from '../../../utils/api';
 import { useToast } from '../../../hooks/useToast';
@@ -611,6 +613,9 @@ const IGNInviteModal = ({ teamId, registrationId, onClose, onInviteSent }) => {
 };
 
 // ─── IGN Modal ───────────────────────────────────────────────────────────────
+// Single-page form. Per-field locking: slots that already have an IGN in
+// ign_submissions show as read-only (green lock). Empty slots show an input.
+// No invite/cancel buttons — tournament already started.
 
 const IGNModal = ({
   registration,
@@ -618,20 +623,14 @@ const IGNModal = ({
   myUsername,
   myProfileIGN,
   isCaptain,
-  tournamentStarted,
   onSubmitted,
   onClose,
-  onInviteSent,
 }) => {
-  const { showToast } = useToast();
-  const isViewOnly = !isCaptain || tournamentStarted;
+  const isViewOnly = !isCaptain;
 
-  // Mode cap from tournament game_mode
   const MODE_CAPS = { Squad: 4, '5v5': 5, Duo: 2, Solo: 1 };
   const modeCap = MODE_CAPS[registration.tournament?.game_mode] || 4;
-  const teamId = registration.team;
 
-  // Build slots: filled (real members) + pending (invited_members_status) + empty
   const captainUsername = registration.player?.user?.username || myUsername || '';
   const realMembers = (registration.team_members || []).filter(
     (m) => m && (m.username || '').trim() && m.username !== captainUsername
@@ -643,76 +642,30 @@ const IGNModal = ({
 
   const ignSubmissions = registration.ign_submissions || {};
 
-  // Captain fills all — one IGN per member
+  const ims = registration.invited_members_status || {};
+  const pendingKeys = Object.keys(ims).filter((k) => ims[k]?.status === 'pending');
+  const emptyCount = Math.max(0, modeCap - filledSlots.length - pendingKeys.length);
+
+  // ignMap holds NEW values only — slots already in ignSubmissions are read-only
   const [ignMap, setIgnMap] = useState(() => {
     const init = {};
     filledSlots.forEach((s) => {
-      init[s.username] =
-        ignSubmissions[s.username] || (s.username === myUsername ? myProfileIGN || '' : '');
+      if (!ignSubmissions[s.username]) {
+        init[s.username] = s.username === myUsername ? myProfileIGN || '' : '';
+      }
+    });
+    pendingKeys.forEach((id) => {
+      if (!ignSubmissions[id]) init[id] = '';
     });
     return init;
   });
 
-  const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [localPendingSlots, setLocalPendingSlots] = useState([]);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [pendingInvites, setPendingInvites] = useState([]);
-  const [cancellingInvite, setCancellingInvite] = useState(null);
 
-  // Load team's pending invites on mount so cancel has the invite ID ready (same as Teams tab)
-  useEffect(() => {
-    if (!teamId || isViewOnly) return;
-    teamAPI
-      .getTeam(teamId)
-      .then((res) => {
-        setPendingInvites(
-          (res.data?.invited_members || []).filter((inv) => inv.status === 'pending')
-        );
-      })
-      .catch(() => {});
-  }, [teamId, isViewOnly]);
-
-  const refreshPendingInvites = () => {
-    if (!teamId) return;
-    teamAPI
-      .getTeam(teamId)
-      .then((res) => {
-        setPendingInvites(
-          (res.data?.invited_members || []).filter((inv) => inv.status === 'pending')
-        );
-      })
-      .catch(() => {});
-  };
-
-  const handleCancelInvite = async (identifier) => {
-    const invite = pendingInvites.find((inv) => inv.identifier === identifier);
-    if (!invite) return;
-    setCancellingInvite(identifier);
-    try {
-      await teamAPI.cancelInvite(teamId, invite.id);
-      setLocalPendingSlots((prev) => prev.filter((k) => k !== identifier));
-      showToast('Invite cancelled', 'success');
-      refreshPendingInvites();
-      if (onInviteSent) onInviteSent();
-    } catch (err) {
-      showToast(err.response?.data?.error || 'Failed to cancel invite', 'error');
-    } finally {
-      setCancellingInvite(null);
-    }
-  };
-
-  // Pending slots: server state + optimistic local additions
-  const ims = registration.invited_members_status || {};
-  const serverPendingKeys = Object.keys(ims).filter((k) => ims[k]?.status === 'pending');
-  const allPendingKeys = [...new Set([...serverPendingKeys, ...localPendingSlots])];
-  const emptyCount = Math.max(0, modeCap - filledSlots.length - allPendingKeys.length);
-
-  // Unified slot list for rendering
   const allSlots = [
     ...filledSlots.map((s) => ({ type: 'filled', ...s })),
-    ...allPendingKeys.map((id) => ({ type: 'pending', identifier: id })),
+    ...pendingKeys.map((id) => ({ type: 'pending', identifier: id })),
     ...Array(emptyCount)
       .fill(null)
       .map((_, i) => ({ type: 'empty', emptyIdx: i })),
@@ -723,29 +676,15 @@ const IGNModal = ({
     if (e.target === e.currentTarget) onClose();
   };
 
-  const handleConfirmStep1 = () => {
-    const missingCount = allPendingKeys.length + emptyCount;
-    if (missingCount > 0) {
-      setError(`${missingCount} member(s) still missing — invite them to continue.`);
-      return;
-    }
-    const emptyIgns = filledSlots.filter((s) => !ignMap[s.username]?.trim());
-    if (emptyIgns.length > 0) {
-      setError('Please enter IGN for all team members before confirming.');
-      return;
-    }
-    setError('');
-    setStep(2);
-  };
+  const hasNewEntries = Object.values(ignMap).some((v) => (v || '').trim());
 
-  const handleFinalSubmit = async () => {
+  const handleSubmit = async () => {
     setSubmitting(true);
     setError('');
     try {
       const finalMap = {};
-      filledSlots.forEach((s) => {
-        if (s.username && ignMap[s.username]?.trim())
-          finalMap[s.username] = ignMap[s.username].trim();
+      Object.entries(ignMap).forEach(([key, val]) => {
+        if (val?.trim()) finalMap[key] = val.trim();
       });
       const res = await tournamentAPI.submitIGN(registration.tournament.id, registration.id, {
         ign_submissions: finalMap,
@@ -755,9 +694,8 @@ const IGNModal = ({
       const msg =
         err?.response?.data?.error ||
         err?.response?.data?.detail ||
-        'Failed to submit IGN. Please try again.';
+        'Failed to save IGNs. Please try again.';
       setError(msg);
-      setStep(1);
     } finally {
       setSubmitting(false);
     }
@@ -769,14 +707,10 @@ const IGNModal = ({
         {/* Header */}
         <div className="credentials-modal-header">
           <div className="flex items-center gap-2">
-            {step === 1 ? (
-              <ShieldAlert size={16} style={{ color: 'hsl(var(--destructive))' }} />
-            ) : (
-              <ShieldCheck size={16} style={{ color: '#10b981' }} />
-            )}
+            <ShieldAlert size={16} style={{ color: 'hsl(var(--destructive))' }} />
             <div>
               <p className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
-                {step === 1 ? 'Mandatory IGN Verification' : 'Double Verification STEP 2/2'}
+                Team IGN Submission
               </p>
               <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
                 {game}
@@ -790,255 +724,158 @@ const IGNModal = ({
 
         {/* Body */}
         <div className="p-4 space-y-3">
-          {/* Warning banner */}
           <div className="credentials-ign-warning">
             <ShieldAlert size={13} style={{ color: '#f87171', flexShrink: 0 }} />
             <span>
-              {step === 1
-                ? 'Enter your in-game name exactly as it appears in ' +
-                  game +
-                  '. Mismatched IGNs may result in disqualification.'
-                : 'Once confirmed, your IGN is locked for this championship. Joining with a different name will disqualify your team.'}
+              Enter IGNs exactly as they appear in {game}. Once saved, each IGN is locked and cannot
+              be changed.
             </span>
           </div>
 
-          {step === 1 ? (
-            <>
-              {/* All slots — filled, pending, empty */}
-              <div className="grid grid-cols-2 gap-2">
-                {allSlots.map((slot, idx) => {
-                  if (slot.type === 'filled') {
-                    const uname = slot.username;
-                    const isMe = uname === myUsername;
-                    const submittedIgn = ignSubmissions[uname];
-                    const currentVal = ignMap[uname] || '';
-                    return (
-                      <div
-                        key={uname}
-                        className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="credentials-ign-player-num">P{idx + 1}</span>
-                            <span className="credentials-ign-player-name">{uname}</span>
-                            {isMe && <span className="credentials-ign-you-badge">YOU</span>}
-                          </div>
-                          {submittedIgn && !isCaptain && (
-                            <CircleCheck size={13} style={{ color: '#10b981' }} />
-                          )}
-                        </div>
-                        {!isViewOnly ? (
-                          <input
-                            className="credentials-ign-input"
-                            type="text"
-                            value={currentVal}
-                            onChange={(e) => {
-                              setIgnMap((prev) => ({ ...prev, [uname]: e.target.value }));
-                              setError('');
-                            }}
-                            placeholder="Enter IGN"
-                            maxLength={50}
-                            autoFocus={isMe && idx === 0}
-                          />
-                        ) : (
-                          <div className="credentials-ign-readonly">
-                            {submittedIgn ? (
-                              <span style={{ color: '#10b981', fontWeight: 600 }}>
-                                {submittedIgn}
-                              </span>
-                            ) : (
-                              <span
-                                style={{
-                                  color: 'hsl(var(--muted-foreground))',
-                                  fontStyle: 'italic',
-                                }}
-                              >
-                                Not submitted yet
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  if (slot.type === 'pending') {
-                    const isCancelling = cancellingInvite === slot.identifier;
-                    return (
-                      <div
-                        key={slot.identifier}
-                        className="credentials-ign-player-card credentials-ign-pending-slot"
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="credentials-ign-player-num">P{idx + 1}</span>
-                            <span className="credentials-ign-player-name credentials-ign-pending-name">
-                              {slot.identifier}
-                            </span>
-                          </div>
-                          {!isViewOnly && (
-                            <button
-                              onClick={() => handleCancelInvite(slot.identifier)}
-                              disabled={isCancelling}
-                              title="Cancel invite"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '3px 6px',
-                                fontSize: 11,
-                                borderRadius: 6,
-                                border: '1px solid rgba(239, 68, 68, 0.25)',
-                                background: 'rgba(239, 68, 68, 0.08)',
-                                color: '#f87171',
-                                cursor: isCancelling ? 'not-allowed' : 'pointer',
-                                opacity: isCancelling ? 0.5 : 1,
-                              }}
-                            >
-                              <X size={11} />
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="credentials-ign-pending-badge">Invite pending</span>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // empty slot
-                  return (
-                    <div
-                      key={`empty-${slot.emptyIdx}`}
-                      className="credentials-ign-player-card credentials-ign-empty-slot"
-                    >
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="credentials-ign-player-num">P{idx + 1}</span>
-                        <span
-                          className="credentials-ign-player-name"
-                          style={{ color: 'hsl(var(--muted-foreground))' }}
-                        >
-                          Empty slot
-                        </span>
-                      </div>
-                      {!isViewOnly && (
-                        <button
-                          className="credentials-ign-invite-btn"
-                          onClick={() => setShowInviteModal(true)}
-                        >
-                          <UserPlus size={12} />
-                          Invite
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {error && (
-                <p className="text-xs" style={{ color: 'hsl(var(--destructive))' }}>
-                  {error}
-                </p>
-              )}
-
-              <div className="flex gap-2 pt-1">
-                <button className="credentials-action-btn flex-1" onClick={onClose}>
-                  {isViewOnly ? 'Close' : 'Cancel'}
-                </button>
-                {!isViewOnly && (
-                  <button
-                    className="credentials-ign-confirm-btn flex-1"
-                    onClick={handleConfirmStep1}
+          <div className="grid grid-cols-2 gap-2">
+            {allSlots.map((slot, idx) => {
+              if (slot.type === 'filled') {
+                const uname = slot.username;
+                const isMe = uname === myUsername;
+                const lockedIgn = ignSubmissions[uname];
+                return (
+                  <div
+                    key={uname}
+                    className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
                   >
-                    Next — Confirm IGN
-                    <ChevronRight size={14} />
-                  </button>
-                )}
-                {tournamentStarted && isCaptain && (
-                  <p
-                    className="text-xs flex-1 text-center"
-                    style={{ color: 'hsl(var(--muted-foreground))', alignSelf: 'center' }}
-                  >
-                    IGNs locked after tournament starts
-                  </p>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Step 2: confirm all IGNs before locking */}
-              <div className="grid grid-cols-2 gap-2">
-                {filledSlots.map((s, idx) => {
-                  const isMe = s.username === myUsername;
-                  const displayIgn = ignMap[s.username]?.trim() || null;
-                  return (
-                    <div
-                      key={s.username}
-                      className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
                         <span className="credentials-ign-player-num">P{idx + 1}</span>
-                        <span className="credentials-ign-player-name">{s.username}</span>
+                        <span className="credentials-ign-player-name">{uname}</span>
                         {isMe && <span className="credentials-ign-you-badge">YOU</span>}
                       </div>
-                      <div className="credentials-ign-readonly">
-                        {displayIgn ? (
-                          <span style={{ color: '#10b981', fontWeight: 600 }}>{displayIgn}</span>
-                        ) : (
-                          <span
-                            style={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}
-                          >
-                            Not entered
-                          </span>
-                        )}
-                      </div>
+                      {lockedIgn && <CircleCheck size={13} style={{ color: '#10b981' }} />}
                     </div>
-                  );
-                })}
-              </div>
+                    {lockedIgn ? (
+                      <div className="credentials-ign-locked-field">
+                        <span className="credentials-ign-locked-value">{lockedIgn}</span>
+                        <Lock size={11} style={{ color: '#10b981', flexShrink: 0 }} />
+                      </div>
+                    ) : !isViewOnly ? (
+                      <input
+                        className="credentials-ign-input"
+                        type="text"
+                        value={ignMap[uname] || ''}
+                        onChange={(e) =>
+                          setIgnMap((prev) => ({ ...prev, [uname]: e.target.value }))
+                        }
+                        placeholder="Enter IGN"
+                        maxLength={50}
+                        autoFocus={isMe && idx === 0}
+                      />
+                    ) : (
+                      <div className="credentials-ign-readonly">
+                        <span
+                          style={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}
+                        >
+                          Not submitted yet
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
 
-              {error && (
-                <p className="text-xs" style={{ color: 'hsl(var(--destructive))' }}>
-                  {error}
-                </p>
-              )}
+              if (slot.type === 'pending') {
+                const lockedIgn = ignSubmissions[slot.identifier];
+                return (
+                  <div
+                    key={slot.identifier}
+                    className="credentials-ign-player-card credentials-ign-pending-slot"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="credentials-ign-player-num">P{idx + 1}</span>
+                        <span className="credentials-ign-player-name credentials-ign-pending-name">
+                          {slot.identifier}
+                        </span>
+                      </div>
+                      {lockedIgn && <CircleCheck size={13} style={{ color: '#10b981' }} />}
+                    </div>
+                    <span
+                      className="credentials-ign-pending-badge"
+                      style={{ marginBottom: '6px', display: 'inline-block' }}
+                    >
+                      Invite pending
+                    </span>
+                    {lockedIgn ? (
+                      <div className="credentials-ign-locked-field">
+                        <span className="credentials-ign-locked-value">{lockedIgn}</span>
+                        <Lock size={11} style={{ color: '#10b981', flexShrink: 0 }} />
+                      </div>
+                    ) : !isViewOnly ? (
+                      <input
+                        className="credentials-ign-input"
+                        type="text"
+                        value={ignMap[slot.identifier] || ''}
+                        onChange={(e) =>
+                          setIgnMap((prev) => ({ ...prev, [slot.identifier]: e.target.value }))
+                        }
+                        placeholder="Enter IGN (optional)"
+                        maxLength={50}
+                      />
+                    ) : null}
+                  </div>
+                );
+              }
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  className="credentials-action-btn flex-1"
-                  onClick={() => {
-                    setStep(1);
-                    setError('');
-                  }}
+              // empty slot — no player, no input
+              return (
+                <div
+                  key={`empty-${slot.emptyIdx}`}
+                  className="credentials-ign-player-card credentials-ign-empty-slot"
                 >
-                  Go Back
-                </button>
-                <button
-                  className="credentials-ign-confirm-btn credentials-ign-confirm-btn-green flex-1"
-                  onClick={handleFinalSubmit}
-                  disabled={submitting}
-                >
-                  {submitting ? 'Submitting...' : 'Confirm & Lock IGN'}
-                  {!submitting && <ShieldCheck size={14} />}
-                </button>
-              </div>
-            </>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="credentials-ign-player-num">P{idx + 1}</span>
+                    <span
+                      className="credentials-ign-player-name"
+                      style={{ color: 'hsl(var(--muted-foreground))' }}
+                    >
+                      Empty slot
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      color: 'hsl(var(--muted-foreground))',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    No player
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {error && (
+            <p className="text-xs" style={{ color: 'hsl(var(--destructive))' }}>
+              {error}
+            </p>
           )}
+
+          <div className="flex gap-2 pt-1">
+            <button className="credentials-action-btn flex-1" onClick={onClose}>
+              {isViewOnly ? 'Close' : 'Cancel'}
+            </button>
+            {!isViewOnly && (
+              <button
+                className="credentials-ign-confirm-btn credentials-ign-confirm-btn-green flex-1"
+                onClick={handleSubmit}
+                disabled={submitting || !hasNewEntries}
+              >
+                {submitting ? 'Saving...' : 'Save IGNs'}
+                {!submitting && <ShieldCheck size={14} />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
-
-      {showInviteModal && (
-        <IGNInviteModal
-          teamId={teamId}
-          registrationId={registration.id}
-          onClose={() => setShowInviteModal(false)}
-          onInviteSent={(identifier) => {
-            setLocalPendingSlots((prev) => [...prev, identifier]);
-            setShowInviteModal(false);
-            refreshPendingInvites();
-            if (onInviteSent) onInviteSent();
-          }}
-        />
-      )}
     </div>
   );
 };
@@ -1058,14 +895,12 @@ const CredentialCard = ({ registration: initialRegistration }) => {
   // My own username
   const myUsername = user?.user?.username || user?.username || '';
 
-  // IGN gate: skip for completed tournaments that have no ign_submissions at all
-  // (these are old tournaments that existed before this feature was deployed)
-  const hasAnyIgnSubmissions = Object.keys(registration.ign_submissions || {}).length > 0;
-  const isCompletedLegacy = tournament.status === 'completed' && !hasAnyIgnSubmissions;
-
-  // Has this player submitted their IGN for this tournament?
-  // Also treat legacy completed tournaments as already verified so they show creds directly
-  const myIgnSubmitted = isCompletedLegacy || (registration.ign_submissions || {})[myUsername];
+  // IGN verification temporarily disabled — credentials show directly without IGN gate
+  // Re-enable by uncommenting the lines below and removing the const myIgnSubmitted = true line
+  // const hasAnyIgnSubmissions = Object.keys(registration.ign_submissions || {}).length > 0;
+  // const isCompletedLegacy = tournament.status === 'completed' && !hasAnyIgnSubmissions;
+  // const myIgnSubmitted = isCompletedLegacy || (registration.ign_submissions || {})[myUsername];
+  const myIgnSubmitted = true;
 
   // Pre-fill IGN from player profile if available
   const gameName = tournament.game_name;
@@ -1333,8 +1168,8 @@ const CredentialCard = ({ registration: initialRegistration }) => {
             return inGroup ? g.group_name || `Group ${gIdx + 1}` : null;
           }, null);
           let mySlot = null;
-          let counter = 0;
           for (const g of currentGroups || []) {
+            let counter = 2;
             for (const t of g.teams || []) {
               counter++;
               if ((t.team_name || '').toLowerCase() === registration.team_name.toLowerCase()) {
@@ -1506,6 +1341,8 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                                 </div>
                                 <div className="text-right shrink-0">
                                   <div className="credentials-ign-timer-value">
+                                    {matchCredCountdown.d > 0 &&
+                                      `${String(matchCredCountdown.d).padStart(2, '0')}d `}
                                     {String(matchCredCountdown.h).padStart(2, '0')}:
                                     {String(matchCredCountdown.m).padStart(2, '0')}:
                                     {String(matchCredCountdown.s).padStart(2, '0')}
@@ -1529,6 +1366,9 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                                   <Clock size={14} className="credentials-ign-clock-icon" />
                                 </button>
                               </div>
+                              <p className="credentials-match-start-notice">
+                                Matches start exactly 10 minutes after the IDP is revealed.
+                              </p>
                             </div>
                           ) : null
                         ) : isValorant ? (
@@ -1632,6 +1472,8 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="credentials-ign-timer-value">
+                          {matchCredCountdown.d > 0 &&
+                            `${String(matchCredCountdown.d).padStart(2, '0')}d `}
                           {String(matchCredCountdown.h).padStart(2, '0')}:
                           {String(matchCredCountdown.m).padStart(2, '0')}:
                           {String(matchCredCountdown.s).padStart(2, '0')}
@@ -1655,6 +1497,9 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                         <Clock size={14} className="credentials-ign-clock-icon" />
                       </button>
                     </div>
+                    <p className="credentials-match-start-notice">
+                      Matches start exactly 10 minutes after the IDP is revealed.
+                    </p>
                   </div>
                 ) : credCountdown && !credCountdown.expired ? (
                   /* Tournament-level countdown: green state from coderef */
@@ -1673,6 +1518,7 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="credentials-ign-timer-value">
+                          {credCountdown.d > 0 && `${String(credCountdown.d).padStart(2, '0')}d `}
                           {String(credCountdown.h).padStart(2, '0')}:
                           {String(credCountdown.m).padStart(2, '0')}:
                           {String(credCountdown.s).padStart(2, '0')}
@@ -1732,24 +1578,65 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                         <Clock size={14} className="credentials-ign-clock-icon" />
                       </button>
                     </div>
+                    <p className="credentials-match-start-notice">
+                      Matches start exactly 10 minutes after the IDP is revealed.
+                    </p>
                   </div>
                 ) : (
                   <div className="credentials-no-creds">
                     <p>Credentials not released yet</p>
                   </div>
                 )}
-                {/* Player IGNs — always visible after IGN submitted; click to view/edit */}
-                <button
-                  className="credentials-ign-players-btn"
-                  onClick={() => setShowIgnModal(true)}
-                >
-                  <ShieldCheck size={12} />
-                  <span>Player IGNs</span>
-                  <ChevronRight size={12} style={{ marginLeft: 'auto' }} />
-                </button>
+                {/* Captain IGN submission — ongoing + captain + not fully locked */}
+                {tournament.status === 'ongoing' &&
+                  registration.player?.user?.username === myUsername &&
+                  !registration.ign_locked && (
+                    <button
+                      className="credentials-ign-players-btn"
+                      onClick={() => setShowIgnModal(true)}
+                      style={{ marginTop: '0.5rem' }}
+                    >
+                      <AlertTriangle size={12} />
+                      <span>Enter / Update Team IGNs</span>
+                    </button>
+                  )}
               </>
             )}
           </div>
+
+          {/* ── Qualification / Elimination status banner ── */}
+          {/* Hide during active match (IDP scheduled/revealed); show only after round completes */}
+          {tournament.status === 'ongoing' &&
+            (tournament.current_round || 1) > 1 &&
+            Array.isArray(currentGroups) &&
+            currentGroups.length > 0 &&
+            !currentGroups.some((g) =>
+              (g.matches || []).some((m) => m.credential_release_time || m.match_id)
+            ) &&
+            (() => {
+              const isQualified = currentGroups.some((g) =>
+                (g.teams || []).some(
+                  (t) => (t.team_name || '').toLowerCase() === registration.team_name.toLowerCase()
+                )
+              );
+              const roundLabel =
+                (tournament.round_names || {})[String(tournament.current_round)] ||
+                `Round ${tournament.current_round}`;
+              return isQualified ? (
+                <div className="credentials-status-banner credentials-status-banner--qualified">
+                  <Trophy size={13} style={{ flexShrink: 0 }} />
+                  <span>
+                    Congratulations! Your team qualified for{' '}
+                    <strong>{roundLabel.toUpperCase()}</strong>
+                  </span>
+                </div>
+              ) : (
+                <div className="credentials-status-banner credentials-status-banner--eliminated">
+                  <X size={13} style={{ flexShrink: 0 }} />
+                  <span>Your team has been eliminated. Better luck next time!</span>
+                </div>
+              );
+            })()}
 
           {/* ── Actions row ── */}
           <div className="flex gap-2 mt-3">
@@ -1798,10 +1685,8 @@ const CredentialCard = ({ registration: initialRegistration }) => {
           myUsername={myUsername}
           myProfileIGN={myProfileIGN}
           isCaptain={registration.player?.user?.username === myUsername}
-          tournamentStarted={tournament.status === 'ongoing' || tournament.status === 'completed'}
           onSubmitted={handleIgnSubmitted}
           onClose={() => setShowIgnModal(false)}
-          onInviteSent={refreshRegistration}
         />
       )}
     </>
