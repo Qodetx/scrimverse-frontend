@@ -1,6 +1,7 @@
 // Scrimverse Standings Image Generator — NEON LEAGUE Edition
 
 import pointsTableBg from '../../../assets/pointtablenew.png';
+import smrLogo from '../../../assets/smrlogo.png';
 
 // ─── Custom background image calibration (pointtablenew.png 1086×1449 → scaled to 1080×1441) ─
 const BG_TITLE_Y = 355; // Center Y of dynamic title text
@@ -65,6 +66,7 @@ const _renderStandingsPage = ({
   totalPages,
   rankOffset,
   bgImage,
+  logoImage,
 }) => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -117,6 +119,19 @@ const _renderStandingsPage = ({
     const imgScaledH = Math.round((bgImage.naturalHeight / bgImage.naturalWidth) * W);
     canvas.height = imgScaledH;
     ctx.drawImage(bgImage, 0, 0, W, imgScaledH);
+
+    if (logoImage) {
+      ctx.font = '800 30px "Outfit", sans-serif';
+      const swL = ctx.measureText('SCRIM').width;
+      const vwL = ctx.measureText('VERSE').width;
+      const textWidth = swL + vwL;
+
+      const logoH = 68;
+      const logoW = (logoImage.naturalWidth / logoImage.naturalHeight) * logoH;
+      const logoX = PAD_X + textWidth + 15;
+      const logoY = 16;
+      ctx.drawImage(logoImage, logoX, logoY, logoW, logoH);
+    }
 
     // Stage heading
     let stageHeading = '';
@@ -366,6 +381,7 @@ const _renderStandingsPage = ({
   const LOGO_Y = 54;
   ctx.font = '800 30px "Outfit", sans-serif';
   const swL = ctx.measureText('SCRIM').width;
+  const vwL = ctx.measureText('VERSE').width;
   ctx.fillStyle = '#FFFFFF';
   ctx.textAlign = 'left';
   ctx.shadowColor = 'rgba(0,0,0,0.9)';
@@ -374,6 +390,14 @@ const _renderStandingsPage = ({
   ctx.fillStyle = '#C084FC';
   ctx.fillText('VERSE', PAD_X + swL, LOGO_Y);
   ctx.shadowBlur = 0;
+
+  if (logoImage) {
+    const logoH = 68;
+    const logoW = (logoImage.naturalWidth / logoImage.naturalHeight) * logoH;
+    const logoX = PAD_X + swL + vwL + 15;
+    const logoY = 16;
+    ctx.drawImage(logoImage, logoX, logoY, logoW, logoH);
+  }
 
   // Game badge
   const gameLabel = (tournament?.game_name || '').toUpperCase();
@@ -863,18 +887,21 @@ export const generateStandingsImage = async ({
 }) => {
   await loadPremiumFonts();
 
-  // Load custom background image for page 1
-  let bgImage = null;
-  try {
-    bgImage = await new Promise((resolve, reject) => {
+  // Load custom background image and logo image
+  const [bgImage, logoImage] = await Promise.all([
+    new Promise((resolve) => {
       const img = new Image();
       img.onload = () => resolve(img);
-      img.onerror = reject;
+      img.onerror = () => resolve(null);
       img.src = pointsTableBg;
-    });
-  } catch {
-    // fallback to procedural rendering if image fails
-  }
+    }),
+    new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = smrLogo;
+    }),
+  ]);
 
   const pg1Max = bgImage ? BG_MAX_ROWS_PG1 : TEAMS_PAGE_1;
   const pgNMax = bgImage ? BG_MAX_ROWS_PG1 : TEAMS_PAGE_N;
@@ -910,6 +937,7 @@ export const generateStandingsImage = async ({
       totalPages,
       rankOffset,
       bgImage: bgImage,
+      logoImage: logoImage,
     });
     rankOffset += chunk.length;
     return url;

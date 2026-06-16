@@ -284,19 +284,21 @@ const PlayerPointsTableViewAuthenticated = () => {
           totals[id] = {
             team_id: id,
             team_name: score.team_name || score.name || '',
-            wins: '-',
+            wins: 0,
             position_points: 0,
             kill_points: 0,
             total_points: 0,
           };
         }
+        totals[id].wins += score.wins || 0;
         totals[id].position_points += score.position_points || 0;
         totals[id].kill_points += score.kill_points || 0;
         totals[id].total_points += (score.position_points || 0) + (score.kill_points || 0);
       });
     });
     return Object.values(totals).sort(
-      (a, b) => b.total_points - a.total_points || b.position_points - a.position_points
+      (a, b) =>
+        b.total_points - a.total_points || b.wins - a.wins || b.position_points - a.position_points
     );
   }, [selectedGroup]);
 
