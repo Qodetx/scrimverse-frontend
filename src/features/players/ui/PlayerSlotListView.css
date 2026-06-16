@@ -155,7 +155,7 @@
   }
 }
 
-/* ── Permanent Join Community button + dropdown ──────────────────────────── */
+/* ── Community buttons ───────────────────────────────────────────────────── */
 
 .sl-community-permanent-btn {
   display: flex;
@@ -167,52 +167,22 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  background: #ffffff;
-  border: 1px solid #ffffff;
-  color: #000000;
-  transition:
-    background 0.2s,
-    border-color 0.2s;
+  border: none;
+  transition: filter 0.2s;
 }
 
 .sl-community-permanent-btn:hover {
-  background: #f0f0f0;
-  border-color: #f0f0f0;
+  filter: brightness(1.1);
 }
 
-.sl-community-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 50;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border) / 0.5);
-  border-radius: 0.5rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  min-width: 140px;
-  overflow: hidden;
+.sl-community-whatsapp-btn {
+  background: #25d366;
+  color: #ffffff;
 }
 
-.sl-community-dropdown-item {
-  display: block;
-  width: 100%;
-  padding: 0.6rem 1rem;
-  text-align: left;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: hsl(var(--foreground));
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.sl-community-dropdown-item:hover {
-  background: hsl(var(--secondary) / 0.5);
-}
-
-.sl-community-dropdown-ig {
-  border-top: 1px solid hsl(var(--border) / 0.3);
+.sl-community-instagram-btn {
+  background: linear-gradient(135deg, #f58529 0%, #dd2a7b 50%, #8134af 100%);
+  color: #ffffff;
 }
 
 /* ── Tournament filter dropdown (fixed width so it never pushes other buttons off) ── */

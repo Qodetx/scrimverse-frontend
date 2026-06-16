@@ -126,9 +126,6 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
   const [waJoined, setWaJoined] = useState(false);
   const [igJoined, setIgJoined] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
-  const communityDropdownRef = useRef(null);
-
   const dropdownRef = useRef(null);
   const slotCardRef = useRef(null);
 
@@ -141,9 +138,6 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
       }
       if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target)) {
         setDownloadMenuOpen(false);
-      }
-      if (communityDropdownRef.current && !communityDropdownRef.current.contains(e.target)) {
-        setCommunityDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -605,6 +599,9 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
           <div className="sl-community-banner-actions">
             {showWaBanner && (
               <button className="sl-community-join-btn" onClick={handleWaBannerJoin}>
+                <svg viewBox="0 0 32 32" width="13" height="13" fill="currentColor">
+                  <path d="M16 0C7.163 0 0 7.163 0 16c0 2.822.736 5.472 2.027 7.77L0 32l8.43-2.007A15.934 15.934 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm0 29.333a13.27 13.27 0 01-6.77-1.853l-.485-.288-5.003 1.192 1.213-4.873-.317-.5A13.28 13.28 0 012.667 16C2.667 8.637 8.637 2.667 16 2.667S29.333 8.637 29.333 16 23.363 29.333 16 29.333zm7.27-9.97c-.398-.2-2.355-1.162-2.72-1.294-.365-.133-.63-.2-.896.2s-1.028 1.294-1.26 1.56c-.232.266-.464.3-.862.1-.398-.2-1.68-.62-3.2-1.977-1.183-1.056-1.98-2.36-2.213-2.758-.232-.398-.025-.613.175-.812.18-.178.398-.464.597-.697.2-.232.266-.398.398-.664.133-.266.067-.498-.033-.697-.1-.2-.896-2.16-1.228-2.958-.323-.776-.65-.67-.896-.683l-.763-.013c-.266 0-.697.1-1.063.498-.365.398-1.394 1.362-1.394 3.322s1.427 3.853 1.626 4.12c.2.265 2.808 4.287 6.806 6.013.951.41 1.693.655 2.272.838.954.303 1.823.26 2.51.158.766-.114 2.355-.963 2.687-1.893.332-.93.332-1.727.232-1.893-.1-.166-.365-.266-.763-.465z" />
+                </svg>
                 Join WhatsApp
               </button>
             )}
@@ -613,6 +610,9 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
                 className="sl-community-join-btn sl-community-ig-btn"
                 onClick={handleIgBannerJoin}
               >
+                <svg viewBox="0 0 32 32" width="13" height="13" fill="currentColor">
+                  <path d="M16 2.882c4.27 0 4.776.016 6.46.093 1.56.071 2.407.332 2.97.55a4.956 4.956 0 011.84 1.196 4.956 4.956 0 011.196 1.84c.219.563.48 1.41.55 2.97.077 1.685.094 2.19.094 6.46s-.017 4.776-.094 6.46c-.07 1.56-.331 2.407-.55 2.97a4.956 4.956 0 01-1.196 1.84 4.956 4.956 0 01-1.84 1.196c-.563.219-1.41.48-2.97.55-1.684.077-2.19.094-6.46.094s-4.776-.017-6.46-.094c-1.56-.07-2.407-.331-2.97-.55a4.956 4.956 0 01-1.84-1.196 4.956 4.956 0 01-1.196-1.84c-.219-.563-.48-1.41-.55-2.97C2.898 20.776 2.88 20.27 2.88 16s.017-4.776.094-6.46c.07-1.56.331-2.407.55-2.97a4.956 4.956 0 011.196-1.84 4.956 4.956 0 011.84-1.196c.563-.219 1.41-.48 2.97-.55 1.684-.077 2.19-.093 6.46-.093M16 0c-4.344 0-4.888.018-6.592.096C7.71.174 6.546.444 5.535.84a7.836 7.836 0 00-2.833 1.844A7.836 7.836 0 00.858 5.517C.462 6.528.192 7.692.114 9.39.036 11.094 0 11.638 0 16s.018 4.906.096 6.61c.078 1.698.348 2.862.744 3.873a7.836 7.836 0 001.844 2.833 7.836 7.836 0 002.833 1.844c1.011.396 2.175.666 3.873.744C11.094 31.982 11.638 32 16 32s4.906-.018 6.61-.096c1.698-.078 2.862-.348 3.873-.744a7.836 7.836 0 002.833-1.844 7.836 7.836 0 001.844-2.833c.396-1.011.666-2.175.744-3.873C31.982 20.906 32 20.362 32 16s-.018-4.906-.096-6.61c-.078-1.698-.348-2.862-.744-3.873a7.836 7.836 0 00-1.844-2.833A7.836 7.836 0 0026.483.84C25.472.444 24.308.174 22.61.096 20.906.018 20.362 0 16 0zm0 7.784a8.216 8.216 0 100 16.432 8.216 8.216 0 000-16.432zm0 13.549a5.333 5.333 0 110-10.666 5.333 5.333 0 010 10.666zm8.538-13.878a1.92 1.92 0 11-3.84 0 1.92 1.92 0 013.84 0z" />
+                </svg>
                 Join Instagram
               </button>
             )}
@@ -645,53 +645,34 @@ const PlayerSlotListViewAuthenticated = ({ focusTournamentId: externalFocusId } 
             </a>
           )}
 
-          {/* Permanent Join Community button */}
-          {(communitySettings.whatsapp_link || communitySettings.instagram_link) && (
-            <div className="relative" ref={communityDropdownRef}>
-              <button
-                onClick={() => setCommunityDropdownOpen((v) => !v)}
-                className="sl-community-permanent-btn"
-              >
-                <Sparkles size={13} />
-                Join Community
-              </button>
-              {communityDropdownOpen && (
-                <div className="sl-community-dropdown">
-                  {communitySettings.whatsapp_link && (
-                    <button
-                      className="sl-community-dropdown-item"
-                      onClick={() => {
-                        window.open(
-                          communitySettings.whatsapp_link,
-                          '_blank',
-                          'noopener,noreferrer'
-                        );
-                        communityAPI.recordJoin('whatsapp').catch(() => {});
-                        setCommunityDropdownOpen(false);
-                      }}
-                    >
-                      WhatsApp
-                    </button>
-                  )}
-                  {communitySettings.instagram_link && (
-                    <button
-                      className="sl-community-dropdown-item sl-community-dropdown-ig"
-                      onClick={() => {
-                        window.open(
-                          communitySettings.instagram_link,
-                          '_blank',
-                          'noopener,noreferrer'
-                        );
-                        communityAPI.recordJoin('instagram').catch(() => {});
-                        setCommunityDropdownOpen(false);
-                      }}
-                    >
-                      Instagram
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+          {/* Community buttons */}
+          {communitySettings.whatsapp_link && (
+            <button
+              className="sl-community-permanent-btn sl-community-whatsapp-btn"
+              onClick={() => {
+                window.open(communitySettings.whatsapp_link, '_blank', 'noopener,noreferrer');
+                communityAPI.recordJoin('whatsapp').catch(() => {});
+              }}
+            >
+              <svg viewBox="0 0 32 32" width="13" height="13" fill="currentColor">
+                <path d="M16 0C7.163 0 0 7.163 0 16c0 2.822.736 5.472 2.027 7.77L0 32l8.43-2.007A15.934 15.934 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm0 29.333a13.27 13.27 0 01-6.77-1.853l-.485-.288-5.003 1.192 1.213-4.873-.317-.5A13.28 13.28 0 012.667 16C2.667 8.637 8.637 2.667 16 2.667S29.333 8.637 29.333 16 23.363 29.333 16 29.333zm7.27-9.97c-.398-.2-2.355-1.162-2.72-1.294-.365-.133-.63-.2-.896.2s-1.028 1.294-1.26 1.56c-.232.266-.464.3-.862.1-.398-.2-1.68-.62-3.2-1.977-1.183-1.056-1.98-2.36-2.213-2.758-.232-.398-.025-.613.175-.812.18-.178.398-.464.597-.697.2-.232.266-.398.398-.664.133-.266.067-.498-.033-.697-.1-.2-.896-2.16-1.228-2.958-.323-.776-.65-.67-.896-.683l-.763-.013c-.266 0-.697.1-1.063.498-.365.398-1.394 1.362-1.394 3.322s1.427 3.853 1.626 4.12c.2.265 2.808 4.287 6.806 6.013.951.41 1.693.655 2.272.838.954.303 1.823.26 2.51.158.766-.114 2.355-.963 2.687-1.893.332-.93.332-1.727.232-1.893-.1-.166-.365-.266-.763-.465z" />
+              </svg>
+              Join WhatsApp
+            </button>
+          )}
+          {communitySettings.instagram_link && (
+            <button
+              className="sl-community-permanent-btn sl-community-instagram-btn"
+              onClick={() => {
+                window.open(communitySettings.instagram_link, '_blank', 'noopener,noreferrer');
+                communityAPI.recordJoin('instagram').catch(() => {});
+              }}
+            >
+              <svg viewBox="0 0 32 32" width="13" height="13" fill="currentColor">
+                <path d="M16 2.882c4.27 0 4.776.016 6.46.093 1.56.071 2.407.332 2.97.55a4.956 4.956 0 011.84 1.196 4.956 4.956 0 011.196 1.84c.219.563.48 1.41.55 2.97.077 1.685.094 2.19.094 6.46s-.017 4.776-.094 6.46c-.07 1.56-.331 2.407-.55 2.97a4.956 4.956 0 01-1.196 1.84 4.956 4.956 0 01-1.84 1.196c-.563.219-1.41.48-2.97.55-1.684.077-2.19.094-6.46.094s-4.776-.017-6.46-.094c-1.56-.07-2.407-.331-2.97-.55a4.956 4.956 0 01-1.84-1.196 4.956 4.956 0 01-1.196-1.84c-.219-.563-.48-1.41-.55-2.97C2.898 20.776 2.88 20.27 2.88 16s.017-4.776.094-6.46c.07-1.56.331-2.407.55-2.97a4.956 4.956 0 011.196-1.84 4.956 4.956 0 011.84-1.196c.563-.219 1.41-.48 2.97-.55 1.684-.077 2.19-.093 6.46-.093M16 0c-4.344 0-4.888.018-6.592.096C7.71.174 6.546.444 5.535.84a7.836 7.836 0 00-2.833 1.844A7.836 7.836 0 00.858 5.517C.462 6.528.192 7.692.114 9.39.036 11.094 0 11.638 0 16s.018 4.906.096 6.61c.078 1.698.348 2.862.744 3.873a7.836 7.836 0 001.844 2.833 7.836 7.836 0 002.833 1.844c1.011.396 2.175.666 3.873.744C11.094 31.982 11.638 32 16 32s4.906-.018 6.61-.096c1.698-.078 2.862-.348 3.873-.744a7.836 7.836 0 002.833-1.844 7.836 7.836 0 001.844-2.833c.396-1.011.666-2.175.744-3.873C31.982 20.906 32 20.362 32 16s-.018-4.906-.096-6.61c-.078-1.698-.348-2.862-.744-3.873a7.836 7.836 0 00-1.844-2.833A7.836 7.836 0 0026.483.84C25.472.444 24.308.174 22.61.096 20.906.018 20.362 0 16 0zm0 7.784a8.216 8.216 0 100 16.432 8.216 8.216 0 000-16.432zm0 13.549a5.333 5.333 0 110-10.666 5.333 5.333 0 010 10.666zm8.538-13.878a1.92 1.92 0 11-3.84 0 1.92 1.92 0 013.84 0z" />
+              </svg>
+              Join Instagram
+            </button>
           )}
 
           {/* Tournament dropdown */}
