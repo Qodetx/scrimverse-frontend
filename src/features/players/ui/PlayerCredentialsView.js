@@ -1587,19 +1587,7 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                     <p>Credentials not released yet</p>
                   </div>
                 )}
-                {/* Captain IGN submission — ongoing + captain + not fully locked */}
-                {tournament.status === 'ongoing' &&
-                  registration.player?.user?.username === myUsername &&
-                  !registration.ign_locked && (
-                    <button
-                      className="credentials-ign-players-btn"
-                      onClick={() => setShowIgnModal(true)}
-                      style={{ marginTop: '0.5rem' }}
-                    >
-                      <AlertTriangle size={12} />
-                      <span>Enter / Update Team IGNs</span>
-                    </button>
-                  )}
+                {/* IGN button hidden while tournament is ongoing — re-enable for next tournament */}
               </>
             )}
           </div>
