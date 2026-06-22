@@ -252,11 +252,8 @@ const PointsTableModal = ({
   };
 
   const isRoundResultsUnlocked = () => {
-    if (!groupsData || groupsData.length === 0) return false;
-    return groupsData.every((group) => {
-      if (!group.matches || group.matches.length === 0) return false;
-      return group.matches.every((match) => match.status === 'completed');
-    });
+    if (!selectedGroup?.matches || selectedGroup.matches.length === 0) return false;
+    return selectedGroup.matches.every((match) => match.status === 'completed');
   };
 
   const getRoundLabel = (roundNum) => {

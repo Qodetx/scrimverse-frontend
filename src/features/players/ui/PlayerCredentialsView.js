@@ -28,7 +28,6 @@ import {
   Send,
   Loader2,
   Users,
-  Lock,
   AlertTriangle,
 } from 'lucide-react';
 import { tournamentAPI, teamAPI, authAPI } from '../../../utils/api';
@@ -617,7 +616,7 @@ const IGNInviteModal = ({ teamId, registrationId, onClose, onInviteSent }) => {
 // ign_submissions show as read-only (green lock). Empty slots show an input.
 // No invite/cancel buttons — tournament already started.
 
-const IGNModal = ({
+export const IGNModal = ({
   registration,
   gameName,
   myUsername,
@@ -632,30 +631,53 @@ const IGNModal = ({
   const modeCap = MODE_CAPS[registration.tournament?.game_mode] || 4;
 
   const captainUsername = registration.player?.user?.username || myUsername || '';
-  const realMembers = (registration.team_members || []).filter(
-    (m) => m && (m.username || '').trim() && m.username !== captainUsername
-  );
-  const filledSlots = [
-    ...(captainUsername ? [{ username: captainUsername, isCaptain: true }] : []),
-    ...realMembers.map((m) => ({ username: m.username, isCaptain: false })),
-  ];
-
   const ignSubmissions = registration.ign_submissions || {};
 
+  // Build the slot list — every slot is an editable input (no locking).
+  // 1. Captain (always slot 1, keyed by username so their profile updates)
+  // 2. Known teammates from the snapshot (keyed by username, deduped)
+  // 3. Pending invites that already have a submitted IGN (keep them visible/editable)
+  // 4. Pad with generic "Player N" slots so the captain always has `modeCap` fields,
+  //    even when the team_members snapshot is incomplete (common — many teams only
+  //    have the captain in the snapshot).
+  const seenKeys = new Set();
+  const builtSlots = [];
+  if (captainUsername) {
+    builtSlots.push({ key: captainUsername, label: captainUsername, isCaptain: true });
+    seenKeys.add(captainUsername);
+  }
+  (registration.team_members || []).forEach((m) => {
+    const uname = (m && m.username ? String(m.username) : '').trim();
+    if (uname && !seenKeys.has(uname)) {
+      seenKeys.add(uname);
+      builtSlots.push({ key: uname, label: uname, isCaptain: false });
+    }
+  });
   const ims = registration.invited_members_status || {};
-  const pendingKeys = Object.keys(ims).filter((k) => ims[k]?.status === 'pending');
-  const emptyCount = Math.max(0, modeCap - filledSlots.length - pendingKeys.length);
+  Object.keys(ims).forEach((id) => {
+    if (ims[id]?.status === 'pending' && !seenKeys.has(id) && ignSubmissions[id]) {
+      seenKeys.add(id);
+      builtSlots.push({ key: id, label: id, isPending: true });
+    }
+  });
+  while (builtSlots.length < modeCap) {
+    const pos = builtSlots.length + 1;
+    builtSlots.push({ key: `player_${pos}`, label: `Player ${pos}`, isGeneric: true });
+  }
+  const allSlots = builtSlots;
 
-  // ignMap holds NEW values only — slots already in ignSubmissions are read-only
+  // Every slot is editable and pre-filled from existing submissions
+  // (captain's own slot falls back to their profile IGN).
   const [ignMap, setIgnMap] = useState(() => {
     const init = {};
-    filledSlots.forEach((s) => {
-      if (!ignSubmissions[s.username]) {
-        init[s.username] = s.username === myUsername ? myProfileIGN || '' : '';
+    allSlots.forEach((s) => {
+      if (ignSubmissions[s.key]) {
+        init[s.key] = ignSubmissions[s.key];
+      } else if (s.key === myUsername && myProfileIGN) {
+        init[s.key] = myProfileIGN;
+      } else {
+        init[s.key] = '';
       }
-    });
-    pendingKeys.forEach((id) => {
-      if (!ignSubmissions[id]) init[id] = '';
     });
     return init;
   });
@@ -663,13 +685,6 @@ const IGNModal = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const allSlots = [
-    ...filledSlots.map((s) => ({ type: 'filled', ...s })),
-    ...pendingKeys.map((id) => ({ type: 'pending', identifier: id })),
-    ...Array(emptyCount)
-      .fill(null)
-      .map((_, i) => ({ type: 'empty', emptyIdx: i })),
-  ];
   const game = gameName || registration.tournament.game_name || '';
 
   const handleOverlayClick = (e) => {
@@ -727,127 +742,65 @@ const IGNModal = ({
           <div className="credentials-ign-warning">
             <ShieldAlert size={13} style={{ color: '#f87171', flexShrink: 0 }} />
             <span>
-              Enter IGNs exactly as they appear in {game}. Once saved, each IGN is locked and cannot
-              be changed.
+              Enter IGNs exactly as they appear in {game}. You can edit and re-submit anytime while
+              the tournament is live.
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             {allSlots.map((slot, idx) => {
-              if (slot.type === 'filled') {
-                const uname = slot.username;
-                const isMe = uname === myUsername;
-                const lockedIgn = ignSubmissions[uname];
-                return (
-                  <div
-                    key={uname}
-                    className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="credentials-ign-player-num">P{idx + 1}</span>
-                        <span className="credentials-ign-player-name">{uname}</span>
-                        {isMe && <span className="credentials-ign-you-badge">YOU</span>}
-                      </div>
-                      {lockedIgn && <CircleCheck size={13} style={{ color: '#10b981' }} />}
+              const isMe = slot.key === myUsername;
+              const hasValue = (ignMap[slot.key] || '').trim();
+              return (
+                <div
+                  key={slot.key}
+                  className={`credentials-ign-player-card${isMe ? ' credentials-ign-player-card-mine' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="credentials-ign-player-num">P{idx + 1}</span>
+                      <span
+                        className={`credentials-ign-player-name${slot.isGeneric || slot.isPending ? ' credentials-ign-pending-name' : ''}`}
+                      >
+                        {slot.label}
+                      </span>
+                      {isMe && <span className="credentials-ign-you-badge">YOU</span>}
                     </div>
-                    {lockedIgn ? (
-                      <div className="credentials-ign-locked-field">
-                        <span className="credentials-ign-locked-value">{lockedIgn}</span>
-                        <Lock size={11} style={{ color: '#10b981', flexShrink: 0 }} />
-                      </div>
-                    ) : !isViewOnly ? (
-                      <input
-                        className="credentials-ign-input"
-                        type="text"
-                        value={ignMap[uname] || ''}
-                        onChange={(e) =>
-                          setIgnMap((prev) => ({ ...prev, [uname]: e.target.value }))
-                        }
-                        placeholder="Enter IGN"
-                        maxLength={50}
-                        autoFocus={isMe && idx === 0}
-                      />
-                    ) : (
-                      <div className="credentials-ign-readonly">
-                        <span
-                          style={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}
-                        >
-                          Not submitted yet
-                        </span>
-                      </div>
-                    )}
+                    {hasValue && <CircleCheck size={13} style={{ color: '#10b981' }} />}
                   </div>
-                );
-              }
-
-              if (slot.type === 'pending') {
-                const lockedIgn = ignSubmissions[slot.identifier];
-                return (
-                  <div
-                    key={slot.identifier}
-                    className="credentials-ign-player-card credentials-ign-pending-slot"
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="credentials-ign-player-num">P{idx + 1}</span>
-                        <span className="credentials-ign-player-name credentials-ign-pending-name">
-                          {slot.identifier}
-                        </span>
-                      </div>
-                      {lockedIgn && <CircleCheck size={13} style={{ color: '#10b981' }} />}
-                    </div>
+                  {slot.isPending && (
                     <span
                       className="credentials-ign-pending-badge"
                       style={{ marginBottom: '6px', display: 'inline-block' }}
                     >
                       Invite pending
                     </span>
-                    {lockedIgn ? (
-                      <div className="credentials-ign-locked-field">
-                        <span className="credentials-ign-locked-value">{lockedIgn}</span>
-                        <Lock size={11} style={{ color: '#10b981', flexShrink: 0 }} />
-                      </div>
-                    ) : !isViewOnly ? (
-                      <input
-                        className="credentials-ign-input"
-                        type="text"
-                        value={ignMap[slot.identifier] || ''}
-                        onChange={(e) =>
-                          setIgnMap((prev) => ({ ...prev, [slot.identifier]: e.target.value }))
-                        }
-                        placeholder="Enter IGN (optional)"
-                        maxLength={50}
-                      />
-                    ) : null}
-                  </div>
-                );
-              }
-
-              // empty slot — no player, no input
-              return (
-                <div
-                  key={`empty-${slot.emptyIdx}`}
-                  className="credentials-ign-player-card credentials-ign-empty-slot"
-                >
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="credentials-ign-player-num">P{idx + 1}</span>
-                    <span
-                      className="credentials-ign-player-name"
-                      style={{ color: 'hsl(var(--muted-foreground))' }}
-                    >
-                      Empty slot
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      color: 'hsl(var(--muted-foreground))',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    No player
-                  </span>
+                  )}
+                  {!isViewOnly ? (
+                    <input
+                      className="credentials-ign-input"
+                      type="text"
+                      value={ignMap[slot.key] || ''}
+                      onChange={(e) =>
+                        setIgnMap((prev) => ({ ...prev, [slot.key]: e.target.value }))
+                      }
+                      placeholder={slot.isCaptain ? 'Enter IGN' : 'Enter IGN (optional)'}
+                      maxLength={50}
+                      autoFocus={isMe && idx === 0}
+                    />
+                  ) : (
+                    <div className="credentials-ign-readonly">
+                      {hasValue ? (
+                        <span>{ignMap[slot.key]}</span>
+                      ) : (
+                        <span
+                          style={{ color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}
+                        >
+                          Not submitted yet
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1116,6 +1069,12 @@ const CredentialCard = ({ registration: initialRegistration }) => {
   const matchesWithCreds = hasData
     ? currentGroups.flatMap((g) => (g.matches || []).filter((m) => m.match_id))
     : [];
+
+  // IGN window: open only until the room credentials for this group are released
+  // (round underway). Once any match's creds are revealed, the IGN button is
+  // hidden entirely for everyone — no more entering, updating, or viewing.
+  const amCaptain = registration.player?.user?.username === myUsername;
+  const ignWindowOpen = matchesWithCreds.length === 0 && tournament.status === 'ongoing';
 
   // Auto-select the latest match (highest match_number) that is visible (creds or scheduled)
   const latestMatchNumber =
@@ -1548,7 +1507,7 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                               <span className="credentials-ign-progress-pct">
                                 {pct.toFixed(1)}% to unlock
                               </span>
-                              {tournament.status !== 'completed' && (
+                              {amCaptain && ignWindowOpen && (
                                 <button
                                   className="credentials-ign-edit-btn"
                                   onClick={() => setShowIgnModal(true)}
@@ -1587,7 +1546,17 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                     <p>Credentials not released yet</p>
                   </div>
                 )}
-                {/* IGN button hidden while tournament is ongoing — re-enable for next tournament */}
+                {/* IGN access — open only until creds release; captain edits, members view */}
+                {ignWindowOpen && (
+                  <button
+                    className="credentials-ign-players-btn"
+                    onClick={() => setShowIgnModal(true)}
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    {amCaptain ? <AlertTriangle size={12} /> : <Eye size={12} />}
+                    <span>{amCaptain ? 'Enter / Update Team IGNs' : 'View Team IGNs'}</span>
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -1672,7 +1641,7 @@ const CredentialCard = ({ registration: initialRegistration }) => {
           gameName={gameName}
           myUsername={myUsername}
           myProfileIGN={myProfileIGN}
-          isCaptain={registration.player?.user?.username === myUsername}
+          isCaptain={amCaptain && ignWindowOpen}
           onSubmitted={handleIgnSubmitted}
           onClose={() => setShowIgnModal(false)}
         />

@@ -288,12 +288,6 @@ const PlayerProfile = () => {
                   </div>
                   <div className="text-[10px] text-muted-foreground">Win Rate</div>
                 </div>
-                <div className="text-center p-3 bg-secondary/20 rounded-lg">
-                  <div className="text-xl font-bold text-cyan-400">
-                    {player.player_profile?.kills_per_match || 0}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">Kills/Match</div>
-                </div>
               </div>
               {/* Game ID */}
               <div className="mt-3 p-3 bg-secondary/20 rounded-lg">
