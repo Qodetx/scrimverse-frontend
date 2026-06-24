@@ -305,6 +305,132 @@
   justify-content: center;
 }
 
+/* ── Download Toolbar ─────────────────────────────────────────────────────── */
+.lb-download-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lb-dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: rgba(139, 92, 246, 0.08);
+  color: #c4b5fd;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.lb-dl-btn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.6);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.25);
+}
+
+.lb-dl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lb-dl-btn--share {
+  border-color: rgba(99, 180, 255, 0.35);
+  background: rgba(59, 130, 246, 0.08);
+  color: #93c5fd;
+}
+
+.lb-dl-btn--share:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.6);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+}
+
+.lb-dl-btn--range {
+  padding: 7px 10px;
+  font-size: 12px;
+  border-color: rgba(139, 92, 246, 0.25);
+  background: rgba(139, 92, 246, 0.05);
+  color: #a78bfa;
+}
+
+.lb-range-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 8px;
+}
+
+.lb-dl-btn--export {
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.lb-export-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #1a1528;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  padding: 4px;
+  min-width: 160px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+
+.lb-export-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  transition: all 0.15s ease;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.lb-export-item:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: #e2d9f3;
+}
+
+/* Spinner inside buttons */
+.lb-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(196, 181, 253, 0.3);
+  border-top-color: #c4b5fd;
+  border-radius: 50%;
+  animation: lb-spin 0.7s linear infinite;
+}
+
+@keyframes lb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .leaderboard-hero .hero-title {

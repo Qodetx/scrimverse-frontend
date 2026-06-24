@@ -484,3 +484,69 @@
     transform: rotate(360deg);
   }
 }
+
+/* ── Export Dropdown ────────────────────────────────────────────────────── */
+.hlb-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.1);
+  color: #c4b5fd;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.hlb-export-btn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.65);
+  color: #ffffff;
+}
+
+.hlb-export-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.hlb-export-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #1a1528;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  padding: 4px;
+  min-width: 160px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+
+.hlb-export-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  transition: all 0.15s ease;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.hlb-export-item:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: #e2d9f3;
+}

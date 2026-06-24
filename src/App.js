@@ -27,6 +27,7 @@ import AboutPage from './pages/AboutPage';
 import HelpPage from './pages/HelpPage';
 import PlayerSearchPage from './features/players/routes/PlayerSearchPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import LeaderboardPublicPage from './pages/LeaderboardPublicPage';
 import JoinTeam from './features/teams/routes/JoinTeam';
 import SearchPage from './pages/SearchPage';
 import TeamDashboard from './features/teams/routes/TeamDashboard';
@@ -134,6 +135,7 @@ function AppShell() {
         <Route path="/report-issue" element={<ReportIssuePage />} />
         <Route path="/player-search" element={<PlayerSearchPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/leaderboard/public" element={<LeaderboardPublicPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/my-data/:token" element={<MyDataPage />} />
         <Route path="/notifications" element={<Navigate to="/player/dashboard" replace />} />

@@ -10,9 +10,16 @@ import {
   Eye,
   Loader2,
   Star,
+  Download,
+  FileText,
+  Link2,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { AuthContext } from '../../../context/AuthContext';
 import { leaderboardAPI, teamAPI } from '../../../utils/api';
+import { useToast } from '../../../hooks/useToast';
+import Toast from '../../../components/Toast';
+import { generateLeaderboardImages } from '../../../pages/leaderboardImageGenerator';
 import './PlayerLeaderboardsView.css';
 
 const GAME_FILTERS = ['All', 'BGMI', 'Free Fire', 'Scarfall', 'Valorant', 'COD Mobile'];
@@ -28,18 +35,23 @@ const GAME_PARAM_MAP = {
 };
 
 const PlayerLeaderboardsView = () => {
-  const { user, isGuest } = useContext(AuthContext);
+  const { isGuest } = useContext(AuthContext);
   const navigate = useNavigate();
   const guest = isGuest();
+
+  const { toast, showToast, hideToast } = useToast();
 
   const [activeTab, setActiveTab] = useState('tournaments');
   const [gameFilter, setGameFilter] = useState('All');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef(null);
 
   const [tournamentData, setTournamentData] = useState([]);
   const [scrimData, setScrimData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [imgGenerating, setImgGenerating] = useState(false);
 
   // Player's own team IDs for gold highlight
   const [myTeamIds, setMyTeamIds] = useState(new Set());
@@ -88,11 +100,14 @@ const PlayerLeaderboardsView = () => {
     fetchLeaderboard();
   }, [gameFilter]);
 
-  // ── Close dropdown on outside click ──
+  // ── Close dropdowns on outside click ──
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
+      }
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setExportOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -100,6 +115,73 @@ const PlayerLeaderboardsView = () => {
   }, []);
 
   const isMyTeam = (entry) => myTeamIds.has(entry.team_id || entry.team?.id);
+
+  // ── Download helpers ──────────────────────────────────────────────────────
+  const gameParam = GAME_PARAM_MAP[gameFilter] || 'ALL';
+
+  const triggerPngDownload = (dataUrl, filename) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+  };
+
+  const handleShareLink = () => {
+    const url = `https://scrimverse.com/leaderboard/public?type=${activeTab}&game=${gameParam}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => showToast('Link copied!', 'success'))
+      .catch(() => showToast('Failed to copy link', 'error'));
+  };
+
+  const handleDownloadAll = async () => {
+    if (imgGenerating) return;
+    setImgGenerating(true);
+    try {
+      const data = activeTab === 'tournaments' ? tournamentData : scrimData;
+      const images = await generateLeaderboardImages(data, gameParam, activeTab);
+      images.forEach(({ dataUrl, label }) =>
+        triggerPngDownload(dataUrl, `leaderboard-${label}.png`)
+      );
+    } catch (err) {
+      console.error('Download all error:', err);
+      showToast('Failed to generate images', 'error');
+    } finally {
+      setImgGenerating(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (imgGenerating) return;
+    setImgGenerating(true);
+    try {
+      const data = activeTab === 'tournaments' ? tournamentData : scrimData;
+      const images = await generateLeaderboardImages(data, gameParam, activeTab);
+      if (images.length === 0) return;
+
+      const firstImg = new Image();
+      await new Promise((resolve) => {
+        firstImg.onload = resolve;
+        firstImg.src = images[0].dataUrl;
+      });
+      const imgW = firstImg.naturalWidth || 1080;
+      const imgH = firstImg.naturalHeight || 1441;
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [imgW, imgH] });
+      for (let i = 0; i < images.length; i++) {
+        if (i > 0) pdf.addPage([imgW, imgH], 'portrait');
+        pdf.addImage(images[i].dataUrl, 'PNG', 0, 0, imgW, imgH);
+      }
+      const tabLabel = activeTab === 'tournaments' ? 'tournaments' : 'scrims';
+      const gameLabel = gameParam === 'ALL' ? 'all-games' : gameParam.toLowerCase();
+      pdf.save(`leaderboard-${tabLabel}-${gameLabel}.pdf`);
+    } catch (err) {
+      console.error('PDF error:', err);
+      showToast('Failed to generate PDF', 'error');
+    } finally {
+      setImgGenerating(false);
+    }
+  };
 
   // ── Podium (top 1–3) ──
   const renderPodium = (teams) => {
@@ -289,6 +371,65 @@ const PlayerLeaderboardsView = () => {
         </button>
       </div>
 
+      {/* ── Export Dropdown ────────────────────────────────────────── */}
+      {!loading && (activeTab === 'tournaments' ? tournamentData : scrimData).length > 0 && (
+        <div className="lb-export-wrap" ref={exportRef}>
+          <button
+            className="lb-export-btn"
+            onClick={() => setExportOpen((v) => !v)}
+            disabled={imgGenerating}
+          >
+            {imgGenerating ? (
+              <Loader2 size={13} style={{ animation: 'spin 0.7s linear infinite' }} />
+            ) : (
+              <Download size={13} />
+            )}
+            Export
+            <ChevronDown
+              size={11}
+              style={{
+                transform: exportOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.15s',
+              }}
+            />
+          </button>
+          {exportOpen && (
+            <div className="lb-export-menu">
+              <button
+                className="lb-export-item"
+                onClick={() => {
+                  handleShareLink();
+                  setExportOpen(false);
+                }}
+              >
+                <Link2 size={13} />
+                Share Link
+              </button>
+              <button
+                className="lb-export-item"
+                onClick={() => {
+                  handleDownloadPdf();
+                  setExportOpen(false);
+                }}
+              >
+                <FileText size={13} />
+                Download PDF
+              </button>
+              <button
+                className="lb-export-item"
+                onClick={() => {
+                  handleDownloadAll();
+                  setExportOpen(false);
+                }}
+              >
+                <Download size={13} />
+                Download PNG
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Content ───────────────────────────────────────────────── */}
       {loading ? (
         <div className="lb-loading">
@@ -317,6 +458,8 @@ const PlayerLeaderboardsView = () => {
           <span>Your team is highlighted</span>
         </div>
       )}
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
     </div>
   );
 };

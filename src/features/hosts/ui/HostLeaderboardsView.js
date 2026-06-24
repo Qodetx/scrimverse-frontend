@@ -10,9 +10,14 @@ import {
   Eye,
   Loader2,
   RefreshCw,
+  Download,
+  FileText,
+  Link2,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { leaderboardAPI } from '../../../utils/api';
 import { useToast } from '../../../hooks/useToast';
+import { generateLeaderboardImages } from '../../../pages/leaderboardImageGenerator';
 import './HostLeaderboardsView.css';
 
 const GAME_FILTERS = ['All', 'BGMI', 'Free Fire', 'Scarfall', 'Valorant', 'COD Mobile'];
@@ -41,6 +46,9 @@ const HostLeaderboardsView = () => {
   const [scrimTotalTeams, setScrimTotalTeams] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [imgGenerating, setImgGenerating] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef(null);
 
   const fetchLeaderboard = async () => {
     setLoading(true);
@@ -72,16 +80,86 @@ const HostLeaderboardsView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameFilter]);
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setExportOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // ── Download helpers ──────────────────────────────────────────────────────
+  const gameParam = GAME_PARAM_MAP[gameFilter] || 'ALL';
+
+  const triggerPngDownload = (dataUrl, filename) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+  };
+
+  const handleShareLink = () => {
+    const url = `https://scrimverse.com/leaderboard/public?type=${activeTab}&game=${gameParam}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => showToast('Link copied!', 'success'))
+      .catch(() => showToast('Failed to copy link', 'error'));
+  };
+
+  const handleDownloadAll = async () => {
+    if (imgGenerating) return;
+    setImgGenerating(true);
+    try {
+      const data = activeTab === 'tournaments' ? tournamentData : scrimData;
+      const images = await generateLeaderboardImages(data, gameParam, activeTab);
+      images.forEach(({ dataUrl, label }) =>
+        triggerPngDownload(dataUrl, `leaderboard-${label}.png`)
+      );
+    } catch (err) {
+      console.error('Download error:', err);
+      showToast('Failed to generate images', 'error');
+    } finally {
+      setImgGenerating(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (imgGenerating) return;
+    setImgGenerating(true);
+    try {
+      const data = activeTab === 'tournaments' ? tournamentData : scrimData;
+      const images = await generateLeaderboardImages(data, gameParam, activeTab);
+      if (images.length === 0) return;
+
+      const firstImg = new Image();
+      await new Promise((resolve) => {
+        firstImg.onload = resolve;
+        firstImg.src = images[0].dataUrl;
+      });
+      const imgW = firstImg.naturalWidth || 1080;
+      const imgH = firstImg.naturalHeight || 1441;
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [imgW, imgH] });
+      for (let i = 0; i < images.length; i++) {
+        if (i > 0) pdf.addPage([imgW, imgH], 'portrait');
+        pdf.addImage(images[i].dataUrl, 'PNG', 0, 0, imgW, imgH);
+      }
+      const tabLabel = activeTab === 'tournaments' ? 'tournaments' : 'scrims';
+      const gameLabel = gameParam === 'ALL' ? 'all-games' : gameParam.toLowerCase();
+      pdf.save(`leaderboard-${tabLabel}-${gameLabel}.pdf`);
+    } catch (err) {
+      console.error('PDF error:', err);
+      showToast('Failed to generate PDF', 'error');
+    } finally {
+      setImgGenerating(false);
+    }
+  };
 
   // ── Podium (top 3) ──────────────────────────────────────────────────────
   const renderPodium = (teams) => {
@@ -211,6 +289,64 @@ const HostLeaderboardsView = () => {
                     {g}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Export dropdown */}
+          <div style={{ position: 'relative' }} ref={exportRef}>
+            <button
+              className="hlb-export-btn"
+              onClick={() => setExportOpen((v) => !v)}
+              disabled={imgGenerating}
+              title="Export leaderboard"
+            >
+              {imgGenerating ? (
+                <Loader2 size={13} style={{ animation: 'hlb-spin 0.7s linear infinite' }} />
+              ) : (
+                <Download size={13} />
+              )}
+              Export
+              <ChevronDown
+                size={11}
+                style={{
+                  transform: exportOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.15s',
+                }}
+              />
+            </button>
+            {exportOpen && (
+              <div className="hlb-export-menu">
+                <button
+                  className="hlb-export-item"
+                  onClick={() => {
+                    handleShareLink();
+                    setExportOpen(false);
+                  }}
+                >
+                  <Link2 size={13} />
+                  Share Link
+                </button>
+                <button
+                  className="hlb-export-item"
+                  onClick={() => {
+                    handleDownloadPdf();
+                    setExportOpen(false);
+                  }}
+                >
+                  <FileText size={13} />
+                  Download PDF
+                </button>
+                <button
+                  className="hlb-export-item"
+                  onClick={() => {
+                    handleDownloadAll();
+                    setExportOpen(false);
+                  }}
+                >
+                  <Download size={13} />
+                  Download PNG
+                </button>
               </div>
             )}
           </div>
