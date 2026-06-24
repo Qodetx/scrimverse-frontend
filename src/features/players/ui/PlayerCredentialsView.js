@@ -1059,6 +1059,8 @@ const CredentialCard = ({ registration: initialRegistration }) => {
   const currentGroups = roundsData[selectedRound];
   const hasData = Array.isArray(currentGroups) && currentGroups.length > 0;
 
+  // All matches in the player's group — used for tabs (show all, disable those without creds)
+  const matchesAll = hasData ? currentGroups.flatMap((g) => g.matches || []) : [];
   // All matches that are visible to the player (have creds OR are scheduled) — used for tabs
   const matchesVisible = hasData
     ? currentGroups.flatMap((g) =>
@@ -1080,13 +1082,8 @@ const CredentialCard = ({ registration: initialRegistration }) => {
   const latestMatchNumber =
     matchesVisible.length > 0 ? Math.max(...matchesVisible.map((m) => m.match_number)) : null;
 
-  // If polling brought in a newer match than what the user manually selected, reset to auto
-  const activeMatchNumber =
-    selectedMatch !== null && latestMatchNumber !== null && latestMatchNumber > selectedMatch
-      ? latestMatchNumber
-      : selectedMatch !== null
-        ? selectedMatch
-        : latestMatchNumber;
+  // Use user's manual selection if set, otherwise auto-select the latest visible match
+  const activeMatchNumber = selectedMatch !== null ? selectedMatch : latestMatchNumber;
 
   const tournamentBadge = getTournamentBadge(tournament.status);
   const regBadge = getRegistrationBadge(regStatus);
@@ -1266,17 +1263,22 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                     const passKey = `${regId}-pass-${match.id}`;
                     return (
                       <div>
-                        {matchesVisible.length > 1 && tournament.status !== 'completed' && (
+                        {matchesAll.length > 1 && tournament.status !== 'completed' && (
                           <div className="credentials-round-pills" style={{ marginBottom: '10px' }}>
-                            {matchesVisible.map((m) => (
-                              <button
-                                key={m.id}
-                                className={`credentials-round-pill${activeMatchNumber === m.match_number ? ' active' : ''}`}
-                                onClick={() => setSelectedMatch(m.match_number)}
-                              >
-                                Match {m.match_number}
-                              </button>
-                            ))}
+                            {matchesAll.map((m) => {
+                              const hasContent = !!(m.match_id || m.credential_release_time);
+                              return (
+                                <button
+                                  key={m.id}
+                                  className={`credentials-round-pill${activeMatchNumber === m.match_number ? ' active' : ''}`}
+                                  onClick={() => hasContent && setSelectedMatch(m.match_number)}
+                                  disabled={!hasContent}
+                                  style={!hasContent ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+                                >
+                                  Match {m.match_number}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
 
