@@ -31,6 +31,7 @@ const LeaderboardPage = () => {
   const [error, setError] = useState(null);
   const [imgGenerating, setImgGenerating] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [pngExpanded, setPngExpanded] = useState(false);
   const exportRef = useRef(null);
 
   useEffect(() => {
@@ -240,7 +241,10 @@ const LeaderboardPage = () => {
             <div style={{ position: 'relative' }}>
               <button
                 className="lb-dl-btn lb-dl-btn--export"
-                onClick={() => setExportOpen((v) => !v)}
+                onClick={() => {
+                  setExportOpen((v) => !v);
+                  setPngExpanded(false);
+                }}
                 disabled={imgGenerating}
               >
                 {imgGenerating ? (
@@ -326,11 +330,8 @@ const LeaderboardPage = () => {
                     Download PDF
                   </button>
                   <button
-                    className="lb-export-item"
-                    onClick={() => {
-                      handleDownloadAll();
-                      setExportOpen(false);
-                    }}
+                    className="lb-export-item lb-export-item--parent"
+                    onClick={() => setPngExpanded((v) => !v)}
                   >
                     <svg
                       width="13"
@@ -347,7 +348,82 @@ const LeaderboardPage = () => {
                       <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
                     Download PNG
+                    <svg
+                      width="11"
+                      height="11"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        marginLeft: 'auto',
+                        transform: pngExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.15s',
+                      }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
                   </button>
+                  {
+                    pngExpanded && (
+                      <div className="lb-export-sub">
+                        <button
+                          className="lb-export-item lb-export-item--sub"
+                          onClick={() => {
+                            handleDownloadAll();
+                            setExportOpen(false);
+                            setPngExpanded(false);
+                          }}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          Download All
+                        </button>
+                        {rangeButtons.map(({ start, end, label }) => (
+                          <button
+                            key={label}
+                            className="lb-export-item lb-export-item--sub"
+                            onClick={() => {
+                              handleDownloadRange(start, end);
+                              setExportOpen(false);
+                              setPngExpanded(false);
+                            }}
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="7 10 12 15 17 10" />
+                              <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            PNG {label}
+                          </button>
+                        ))}
+                      </div>
+                    )
+                    /* eslint-disable-next-line */
+                  }
                 </div>
               )}
             </div>

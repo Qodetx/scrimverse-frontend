@@ -550,3 +550,23 @@
   background: rgba(139, 92, 246, 0.15);
   color: #e2d9f3;
 }
+
+.hlb-export-item--parent {
+  font-weight: 600;
+}
+
+.hlb-export-sub {
+  padding-left: 8px;
+  border-left: 2px solid rgba(139, 92, 246, 0.25);
+  margin: 2px 4px 2px 12px;
+}
+
+.hlb-export-item--sub {
+  font-size: 12px;
+  padding: 6px 10px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.hlb-export-item--sub:hover {
+  color: #e2d9f3;
+}

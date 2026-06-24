@@ -48,6 +48,7 @@ const HostLeaderboardsView = () => {
   const [error, setError] = useState(false);
   const [imgGenerating, setImgGenerating] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [pngExpanded, setPngExpanded] = useState(false);
   const exportRef = useRef(null);
 
   const fetchLeaderboard = async () => {
@@ -160,6 +161,39 @@ const HostLeaderboardsView = () => {
       setImgGenerating(false);
     }
   };
+
+  const handleDownloadRange = async (start, end) => {
+    if (imgGenerating) return;
+    setImgGenerating(true);
+    try {
+      const data = activeTab === 'tournaments' ? tournamentData : scrimData;
+      const slice = data.slice(start - 1, end);
+      const images = await generateLeaderboardImages(slice, gameParam, activeTab);
+      if (images.length > 0) {
+        const a = document.createElement('a');
+        a.href = images[0].dataUrl;
+        a.download = `leaderboard-${start}-${end}.png`;
+        a.click();
+      }
+    } catch (err) {
+      showToast('Failed to generate image', 'error');
+    } finally {
+      setImgGenerating(false);
+    }
+  };
+
+  const activeDataLen = (activeTab === 'tournaments' ? tournamentData : scrimData).length;
+  const rangeButtons = (() => {
+    if (activeDataLen <= 20) return [];
+    const ranges = [];
+    let s = 1;
+    while (s <= activeDataLen) {
+      const e = Math.min(s + 19, activeDataLen);
+      ranges.push({ start: s, end: e, label: `${s}–${e}` });
+      s += 20;
+    }
+    return ranges;
+  })();
 
   // ── Podium (top 3) ──────────────────────────────────────────────────────
   const renderPodium = (teams) => {
@@ -297,7 +331,10 @@ const HostLeaderboardsView = () => {
           <div style={{ position: 'relative' }} ref={exportRef}>
             <button
               className="hlb-export-btn"
-              onClick={() => setExportOpen((v) => !v)}
+              onClick={() => {
+                setExportOpen((v) => !v);
+                setPngExpanded(false);
+              }}
               disabled={imgGenerating}
               title="Export leaderboard"
             >
@@ -337,16 +374,51 @@ const HostLeaderboardsView = () => {
                   <FileText size={13} />
                   Download PDF
                 </button>
+                {/* Download PNG — expandable sub-list */}
                 <button
-                  className="hlb-export-item"
-                  onClick={() => {
-                    handleDownloadAll();
-                    setExportOpen(false);
-                  }}
+                  className="hlb-export-item hlb-export-item--parent"
+                  onClick={() => setPngExpanded((v) => !v)}
                 >
                   <Download size={13} />
                   Download PNG
+                  <ChevronDown
+                    size={11}
+                    style={{
+                      marginLeft: 'auto',
+                      transform: pngExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.15s',
+                    }}
+                  />
                 </button>
+                {pngExpanded && (
+                  <div className="hlb-export-sub">
+                    <button
+                      className="hlb-export-item hlb-export-item--sub"
+                      onClick={() => {
+                        handleDownloadAll();
+                        setExportOpen(false);
+                        setPngExpanded(false);
+                      }}
+                    >
+                      <Download size={12} />
+                      Download All
+                    </button>
+                    {rangeButtons.map(({ start, end, label }) => (
+                      <button
+                        key={label}
+                        className="hlb-export-item hlb-export-item--sub"
+                        onClick={() => {
+                          handleDownloadRange(start, end);
+                          setExportOpen(false);
+                          setPngExpanded(false);
+                        }}
+                      >
+                        <Download size={12} />
+                        PNG {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -46,6 +46,7 @@ const PlayerLeaderboardsView = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [pngExpanded, setPngExpanded] = useState(false);
   const exportRef = useRef(null);
 
   const [tournamentData, setTournamentData] = useState([]);
@@ -182,6 +183,35 @@ const PlayerLeaderboardsView = () => {
       setImgGenerating(false);
     }
   };
+
+  const handleDownloadRange = async (start, end) => {
+    if (imgGenerating) return;
+    setImgGenerating(true);
+    try {
+      const data = activeTab === 'tournaments' ? tournamentData : scrimData;
+      const slice = data.slice(start - 1, end);
+      const images = await generateLeaderboardImages(slice, gameParam, activeTab);
+      if (images.length > 0)
+        triggerPngDownload(images[0].dataUrl, `leaderboard-${start}-${end}.png`);
+    } catch (err) {
+      showToast('Failed to generate image', 'error');
+    } finally {
+      setImgGenerating(false);
+    }
+  };
+
+  const activeDataLen = (activeTab === 'tournaments' ? tournamentData : scrimData).length;
+  const rangeButtons = (() => {
+    if (activeDataLen <= 20) return [];
+    const ranges = [];
+    let s = 1;
+    while (s <= activeDataLen) {
+      const e = Math.min(s + 19, activeDataLen);
+      ranges.push({ start: s, end: e, label: `${s}–${e}` });
+      s += 20;
+    }
+    return ranges;
+  })();
 
   // ── Podium (top 1–3) ──
   const renderPodium = (teams) => {
@@ -376,7 +406,10 @@ const PlayerLeaderboardsView = () => {
         <div className="lb-export-wrap" ref={exportRef}>
           <button
             className="lb-export-btn"
-            onClick={() => setExportOpen((v) => !v)}
+            onClick={() => {
+              setExportOpen((v) => !v);
+              setPngExpanded(false);
+            }}
             disabled={imgGenerating}
           >
             {imgGenerating ? (
@@ -415,16 +448,51 @@ const PlayerLeaderboardsView = () => {
                 <FileText size={13} />
                 Download PDF
               </button>
+              {/* Download PNG — expandable sub-list */}
               <button
-                className="lb-export-item"
-                onClick={() => {
-                  handleDownloadAll();
-                  setExportOpen(false);
-                }}
+                className="lb-export-item lb-export-item--parent"
+                onClick={() => setPngExpanded((v) => !v)}
               >
                 <Download size={13} />
                 Download PNG
+                <ChevronDown
+                  size={11}
+                  style={{
+                    marginLeft: 'auto',
+                    transform: pngExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.15s',
+                  }}
+                />
               </button>
+              {pngExpanded && (
+                <div className="lb-export-sub">
+                  <button
+                    className="lb-export-item lb-export-item--sub"
+                    onClick={() => {
+                      handleDownloadAll();
+                      setExportOpen(false);
+                      setPngExpanded(false);
+                    }}
+                  >
+                    <Download size={12} />
+                    Download All
+                  </button>
+                  {rangeButtons.map(({ start, end, label }) => (
+                    <button
+                      key={label}
+                      className="lb-export-item lb-export-item--sub"
+                      onClick={() => {
+                        handleDownloadRange(start, end);
+                        setExportOpen(false);
+                        setPngExpanded(false);
+                      }}
+                    >
+                      <Download size={12} />
+                      PNG {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

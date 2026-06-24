@@ -126,10 +126,10 @@ const _renderLeaderboardPage = ({
 
     ctx.textBaseline = 'middle';
 
-    // Big heading
-    let headingSize = 112;
+    // Big heading — capped at 72px so it doesn't overpower the background art
+    let headingSize = 72;
     ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
-    while (ctx.measureText(stageHeading).width > W - PAD_X * 4 && headingSize > 48) {
+    while (ctx.measureText(stageHeading).width > W - PAD_X * 4 && headingSize > 40) {
       headingSize -= 4;
       ctx.font = `900 ${headingSize}px "Outfit", sans-serif`;
     }

@@ -414,6 +414,26 @@
   color: #e2d9f3;
 }
 
+.lb-export-item--parent {
+  font-weight: 600;
+}
+
+.lb-export-sub {
+  padding-left: 8px;
+  border-left: 2px solid rgba(139, 92, 246, 0.25);
+  margin: 2px 4px 2px 12px;
+}
+
+.lb-export-item--sub {
+  font-size: 12px;
+  padding: 6px 10px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.lb-export-item--sub:hover {
+  color: #e2d9f3;
+}
+
 /* Spinner inside buttons */
 .lb-spinner {
   display: inline-block;
