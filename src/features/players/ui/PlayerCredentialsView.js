@@ -1266,7 +1266,9 @@ const CredentialCard = ({ registration: initialRegistration }) => {
                         {matchesAll.length > 1 && tournament.status !== 'completed' && (
                           <div className="credentials-round-pills" style={{ marginBottom: '10px' }}>
                             {matchesAll.map((m) => {
-                              const hasContent = !!(m.match_id || m.credential_release_time);
+                              const hasContent =
+                                m.status !== 'completed' &&
+                                !!(m.match_id || m.credential_release_time);
                               return (
                                 <button
                                   key={m.id}
