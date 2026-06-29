@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { tournamentAPI } from '../../../utils/api';
 import './MatchPointsModal.css';
 
 const MatchPointsModal = ({
@@ -10,10 +11,16 @@ const MatchPointsModal = ({
   teams,
   is5v5Game = false,
   readOnly = false,
+  tournamentId,
+  matchId,
 }) => {
   const [scores, setScores] = useState([]);
   const [winner, setWinner] = useState(null);
   const [wwcdTeamId, setWwcdTeamId] = useState(null);
+  const [aiScanning, setAiScanning] = useState(false);
+  const [lowConfRows, setLowConfRows] = useState(new Set());
+  const [aiNote, setAiNote] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && teams) {
@@ -109,6 +116,44 @@ const MatchPointsModal = ({
     }
   };
 
+  const handleAIScan = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    e.target.value = '';
+    setAiScanning(true);
+    setAiNote('');
+    try {
+      const formData = new FormData();
+      files.forEach((f) => formData.append('screenshots', f));
+      const resp = await tournamentAPI.extractMatchScores(tournamentId, matchId, formData);
+      const { rows, extraction_method, extracted_count, total_teams } = resp.data;
+      const newLow = new Set();
+      setScores((prev) =>
+        prev.map((score) => {
+          const hit = rows.find((r) => r.team_id === score.team_id);
+          if (!hit) return score;
+          if (hit.confidence !== 'high') newLow.add(score.team_id);
+          return {
+            ...score,
+            position_points: hit.position_points,
+            kill_points: hit.kill_points,
+          };
+        })
+      );
+      setLowConfRows(newLow);
+      const fallbackNote =
+        extraction_method === 'ocr_space' ? ' (OCR fallback used — check accuracy)' : '';
+      setAiNote(
+        `AI filled ${extracted_count}/${total_teams} rows${fallbackNote}. Review amber rows.`
+      );
+    } catch (err) {
+      const msg = err.response?.data?.error || 'AI extraction failed. Enter points manually.';
+      setAiNote(msg);
+    } finally {
+      setAiScanning(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const modalContent = (
@@ -127,6 +172,27 @@ const MatchPointsModal = ({
                   ? 'Select Winner'
                   : `Match ${match?.match_number} Points Table`}
             </h2>
+            {!readOnly && !is5v5Game && (
+              <>
+                <button
+                  type="button"
+                  className={`mpm-ai-btn${aiScanning ? ' mpm-ai-btn--scanning' : ''}`}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={aiScanning}
+                  title="Upload match result screenshot(s) — AI fills the table"
+                >
+                  {aiScanning ? '⏳ Scanning…' : '✨ AI Scan'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleAIScan}
+                />
+              </>
+            )}
           </div>
           <button className="mpm-close" onClick={onClose}>
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-4 h-4">
@@ -145,6 +211,7 @@ const MatchPointsModal = ({
           onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit}
           style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
         >
+          {aiNote && <div className="mpm-ai-note">{aiNote}</div>}
           <div className="mpm-body">
             {is5v5Game ? (
               /* ── 5v5 WINNER SELECTION ── */
@@ -241,7 +308,10 @@ const MatchPointsModal = ({
                     </thead>
                     <tbody>
                       {scores.map((score, idx) => (
-                        <tr key={score.team_id} className="mpm-row">
+                        <tr
+                          key={score.team_id}
+                          className={`mpm-row${lowConfRows.has(score.team_id) ? ' mpm-row--warn' : ''}`}
+                        >
                           <td className="mpm-td mpm-td-num">
                             <span className="mpm-team-num">{idx + 1}</span>
                           </td>

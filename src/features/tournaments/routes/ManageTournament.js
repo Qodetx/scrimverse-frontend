@@ -5434,6 +5434,8 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
         match={currentMatch}
         teams={selectedGroup?.teams || []}
         is5v5Game={tournament?.is_5v5 || false}
+        tournamentId={tournament?.id}
+        matchId={currentMatch?.id}
       />
 
       {/* Eliminated Teams Modal */}

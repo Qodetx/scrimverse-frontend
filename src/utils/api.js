@@ -243,6 +243,10 @@ export const tournamentAPI = {
   // Submit scores for a match (matchId)
   submitMatchScores: (tournamentId, matchId, data) =>
     api.post(`/tournaments/${tournamentId}/matches/${matchId}/scores/`, data),
+  extractMatchScores: (tournamentId, matchId, formData) =>
+    api.post(`/tournaments/${tournamentId}/matches/${matchId}/extract-scores/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
   // Get aggregated results for a round
   getRoundResults: (tournamentId, roundNumber) =>
     api.get(`/tournaments/${tournamentId}/rounds/${roundNumber}/results/`),

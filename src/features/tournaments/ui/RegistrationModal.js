@@ -9,7 +9,7 @@ import {
   UserPlus,
   Sparkles,
   Mail,
-  Phone,
+  MessageCircle,
   AtSign,
   Check,
   X,
@@ -40,7 +40,7 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
 
   // ── New team / BR flow form state ──
   const [newTeamName, setNewTeamName] = useState('');
-  const [inviteMode, setInviteMode] = useState('username');
+  const [inviteMode, setInviteMode] = useState('whatsapp');
   const [teammates, setTeammates] = useState([]);
   const [selectedUsernames, setSelectedUsernames] = useState([]);
   const [suggestions, setSuggestions] = useState({});
@@ -226,7 +226,7 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
           return false;
         }
       }
-    } else if (inviteMode === 'phone') {
+    } else if (inviteMode === 'whatsapp') {
       for (const val of validContacts) {
         const stripped = val.replace(/\s/g, '');
         // Accept: +91XXXXXXXXXX or plain 10-digit Indian number
@@ -299,7 +299,7 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
         const payload = { team_name: newTeamName.trim(), invite_mode: inviteMode };
         if (inviteMode === 'username') {
           payload.teammate_usernames = validContacts;
-        } else if (inviteMode === 'phone') {
+        } else if (inviteMode === 'whatsapp') {
           // Normalize 10-digit numbers to +91 format
           payload.teammate_phones = validContacts.map((p) =>
             /^\d{10}$/.test(p.replace(/\s/g, '')) ? `+91${p.replace(/\s/g, '')}` : p
@@ -439,17 +439,15 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
   const InviteModeToggle = ({ mode, setMode }) => (
     <div className="jt-invite-toggle">
       {[
-        { mode: 'phone', icon: Phone, label: 'Phone', disabled: true },
-        { mode: 'email', icon: Mail, label: 'Email', disabled: false },
-        { mode: 'username', icon: AtSign, label: 'Username', disabled: false },
-      ].map(({ mode: m, icon: Icon, label, disabled }) => (
+        { mode: 'whatsapp', icon: MessageCircle, label: 'WhatsApp' },
+        { mode: 'email', icon: Mail, label: 'Email' },
+        { mode: 'username', icon: AtSign, label: 'Username' },
+      ].map(({ mode: m, icon: Icon, label }) => (
         <button
           key={m}
           type="button"
-          className={`jt-invite-btn${mode === m ? ' active' : ''}${disabled ? ' disabled' : ''}`}
-          onClick={() => !disabled && setMode(m)}
-          disabled={disabled}
-          title={disabled ? 'Phone invite temporarily unavailable' : undefined}
+          className={`jt-invite-btn${mode === m ? ' active' : ''}`}
+          onClick={() => setMode(m)}
         >
           <Icon size={14} />
           {label}
@@ -464,15 +462,15 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
       <label className="jt-label">
         {inviteMode === 'email' ? (
           <Mail size={14} className="jt-label-icon" />
-        ) : inviteMode === 'phone' ? (
-          <Phone size={14} className="jt-label-icon" />
+        ) : inviteMode === 'whatsapp' ? (
+          <MessageCircle size={14} className="jt-label-icon" />
         ) : (
           <AtSign size={14} className="jt-label-icon" />
         )}
         Teammate{' '}
         {inviteMode === 'email'
           ? 'Email IDs'
-          : inviteMode === 'phone'
+          : inviteMode === 'whatsapp'
             ? 'Phone Numbers'
             : 'Usernames'}{' '}
         <span className="jt-required">*</span>
@@ -487,7 +485,7 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
             inputMode={inviteMode === 'phone' ? 'numeric' : undefined}
             className={`jt-input${fieldErrors[i] ? ' input-error' : ''}${selectedUsernames[i] ? ' input-selected' : ''}`}
             placeholder={
-              inviteMode === 'phone'
+              inviteMode === 'whatsapp'
                 ? `Teammate ${i + 2} phone (+91...)`
                 : inviteMode === 'email'
                   ? `Teammate ${i + 2} email`
@@ -544,10 +542,10 @@ const RegistrationModal = ({ event, type = 'tournament', onClose, onSuccess }) =
           Once teammates join, future registrations take 30 seconds.
         </p>
       </div>
-      {inviteMode === 'phone' && (
+      {inviteMode === 'whatsapp' && (
         <div className="jt-warn-box">
-          Phone invites require teammates to have a registered Scrimverse account linked to that
-          number.
+          Teammate will receive a WhatsApp message with a join link. They must have a Scrimverse
+          account linked to that number.
         </div>
       )}
     </div>
