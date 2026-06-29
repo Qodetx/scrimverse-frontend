@@ -210,6 +210,46 @@ const TeamPlayersModal = ({ isOpen, onClose, team, tournamentId, ignSubmissions 
                   </div>
                 </div>
               ))}
+              {/* Generic slot players: show player_2/3/4 IGNs when team_members snapshot is incomplete */}
+              {[2, 3, 4].map((slot) => {
+                const key = `player_${slot}`;
+                const ign = ignSubmissions[key];
+                if (!ign) return null;
+                return (
+                  <div
+                    key={key}
+                    className="rounded-xl bg-secondary/20 border border-border/30 p-3 overflow-hidden"
+                  >
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <div className="w-14 h-14 rounded-xl bg-secondary/50 border border-border/40 flex items-center justify-center">
+                        <svg
+                          className="w-7 h-7 text-muted-foreground/50"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground truncate max-w-full">
+                          Player {slot}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
+                          Member
+                        </p>
+                        <p className="text-[10px] font-bold mt-0.5" style={{ color: '#10b981' }}>
+                          IGN: {ign}
+                        </p>
+                      </div>
+                      <div className="text-[9px] text-transparent select-none">·</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 gap-3">

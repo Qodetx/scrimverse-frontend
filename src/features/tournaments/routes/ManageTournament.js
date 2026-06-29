@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -186,6 +186,14 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
 
   // 5v5 lobby preview (inline, not a modal)
   const [lobbyPreview, setLobbyPreview] = useState(null); // { lobbies, bestOf, qualifyingPerGroup, roundNumber }
+
+  // Export state
+  const [isGeneratingSlotList, setIsGeneratingSlotList] = useState(false);
+  const [showSlotListDropdown, setShowSlotListDropdown] = useState(false);
+  const [selectedExportGroups, setSelectedExportGroups] = useState(new Set());
+  const slotListDropdownRef = useRef(null);
+  const [showIGNDropdown, setShowIGNDropdown] = useState(false);
+  const ignDropdownRef = useRef(null);
 
   // Bracket Generator
   const [showBracketGenerator, setShowBracketGenerator] = useState(false);
@@ -1524,6 +1532,30 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
     fetchRoundGroups,
   ]);
 
+  // Close slot list dropdown on outside click
+  useEffect(() => {
+    if (!showSlotListDropdown) return;
+    const handleOutside = (e) => {
+      if (slotListDropdownRef.current && !slotListDropdownRef.current.contains(e.target)) {
+        setShowSlotListDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [showSlotListDropdown]);
+
+  // Close IGN dropdown on outside click
+  useEffect(() => {
+    if (!showIGNDropdown) return;
+    const handleOutside = (e) => {
+      if (ignDropdownRef.current && !ignDropdownRef.current.contains(e.target)) {
+        setShowIGNDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [showIGNDropdown]);
+
   const handleSaveLiveUrl = async () => {
     try {
       await tournamentAPI.updateTournamentFields(id, { live_link: tempLiveUrl || '' });
@@ -1566,6 +1598,532 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
 
   const currentRoundName =
     roundNames?.[String(currentRound)] || (currentRound > 0 ? `Round ${currentRound}` : null);
+
+  // ── Slot List: shared canvas builder ────────────────────────────────────
+  const buildSlotListCanvas = (groupsOnPage) => {
+    const W = 1080;
+    const PAD = 24;
+    const COLS = Math.min(3, groupsOnPage.length);
+    const GROUP_W = COLS === 1 ? W - PAD * 2 : (W - PAD * (COLS + 1)) / COLS;
+    const ROW_H = 32;
+    const GROUP_TITLE_H = 46;
+    const GROUP_GAP = 16;
+    const HEADER_H = 165;
+    const FOOTER_H = 62;
+
+    const numGroupRows = Math.ceil(groupsOnPage.length / COLS);
+    const maxTeamsInRow = (ri) => {
+      const slice = groupsOnPage.slice(ri * COLS, (ri + 1) * COLS);
+      return Math.max(...slice.map((g) => g.teams.length));
+    };
+    let totalGroupsH = 0;
+    for (let r = 0; r < numGroupRows; r++) {
+      totalGroupsH += GROUP_TITLE_H + maxTeamsInRow(r) * ROW_H + GROUP_GAP;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = HEADER_H + totalGroupsH + FOOTER_H;
+    const ctx = canvas.getContext('2d');
+    const H = canvas.height;
+
+    // Background
+    ctx.fillStyle = '#0d0d1a';
+    ctx.fillRect(0, 0, W, H);
+
+    // Dot grid
+    ctx.fillStyle = 'rgba(139,92,246,0.06)';
+    for (let gx = 0; gx < W; gx += 36) {
+      for (let gy = 0; gy < H; gy += 36) {
+        ctx.beginPath();
+        ctx.arc(gx, gy, 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Top accent line
+    const topGrad = ctx.createLinearGradient(0, 0, W, 0);
+    topGrad.addColorStop(0, 'rgba(139,92,246,0)');
+    topGrad.addColorStop(0.35, 'rgba(139,92,246,0.9)');
+    topGrad.addColorStop(0.65, 'rgba(139,92,246,0.9)');
+    topGrad.addColorStop(1, 'rgba(139,92,246,0)');
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, W, 3);
+
+    // Watermark
+    ctx.fillStyle = 'rgba(139,92,246,0.35)';
+    ctx.font = 'bold 11px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('SCRIMVERSE', W - PAD, 22);
+
+    // Title
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = 'bold 28px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(tournament.title.toUpperCase(), W / 2, 62);
+
+    // Round label
+    ctx.fillStyle = '#8b5cf6';
+    ctx.font = 'bold 15px Outfit, sans-serif';
+    ctx.fillText(
+      `${(currentRoundName || `Round ${currentRound}`).toUpperCase()} — SLOT LIST`,
+      W / 2,
+      92
+    );
+
+    // Date
+    ctx.fillStyle = '#475569';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText(
+      new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      W / 2,
+      114
+    );
+
+    // Separator
+    const sepGrad = ctx.createLinearGradient(PAD, 0, W - PAD, 0);
+    sepGrad.addColorStop(0, 'rgba(139,92,246,0)');
+    sepGrad.addColorStop(0.3, 'rgba(139,92,246,0.4)');
+    sepGrad.addColorStop(0.7, 'rgba(139,92,246,0.4)');
+    sepGrad.addColorStop(1, 'rgba(139,92,246,0)');
+    ctx.strokeStyle = sepGrad;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, 136);
+    ctx.lineTo(W - PAD, 136);
+    ctx.stroke();
+
+    // Draw groups
+    let groupRowY = HEADER_H;
+    for (let rowIdx = 0; rowIdx < numGroupRows; rowIdx++) {
+      const groupsInRow = groupsOnPage.slice(rowIdx * COLS, (rowIdx + 1) * COLS);
+      const maxTeams = maxTeamsInRow(rowIdx);
+      const rowStartY = groupRowY;
+
+      groupsInRow.forEach((group, colIdx) => {
+        const x = PAD + colIdx * (GROUP_W + PAD);
+        const y = rowStartY;
+
+        // Header bg
+        ctx.fillStyle = 'rgba(139,92,246,0.12)';
+        ctx.fillRect(x, y, GROUP_W, GROUP_TITLE_H);
+
+        // Left accent bar
+        ctx.fillStyle = '#8b5cf6';
+        ctx.fillRect(x, y, 3, GROUP_TITLE_H);
+
+        // Group name
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 13px Outfit, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(group.group_name.toUpperCase(), x + 14, y + 28);
+
+        // Team count
+        ctx.fillStyle = '#7c3aed';
+        ctx.font = '11px Inter, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${group.teams.length} TEAMS`, x + GROUP_W - 10, y + 28);
+
+        // Team rows
+        group.teams.forEach((team, teamIdx) => {
+          const ry = y + GROUP_TITLE_H + teamIdx * ROW_H;
+          const slotNum = String(teamIdx + 3).padStart(2, '0');
+
+          if (teamIdx % 2 === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.025)';
+            ctx.fillRect(x, ry, GROUP_W, ROW_H);
+          }
+
+          // Slot number
+          ctx.fillStyle = '#8b5cf6';
+          ctx.font = 'bold 11px Courier New, monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(slotNum, x + 10, ry + 21);
+
+          // Divider
+          ctx.strokeStyle = 'rgba(139,92,246,0.2)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x + 30, ry + 7);
+          ctx.lineTo(x + 30, ry + ROW_H - 7);
+          ctx.stroke();
+
+          // Team name
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '11px Outfit, sans-serif';
+          ctx.textAlign = 'left';
+          const maxNameW = GROUP_W - 46;
+          let name = team.team_name;
+          while (ctx.measureText(name).width > maxNameW && name.length > 3) {
+            name = name.slice(0, -1);
+          }
+          if (name !== team.team_name) name += '…';
+          ctx.fillText(name, x + 38, ry + 21);
+        });
+
+        // Outer border
+        ctx.strokeStyle = 'rgba(139,92,246,0.15)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, GROUP_W, GROUP_TITLE_H + group.teams.length * ROW_H);
+      });
+
+      groupRowY += GROUP_TITLE_H + maxTeams * ROW_H + GROUP_GAP;
+    }
+
+    // Footer
+    ctx.fillStyle = 'rgba(139,92,246,0.07)';
+    ctx.fillRect(0, H - FOOTER_H, W, FOOTER_H);
+
+    const flGrad = ctx.createLinearGradient(PAD, 0, W - PAD, 0);
+    flGrad.addColorStop(0, 'rgba(139,92,246,0)');
+    flGrad.addColorStop(0.4, 'rgba(139,92,246,0.3)');
+    flGrad.addColorStop(0.6, 'rgba(139,92,246,0.3)');
+    flGrad.addColorStop(1, 'rgba(139,92,246,0)');
+    ctx.strokeStyle = flGrad;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, H - FOOTER_H);
+    ctx.lineTo(W - PAD, H - FOOTER_H);
+    ctx.stroke();
+
+    ctx.fillStyle = '#8b5cf6';
+    ctx.font = 'bold 13px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('SCRIMVERSE', W / 2, H - 26);
+
+    ctx.fillStyle = '#4b5563';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.fillText('scrimverse.com', W / 2, H - 10);
+
+    return canvas;
+  };
+
+  // ── Download Slot List as PNG (multiple files if > 6 groups) ────────────
+  const handleDownloadSlotListPNG = () => {
+    const groups = roundGroups.filter((g) => selectedExportGroups.has(g.id));
+    if (groups.length === 0) {
+      showToast('Select at least one group', 'error');
+      return;
+    }
+    setIsGeneratingSlotList(true);
+    try {
+      const GROUPS_PER_PAGE = 6;
+      const totalPages = Math.ceil(groups.length / GROUPS_PER_PAGE);
+      const roundLabel = (currentRoundName || `Round ${currentRound}`)
+        .replace(/\s+/g, '_')
+        .toUpperCase();
+      const titleLabel = tournament.title.replace(/[^a-zA-Z0-9]/g, '_');
+
+      for (let p = 0; p < totalPages; p++) {
+        const pageGroups = groups.slice(p * GROUPS_PER_PAGE, (p + 1) * GROUPS_PER_PAGE);
+        const canvas = buildSlotListCanvas(pageGroups);
+        const link = document.createElement('a');
+        const suffix = totalPages > 1 ? `_${p + 1}of${totalPages}` : '';
+        link.download = `${titleLabel}_${roundLabel}_SlotList${suffix}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
+    } catch (err) {
+      console.error('Slot list PNG failed:', err);
+      showToast('Failed to generate slot list PNG', 'error');
+    } finally {
+      setIsGeneratingSlotList(false);
+    }
+  };
+
+  // ── Download Slot List as PDF (all pages in one file) ───────────────────
+  const handleDownloadSlotListPDF = async () => {
+    const groups = roundGroups.filter((g) => selectedExportGroups.has(g.id));
+    if (groups.length === 0) {
+      showToast('Select at least one group', 'error');
+      return;
+    }
+    setIsGeneratingSlotList(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const GROUPS_PER_PAGE = 6;
+      const PT = 72 / 96; // px → pt
+      let pdf = null;
+
+      const totalPages = Math.ceil(groups.length / GROUPS_PER_PAGE);
+      for (let p = 0; p < totalPages; p++) {
+        const pageGroups = groups.slice(p * GROUPS_PER_PAGE, (p + 1) * GROUPS_PER_PAGE);
+        const canvas = buildSlotListCanvas(pageGroups);
+        const W = canvas.width;
+        const H = canvas.height;
+
+        if (!pdf) {
+          pdf = new jsPDF({ unit: 'pt', format: [W * PT, H * PT] });
+        } else {
+          pdf.addPage([W * PT, H * PT]);
+        }
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, W * PT, H * PT);
+      }
+
+      const roundLabel = (currentRoundName || `Round ${currentRound}`)
+        .replace(/\s+/g, '_')
+        .toUpperCase();
+      const titleLabel = tournament.title.replace(/[^a-zA-Z0-9]/g, '_');
+      pdf.save(`${titleLabel}_${roundLabel}_SlotList.pdf`);
+    } catch (err) {
+      console.error('Slot list PDF failed:', err);
+      showToast('Failed to generate slot list PDF', 'error');
+    } finally {
+      setIsGeneratingSlotList(false);
+    }
+  };
+
+  // ── Shared IGN extraction (used by CSV + PDF) ────────────────────────────
+  const extractIGNs = (team) => {
+    const reg = registrations.find((r) => r.id === team.id);
+    const ignSubs = reg?.ign_submissions || {};
+    const members = reg?.team_members || [];
+    const captain = members.find((m) => m.is_captain) || members[0];
+    const captainKey = captain?.username || captain?.player_name || null;
+    const captainIGN = captainKey ? ignSubs[captainKey] || '' : '';
+    const otherIGNs = Object.entries(ignSubs)
+      .filter(([k]) => k !== captainKey)
+      .map(([, v]) => v);
+    return captainIGN
+      ? [captainIGN, otherIGNs[0] || '', otherIGNs[1] || '', otherIGNs[2] || '']
+      : [otherIGNs[0] || '', otherIGNs[1] || '', otherIGNs[2] || '', otherIGNs[3] || ''];
+  };
+
+  // ── Export IGNs as PDF (clean table, A4 landscape) ──────────────────────
+  const handleExportIGNsPDF = async () => {
+    if (!roundGroups || roundGroups.length === 0) {
+      showToast('No groups configured for the current round', 'error');
+      return;
+    }
+    try {
+      const { jsPDF } = await import('jspdf');
+
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const PW = 297;
+      const PH = 210;
+      const ML = 10;
+      const MR = 10;
+      const MT = 10;
+      const usableW = PW - ML - MR;
+
+      // Column widths (mm)
+      const cGroup = 22;
+      const cSlot = 12;
+      const cTeam = 52;
+      const cIGN = (usableW - cGroup - cSlot - cTeam - 6) / 4; // ~51mm each
+      const xGroup = ML;
+      const xSlot = xGroup + cGroup + 2;
+      const xTeam = xSlot + cSlot + 2;
+      const xP1 = xTeam + cTeam + 2;
+      const xP2 = xP1 + cIGN;
+      const xP3 = xP2 + cIGN;
+      const xP4 = xP3 + cIGN;
+
+      const ROW_H = 6;
+      const TH_H = 8;
+      const GH = 7;
+
+      const roundLabel = (currentRoundName || `Round ${currentRound}`)
+        .replace(/\s+/g, '_')
+        .toUpperCase();
+      const titleLabel = tournament.title.replace(/[^a-zA-Z0-9]/g, '_');
+      const roundDisplay = (currentRoundName || `Round ${currentRound}`).toUpperCase();
+
+      let y = MT;
+
+      const drawTableHeader = () => {
+        pdf.setFillColor(45, 25, 95);
+        pdf.rect(ML, y, usableW, TH_H, 'F');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7);
+        pdf.setTextColor(200, 180, 255);
+        const cols = [
+          ['Group', xGroup],
+          ['Slot', xSlot],
+          ['Team Name', xTeam],
+          ['Player 1 IGN', xP1],
+          ['Player 2 IGN', xP2],
+          ['Player 3 IGN', xP3],
+          ['Player 4 IGN', xP4],
+        ];
+        cols.forEach(([label, x]) => pdf.text(label, x + 1, y + TH_H / 2 + 1.5));
+        y += TH_H;
+      };
+
+      const checkPage = (needed) => {
+        if (y + needed > PH - 8) {
+          pdf.addPage();
+          y = MT;
+          // Repeat header
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8);
+          pdf.setTextColor(80, 80, 80);
+          pdf.text(`${tournament.title}  —  ${roundDisplay}  (continued)`, ML, y + 4);
+          y += 8;
+          drawTableHeader();
+        }
+      };
+
+      // Page header
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(13);
+      pdf.setTextColor(20, 20, 20);
+      pdf.text(tournament.title.toUpperCase(), PW / 2, y + 5, { align: 'center' });
+      y += 7;
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 60, 200);
+      pdf.text(`${roundDisplay} — IGN LIST`, PW / 2, y + 3, { align: 'center' });
+      y += 5;
+      pdf.setFontSize(7);
+      pdf.setTextColor(130, 130, 130);
+      pdf.text(
+        new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        PW / 2,
+        y + 3,
+        { align: 'center' }
+      );
+      y += 6;
+      pdf.setDrawColor(140, 80, 240);
+      pdf.setLineWidth(0.3);
+      pdf.line(ML, y, PW - MR, y);
+      y += 4;
+
+      drawTableHeader();
+
+      let altRow = 0;
+      roundGroups.forEach((group) => {
+        checkPage(GH);
+        pdf.setFillColor(230, 220, 255);
+        pdf.rect(ML, y, usableW, GH, 'F');
+        pdf.setDrawColor(160, 100, 255);
+        pdf.setLineWidth(0.6);
+        pdf.line(ML, y, ML, y + GH);
+        pdf.setLineWidth(0.1);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(60, 20, 140);
+        pdf.text(
+          `${group.group_name.toUpperCase()}   •   ${group.teams.length} TEAMS`,
+          ML + 3,
+          y + GH / 2 + 1.5
+        );
+        y += GH;
+
+        group.teams.forEach((team, idx) => {
+          checkPage(ROW_H);
+          const slotNum = String(idx + 3).padStart(2, '0');
+          const igns = extractIGNs(team);
+
+          if (altRow % 2 === 0) {
+            pdf.setFillColor(248, 248, 252);
+            pdf.rect(ML, y, usableW, ROW_H, 'F');
+          }
+          pdf.setDrawColor(220, 220, 235);
+          pdf.setLineWidth(0.1);
+          pdf.line(ML, y + ROW_H, ML + usableW, y + ROW_H);
+
+          const ty = y + ROW_H / 2 + 1.5;
+
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(6);
+          pdf.setTextColor(140, 140, 160);
+          pdf.text(group.group_name, xGroup + 1, ty);
+
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(7);
+          pdf.setTextColor(100, 50, 200);
+          pdf.text(slotNum, xSlot + 1, ty);
+
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(7);
+          pdf.setTextColor(20, 20, 20);
+          const teamTrunc =
+            team.team_name.length > 26 ? team.team_name.slice(0, 25) + '…' : team.team_name;
+          pdf.text(teamTrunc, xTeam + 1, ty);
+
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(6.5);
+          [
+            [xP1, igns[0]],
+            [xP2, igns[1]],
+            [xP3, igns[2]],
+            [xP4, igns[3]],
+          ].forEach(([x, ign]) => {
+            if (ign) {
+              pdf.setTextColor(10, 130, 70);
+              const t = ign.length > 22 ? ign.slice(0, 21) + '…' : ign;
+              pdf.text(t, x + 1, ty);
+            } else {
+              pdf.setTextColor(190, 190, 200);
+              pdf.text('—', x + 1, ty);
+            }
+          });
+
+          y += ROW_H;
+          altRow++;
+        });
+      });
+
+      // Page numbers
+      const total = pdf.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        pdf.setPage(i);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(160, 160, 160);
+        pdf.text(`Page ${i} of ${total}  •  SCRIMVERSE`, PW / 2, PH - 4, { align: 'center' });
+      }
+
+      pdf.save(`${titleLabel}_${roundLabel}_IGNs.pdf`);
+    } catch (err) {
+      console.error('IGN PDF failed:', err);
+      showToast('Failed to generate IGN PDF', 'error');
+    }
+  };
+
+  // ── Export IGNs as CSV ───────────────────────────────────────────────────
+  const handleExportIGNs = () => {
+    if (!roundGroups || roundGroups.length === 0) {
+      showToast('No groups configured for the current round', 'error');
+      return;
+    }
+
+    const rows = [
+      [
+        'Group',
+        'Slot',
+        'Team Name',
+        'Player 1 IGN',
+        'Player 2 IGN',
+        'Player 3 IGN',
+        'Player 4 IGN',
+      ],
+    ];
+
+    roundGroups.forEach((group) => {
+      group.teams.forEach((team, idx) => {
+        const slotNum = String(idx + 3).padStart(2, '0');
+        const igns = extractIGNs(team);
+        rows.push([group.group_name, slotNum, team.team_name, igns[0], igns[1], igns[2], igns[3]]);
+      });
+      rows.push(['', '', '', '', '', '', '']); // blank row between groups
+    });
+
+    const csvContent = rows
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const roundLabel = (currentRoundName || `Round ${currentRound}`)
+      .replace(/\s+/g, '_')
+      .toUpperCase();
+    const titleLabel = tournament.title.replace(/[^a-zA-Z0-9]/g, '_');
+    const link = document.createElement('a');
+    link.download = `${titleLabel}_${roundLabel}_IGNs.csv`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
 
   // 5v5 Lobby Preview — renders inline, replacing the full page (sidebar still visible via HostDashboard)
   if (lobbyPreview) {
@@ -1705,6 +2263,163 @@ const ManageTournament = ({ inlineId, onBack, onStarted } = {}) => {
               <Calendar className="h-3.5 w-3.5" />
               Bulk Schedule
             </button>
+            {roundGroups.length > 0 && (
+              <>
+                {/* Slot List dropdown */}
+                <div className="relative" ref={slotListDropdownRef}>
+                  <button
+                    onClick={() => {
+                      if (!showSlotListDropdown && selectedExportGroups.size === 0) {
+                        setSelectedExportGroups(new Set(roundGroups.map((g) => g.id)));
+                      }
+                      setShowSlotListDropdown((v) => !v);
+                    }}
+                    className="mt-action-btn"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Slot List
+                    <ChevronDown className="h-3 w-3 ml-0.5" />
+                  </button>
+
+                  {showSlotListDropdown && (
+                    <div
+                      className="absolute top-full left-0 mt-1 z-50 rounded-lg shadow-xl p-3 min-w-[190px]"
+                      style={{
+                        background: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                      }}
+                    >
+                      {/* Select All */}
+                      <label
+                        className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs font-semibold hover:bg-accent/10 transition-colors"
+                        style={{ color: 'hsl(var(--foreground))' }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedExportGroups.size === roundGroups.length}
+                          onChange={(e) =>
+                            setSelectedExportGroups(
+                              e.target.checked ? new Set(roundGroups.map((g) => g.id)) : new Set()
+                            )
+                          }
+                          className="accent-accent"
+                        />
+                        Select All
+                      </label>
+
+                      <div
+                        className="my-1.5"
+                        style={{ borderTop: '1px solid hsl(var(--border))' }}
+                      />
+
+                      {/* Group list */}
+                      <div className="max-h-48 overflow-y-auto space-y-0.5">
+                        {roundGroups.map((group) => (
+                          <label
+                            key={group.id}
+                            className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer text-xs hover:bg-accent/10 transition-colors"
+                            style={{ color: 'hsl(var(--muted-foreground))' }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedExportGroups.has(group.id)}
+                              onChange={(e) => {
+                                setSelectedExportGroups((prev) => {
+                                  const next = new Set(prev);
+                                  if (e.target.checked) next.add(group.id);
+                                  else next.delete(group.id);
+                                  return next;
+                                });
+                              }}
+                              className="accent-accent"
+                            />
+                            {group.group_name}
+                          </label>
+                        ))}
+                      </div>
+
+                      <div
+                        className="mt-2 pt-2 flex gap-2"
+                        style={{ borderTop: '1px solid hsl(var(--border))' }}
+                      >
+                        <button
+                          onClick={() => {
+                            handleDownloadSlotListPNG();
+                            setShowSlotListDropdown(false);
+                          }}
+                          disabled={selectedExportGroups.size === 0 || isGeneratingSlotList}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-semibold transition-colors disabled:opacity-50"
+                          style={{
+                            background: 'hsl(var(--accent)/0.15)',
+                            color: 'hsl(var(--accent))',
+                          }}
+                        >
+                          <Download className="h-3 w-3" />
+                          PNG
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleDownloadSlotListPDF();
+                            setShowSlotListDropdown(false);
+                          }}
+                          disabled={selectedExportGroups.size === 0 || isGeneratingSlotList}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-semibold transition-colors disabled:opacity-50"
+                          style={{
+                            background: 'hsl(var(--accent)/0.15)',
+                            color: 'hsl(var(--accent))',
+                          }}
+                        >
+                          <Download className="h-3 w-3" />
+                          PDF
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Export IGNs dropdown */}
+                <div className="relative" ref={ignDropdownRef}>
+                  <button onClick={() => setShowIGNDropdown((v) => !v)} className="mt-action-btn">
+                    <Download className="h-3.5 w-3.5" />
+                    Export IGNs
+                    <ChevronDown className="h-3 w-3 ml-0.5" />
+                  </button>
+
+                  {showIGNDropdown && (
+                    <div
+                      className="absolute top-full left-0 mt-1 z-50 rounded-lg shadow-xl p-2 min-w-[120px]"
+                      style={{
+                        background: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          handleExportIGNs();
+                          setShowIGNDropdown(false);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 rounded text-xs font-semibold hover:bg-accent/10 transition-colors"
+                        style={{ color: 'hsl(var(--foreground))' }}
+                      >
+                        <Download className="h-3 w-3" />
+                        CSV
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleExportIGNsPDF();
+                          setShowIGNDropdown(false);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 rounded text-xs font-semibold hover:bg-accent/10 transition-colors"
+                        style={{ color: 'hsl(var(--foreground))' }}
+                      >
+                        <Download className="h-3 w-3" />
+                        PDF
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
             <button
               onClick={() => {
                 setTempLiveUrl(tournament.live_link || '');

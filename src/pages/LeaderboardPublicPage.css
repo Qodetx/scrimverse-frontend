@@ -1,0 +1,436 @@
+/* LeaderboardPublicPage — standalone, no Navbar/Footer, dark gaming theme */
+
+.lpub-root {
+  min-height: 100vh;
+  background: #07070f;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(147, 51, 234, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(59, 130, 246, 0.08) 0%, transparent 60%);
+  color: #ffffff;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 16px 64px;
+}
+
+/* ── Back bar ──────────────────────────────────────────────────────────────── */
+.lpub-back-bar {
+  width: 100%;
+  max-width: 900px;
+  padding: 20px 0 0;
+}
+
+.lpub-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.lpub-back-link:hover {
+  color: #c084fc;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────────── */
+.lpub-hero {
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+  padding: 40px 0 32px;
+}
+
+.lpub-wordmark {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.lpub-scrim {
+  color: #ffffff;
+}
+
+.lpub-verse {
+  color: #c084fc;
+}
+
+.lpub-title {
+  font-size: 42px;
+  font-weight: 950;
+  background: linear-gradient(135deg, #ffffff 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+
+.lpub-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* ── Controls ──────────────────────────────────────────────────────────────── */
+.lpub-controls {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.lpub-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 5px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lpub-tab {
+  padding: 9px 22px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: inherit;
+}
+
+.lpub-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.lpub-tab.active {
+  background: rgba(139, 92, 246, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.lpub-game-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #a855f7;
+  transition: all 0.2s;
+}
+
+.lpub-game-filter:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.lpub-select {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  padding: 4px 20px 4px 4px;
+  font-family: inherit;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0px center;
+}
+
+.lpub-select option {
+  background: #1a1a2e;
+  color: #ffffff;
+}
+
+/* ── Table ─────────────────────────────────────────────────────────────────── */
+.lpub-table-wrap {
+  width: 100%;
+  max-width: 900px;
+  overflow-x: auto;
+}
+
+.lpub-table {
+  background: rgba(15, 15, 20, 0.95);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  min-width: 560px;
+}
+
+/* Grid columns: rank / team / wins / pos / kill / total */
+.lpub-header,
+.lpub-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 90px 100px 100px 110px;
+  gap: 12px;
+  padding: 14px 20px;
+  align-items: center;
+}
+
+.lpub-header.wins-only,
+.lpub-row.wins-only {
+  grid-template-columns: 70px 1fr 90px;
+}
+
+.lpub-header {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.1) 100%);
+  border-bottom: 2px solid rgba(139, 92, 246, 0.25);
+}
+
+.lpub-hcell {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+}
+
+.lpub-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.2s ease;
+}
+
+.lpub-row:last-child {
+  border-bottom: none;
+}
+
+.lpub-row:hover {
+  background: rgba(139, 92, 246, 0.07);
+}
+
+/* Top 3 highlighting */
+.lpub-row.lpub-rank-gold {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.12) 0%, rgba(15, 15, 20, 0.95) 100%);
+  border-left: 3px solid #ffd700;
+}
+
+.lpub-row.lpub-rank-silver {
+  background: linear-gradient(90deg, rgba(192, 192, 192, 0.12) 0%, rgba(15, 15, 20, 0.95) 100%);
+  border-left: 3px solid #c0c0c0;
+}
+
+.lpub-row.lpub-rank-bronze {
+  background: linear-gradient(90deg, rgba(205, 127, 50, 0.12) 0%, rgba(15, 15, 20, 0.95) 100%);
+  border-left: 3px solid #cd7f32;
+}
+
+/* Column alignment */
+.lpub-col-rank {
+  justify-content: center;
+}
+
+.lpub-col-team {
+  justify-content: flex-start;
+}
+
+.lpub-col-wins,
+.lpub-col-pts,
+.lpub-col-total {
+  justify-content: center;
+}
+
+/* Rank badge */
+.lpub-cell {
+  display: flex;
+  align-items: center;
+}
+
+.lpub-rank-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  color: #9ca3af;
+}
+
+.lpub-rank-badge.lpub-rank-gold {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #1a1a1a;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.35);
+  font-size: 22px;
+}
+
+.lpub-rank-badge.lpub-rank-silver {
+  background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+  color: #1a1a1a;
+  box-shadow: 0 4px 12px rgba(192, 192, 192, 0.35);
+  font-size: 22px;
+}
+
+.lpub-rank-badge.lpub-rank-bronze {
+  background: linear-gradient(135deg, #cd7f32 0%, #e8a87c 100%);
+  color: #1a1a1a;
+  box-shadow: 0 4px 12px rgba(205, 127, 50, 0.35);
+  font-size: 22px;
+}
+
+/* Team name */
+.lpub-team-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* Stat values */
+.lpub-stat-wins {
+  font-size: 15px;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.lpub-stat-pts {
+  font-size: 14px;
+  font-weight: 600;
+  color: #93c5fd;
+}
+
+.lpub-stat-kills {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fca5a5;
+}
+
+.lpub-stat-total {
+  font-size: 16px;
+  font-weight: 800;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* ── States ─────────────────────────────────────────────────────────────────── */
+.lpub-state-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 12px;
+}
+
+.lpub-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #a855f7;
+  border-radius: 50%;
+  animation: lpub-spin 0.8s linear infinite;
+}
+
+@keyframes lpub-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lpub-state-text {
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.lpub-state-sub {
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.lpub-state-error {
+  color: #f87171;
+  font-size: 16px;
+}
+
+.lpub-retry-btn {
+  padding: 10px 24px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 8px;
+  color: #c084fc;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lpub-retry-btn:hover {
+  background: rgba(139, 92, 246, 0.25);
+  color: #ffffff;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+.lpub-footer {
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lpub-footer-wordmark {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+
+.lpub-footer-text {
+  font-size: 12px;
+  color: #374151;
+  letter-spacing: 0.5px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .lpub-title {
+    font-size: 28px;
+  }
+
+  .lpub-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lpub-header,
+  .lpub-row {
+    grid-template-columns: 54px 1fr 76px 80px 80px 88px;
+    gap: 8px;
+    padding: 12px 12px;
+  }
+
+  .lpub-header.wins-only,
+  .lpub-row.wins-only {
+    grid-template-columns: 54px 1fr 76px;
+  }
+}
